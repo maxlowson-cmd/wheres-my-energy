@@ -1,0 +1,7 @@
+__pycache__/
+index.html
+site/
+map.json
+regions.svg
+grid_snapshot.json
+units_all.json
