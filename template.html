@@ -243,6 +243,10 @@
   .primary.fit { align-self: flex-start; }
   .support { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; font-size: .92rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: .75rem; }
   .support span { flex: 1 1 14rem; min-width: 0; }
+  .factline { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: .8rem; margin-top: .8rem; }
+  .factline .note { flex: 1 1 16rem; min-width: 0; margin: 0; }
+  .factline b { color: var(--ink); font-weight: 600; }
+  .linkbtn { font: inherit; font-size: .88rem; color: var(--ink); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
   .toggles { display: flex; flex-direction: column; gap: .55rem; }
   .toggles label { display: flex; align-items: flex-start; gap: .55rem; font-weight: 500; font-size: .98rem; cursor: pointer; }
   .toggles input { flex: none; width: 1.1rem; height: 1.1rem; margin: .2rem 0 0; accent-color: var(--go); }
@@ -339,13 +343,6 @@
             <p class="lead">Check the postcode and try again.</p>
           </div>
         </section>
-      </article>
-
-      <article class="card" data-name="Did you know?">
-        <p class="eyebrow">Did you know?</p>
-        <h2 id="factText"></h2>
-        <p class="note"><a id="factSource" target="_blank" rel="noopener"></a></p>
-        <button class="next" id="factNext" type="button">Another one</button>
       </article>
 
       <article class="card" id="gasCard" data-name="Your gas">
@@ -493,6 +490,10 @@
       <button class="arrow" id="prev" type="button" aria-label="Previous card">&#8592;</button>
       <div class="dots" id="dots"></div>
       <button class="next" id="next" type="button"></button>
+    </div>
+    <div class="factline">
+      <p class="note"><b>Did you know?</b> <span id="factText"></span> <a id="factSource" target="_blank" rel="noopener"></a></p>
+      <button class="linkbtn" id="factNext" type="button">Another one</button>
     </div>
     <div class="support"><span id="supportText">This site is free. If it's useful, you can help keep it running.</span><a class="next" id="donate" href="https://ko-fi.com/wheresmyenergyfrom" target="_blank" rel="noopener">Buy me a coffee</a></div>
   </section>
@@ -930,7 +931,7 @@
     // the first map stays local: the four likeliest sources within about 125 miles along the lines
     const within = model.rows.filter((s) => s.km <= 200 && s.share > 0);
     const picks = (within.length >= 2 ? within : model.rows).slice(0, 4);
-    lastMap = { p, picks };
+    lastMap = { p, picks, model };
     holder.innerHTML = nearSvg(model, picks) + ['gas', 'nuclear', 'imports', 'coal'].map((f) => fuelSvg(model, f, mix[f])).join('');
     drawGasStory(model, mix.gas);
     const names = picks.slice(0, 3).map((s) => `<em>${esc(s.short)}</em>`);
@@ -1146,8 +1147,9 @@
     c.restore();
     return P;
   }
-  function glowLine(c, pts, colour, width) {
+  function glowLine(c, pts, colour, width, dashed) {
     c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = colour; c.lineWidth = width; c.shadowColor = colour; c.shadowBlur = 26;
+    if (dashed) c.setLineDash([2, width * 3.2]);
     c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke(); c.restore();
   }
   function glowDot(c, x, y, r, colour) { c.save(); c.shadowColor = colour; c.shadowBlur = 28; c.fillStyle = colour; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.restore(); }
@@ -1187,8 +1189,8 @@
       }
       const P = drawBritain(m, mapX, mapY, mapH, { stations: s.stations, sites: s.zoom, dotPx: s.zoom ? 3.4 : 0, fill: s.stations ? '#163e34' : DK.land });
       const P2 = (q) => { const [x, y] = P(q); return [Math.min(x, W - 34), y]; };
-      (s.routes || []).forEach((r) => glowLine(m, r.pts.map(P2), r.colour, r.width || 6));
-      (s.routes || []).forEach((r) => r.pts.slice(0, -1).forEach((q) => { const [x, y] = P2(q); glowDot(m, x, y, r.dot || 15, r.colour); }));
+      (s.routes || []).forEach((r) => glowLine(m, r.pts.map(P2), r.colour, r.width || 6, r.dashed));
+      (s.routes || []).forEach((r) => (r.stops || r.pts.slice(0, -1)).forEach((q) => { const [x, y] = P2(q); glowDot(m, x, y, r.dot || 15, r.colour); }));
       if (zoomed) {
         const fade = (x0, y0, x1, y1) => { const g = m.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)'); m.globalCompositeOperation = 'destination-in'; m.fillStyle = g; m.fillRect(0, 0, W, H); m.globalCompositeOperation = 'source-over'; };
         fade(340, 0, 720, 0); fade(0, 330, 0, 480); fade(0, 1450, 0, 1300);
@@ -1211,16 +1213,6 @@
       if (s.chips) { let x = M; s.chips.slice(0, 5).forEach(([colour, label]) => { setFont(c, 28, 600, BODY); const w = c.measureText(label).width + 62; if (x + w > W - M) return; glowDot(c, x + 10, 1558, 9, colour); c.fillStyle = DK.ink; c.fillText(label, x + 30, 1568); x += w; }); }
       storyChrome(c, s);
       return c;
-    },
-    fact(c, s) {
-      storyFrame(c, s, DK.solar);
-      drawBritain(c, 300, 180, 1760, { fill: '#123229', noLine: true });
-      c.fillStyle = 'rgba(10,27,23,.25)'; c.fillRect(0, 0, W, H);
-      const k = 7.4, ox = M - 60, oy = 340;
-      c.save(); c.shadowColor = DK.solar; c.shadowBlur = 40; c.fillStyle = DK.solar; c.beginPath(); [[18, 5], [9, 18], [15, 18], [14, 27], [23, 14], [17, 14]].forEach(([x, y], i) => (i ? c.lineTo(ox + x * k, oy + y * k) : c.moveTo(ox + x * k, oy + y * k))); c.closePath(); c.fill(); c.restore();
-      const size = fitSize(c, s.text, W - 2 * M, 900, [104, 96, 88, 80, 72, 64], 800, DISPLAY, 1.1);
-      textLines(c, s.text, M, 620 + size, W - 2 * M, size, 800, DISPLAY, DK.ink, 1.1, 14);
-      storyChrome(c, s);
     },
     league(c, s) {
       storyFrame(c, s, DK.go);
@@ -1327,6 +1319,44 @@
   const fuelStrip = (mix) => fuelRows(mix).map(([k, p]) => [fuelDk(k), p]);
   const renewOfMix = (mix) => Math.round(CARD_RENEW.reduce((a, k) => a + (mix[k] || 0), 0));
   let shareBase = null, shareCache = new Map();
+  /* real pipeline routes, loaded only when someone shares the gas slide */
+  let gasNet = null;
+  function loadGasNet() {
+    gasNet = gasNet || fetch('gas_net.json').then((r) => { if (!r.ok) throw new Error('no network'); return r.json(); }).then((d) => {
+      const n = d.nodes.length / 2, adj = Array.from({ length: n }, () => []);
+      d.edges.forEach(([a, b, L, w]) => { adj[a].push([b, L, w, false]); adj[b].push([a, L, w, true]); });
+      return { ...d, n, adj, xy: (i) => [d.nodes[i * 2], d.nodes[i * 2 + 1]] };
+    });
+    return gasNet;
+  }
+  function netPath(net, from, to) {
+    const near = (q) => { let at = 0, low = Infinity; for (let i = 0; i < net.n; i++) { const [x, y] = net.xy(i), v = (x - q[0]) ** 2 + (y - q[1]) ** 2; if (v < low) { low = v; at = i; } } return at; };
+    const a = near(from), b = near(to), dist = new Float64Array(net.n).fill(Infinity), prev = new Array(net.n), done = new Uint8Array(net.n), heap = [[0, a]];
+    dist[a] = 0;
+    while (heap.length) {
+      let m = 0;
+      for (let i = 1; i < heap.length; i++) if (heap[i][0] < heap[m][0]) m = i;
+      const [d, u] = heap.splice(m, 1)[0];
+      if (done[u]) continue;
+      done[u] = 1;
+      if (u === b) break;
+      net.adj[u].forEach(([v, L, w, rev]) => { if (d + L < dist[v]) { dist[v] = d + L; prev[v] = [u, w, rev]; heap.push([dist[v], v]); } });
+    }
+    if (!Number.isFinite(dist[b])) return null;
+    const out = [net.xy(b)];
+    for (let n = b; n !== a;) { const [m, w, rev] = prev[n]; const g = pairs(net.ways[w]); out.push(...(rev ? g : g.reverse()), net.xy(m)); n = m; }
+    return [from, ...out.reverse(), to];
+  }
+  async function gasLegs(key, term, from, st) {
+    const net = await loadGasNet(), land = netPath(net, term.xy, st.xy), sea = net.legs[`${term.name}|${key}`];
+    if (!land) return null;
+    const stops = (pts, first) => ({ pts, colour: DK.gas, width: 7, dot: 18, stops: first });
+    const out = [];
+    if (sea) out.push(stops([...pairs(sea), term.xy], [pairs(sea)[0], term.xy]));
+    else out.push({ pts: [from.xy, term.xy], stops: [from.xy, term.xy], colour: DK.gas, width: 7, dot: 18, dashed: true });
+    out.push(stops(land, [term.xy, st.xy]));
+    return out;
+  }
   function setShareLinks(s) {
     const enc = encodeURIComponent, say2 = s.messageText || s.text;
     $('shareWa').href = `https://wa.me/?text=${enc(`${say2} ${s.link}`)}`;
@@ -1336,7 +1366,7 @@
   function renderShare(s) {
     if (s.started) return;
     s.started = true;
-    drawCard(s).then((b) => { s.blob = b; if (share === s && sheet.open) fillSheet(s); }).catch(() => { if (share === s) $('shareBusy').textContent = "The image couldn't be made, but the links still work."; });
+    (s.prepare ? s.prepare(s).catch(() => {}) : Promise.resolve()).then(() => drawCard(s)).then((b) => { s.blob = b; if (share === s && sheet.open) fillSheet(s); }).catch(() => { if (share === s) $('shareBusy').textContent = "The image couldn't be made, but the links still work."; });
   }
   function prepareShare(f, w, outward) {
     const mix = f.mix[Math.min(w.skip, f.mix.length - 1)];
@@ -1345,7 +1375,7 @@
     const time = `${clock.format(new Date())} ${shortDate(dayKey.format(new Date()))}`;
     const picks = lastMap ? lastMap.picks.slice(0, 3) : [];
     const main = { key: 'main', art: 'map', glow: DK.go, title: 'your area', district: outward, eyebrow: `RIGHT NOW IN ${outward}`, big: `${renew}%`, sub: "of this area's power is renewable.", listTitle: picks.length ? 'Likely coming from' : null,
-      list: picks.map((x) => [fuelDk(x.f), x.short, `${Math.round(x.share * 100)}%`]), zoom: true, routes: picks.map((x) => ({ pts: [x.xy, lastMap.p], colour: fuelDk(x.f), width: 7, dot: 18, label: x.short })), you: lastMap && lastMap.p, strip: fuelStrip(mix), chips: fuelRows(mix).map(([k, p]) => [fuelDk(k), `${FUEL_NAME[k] || k} ${Math.round(p)}%`]),
+      list: picks.map((x) => [fuelDk(x.f), x.short, `${Math.round(x.share * 100)}%`]), zoom: true, routes: picks.map((x) => ({ pts: lastMap.model.route(x), stops: [x.xy], colour: fuelDk(x.f), width: 7, dot: 18, label: x.short })), you: lastMap && lastMap.p, strip: fuelStrip(mix), chips: fuelRows(mix).map(([k, p]) => [fuelDk(k), `${FUEL_NAME[k] || k} ${Math.round(p)}%`]),
       note: cleanest ? `Cleanest for the washing: ${say(cleanest.from, cleanest.to)}.` : null, foot: [`Estimate for ${f.area}, ${time}. Renewable includes biomass.`], link: pageLink(),
       text: `Right now ${renew}% of the power around ${outward} is renewable${rank ? `, the ${ordinal(rank.place)} cleanest of Britain's ${rank.total} regions` : ''}. Where's yours from?`, blob: null };
     shareBase = { f, w, d: outward, time, main };
@@ -1358,13 +1388,16 @@
   function slideShare(name) {
     const { f, w, d, time, main } = shareBase;
     const make = (o) => ({ key: slideSlug(name), title: name, district: d, link: pageLink(), foot: [`Estimate for ${f.area}, ${time}.`], blob: null, ...o });
-    if (name === 'Did you know?') { const x = FACTS[factAt]; return make({ art: 'fact', eyebrow: 'DID YOU KNOW?', text: x.t, foot: [`Source: ${x.s}`], messageText: `Did you know? ${x.t}` }); }
     if (name === 'Your gas') {
       if (!gasCtx || !lastMap) return main;
       const COL = { uk: DK.wind, norway: DK.nuclear, lng: DK.gas, europe: DK.imports }, list = gasCtx.o.sources, top = list[0], pct = (x) => Math.round(x.share * 100);
       const term = gasCtx.o.terminals.find((x) => x.name === top.via[0]), from = term.from[top.key], st = gasCtx.stations[0];
       const place = { uk: 'the UK North Sea', norway: 'Norway', lng: 'LNG tankers', europe: 'Europe' }[top.key];
-      return make({ art: 'map', glow: DK.gas, eyebrow: `YOUR GAS IN ${d}`, big: `${pct(top)}%`, sub: `of the gas around ${d} likely came from ${place}.`, listTitle: 'Its journey', list: [[DK.nuclear, from.label], [DK.solar, `Ashore at ${term.name}`], [DK.gas, `Burned at ${st.short}`], [DK.ink, `Reached ${d}`]], routes: [{ pts: [from.xy, term.xy, st.xy, lastMap.p], colour: DK.gas, width: 7, dot: 18 }], you: lastMap.p, strip: list.map((x) => [COL[x.key] || DK.other, x.share]), chips: list.map((x) => [COL[x.key] || DK.other, `${GAS_TAB[x.key]} ${pct(x)}%`]), foot: ['An estimate from where gas is landing. Gas mixes in the pipes.'], messageText: `About ${pct(top)}% of the gas around ${d} likely came from ${place}. Where's yours from?` });
+      return make({ art: 'map', glow: DK.gas, eyebrow: `YOUR GAS IN ${d}`, big: `${pct(top)}%`, sub: `of the gas around ${d} likely came from ${place}.`, listTitle: 'Its journey', list: [[DK.nuclear, from.label], [DK.solar, `Ashore at ${term.name}`], [DK.gas, `Burned at ${st.short}`], [DK.ink, `Reached ${d}`]], routes: [{ pts: [from.xy, term.xy], stops: [from.xy, term.xy], colour: DK.gas, width: 7, dot: 18, dashed: true }, { pts: lastMap.model.route(st), stops: [st.xy], colour: DK.go, width: 7, dot: 18 }], you: lastMap.p,
+        prepare: async (spec) => {
+          const legs = await gasLegs(top.key, term, from, st);
+          if (legs) { spec.routes = [...legs, spec.routes[1]]; spec.foot = ['Likely route, as gas mixes in the pipes. Pipelines © OpenStreetMap contributors.']; }
+        }, strip: list.map((x) => [COL[x.key] || DK.other, x.share]), chips: list.map((x) => [COL[x.key] || DK.other, `${GAS_TAB[x.key]} ${pct(x)}%`]), foot: ['An estimate from where gas is landing. Gas mixes in the pipes.'], messageText: `About ${pct(top)}% of the gas around ${d} likely came from ${place}. Where's yours from?` });
     }
     if (name === 'The whole country') {
       const row = SNAPSHOT.mix[18][slotNow()];
@@ -1404,7 +1437,7 @@
   }
   function currentShare() {
     const name = cards[current] ? cards[current].dataset.name : '';
-    const id = [name, factAt, region.metric, region.period, S.tariff, S.car].join('|');
+    const id = [name, region.metric, region.period, S.tariff, S.car].join('|');
     if (!shareCache.has(id)) { let s = null; try { s = slideShare(name); } catch (e) {} shareCache.set(id, s || shareBase.main); }
     return shareCache.get(id);
   }
@@ -1650,7 +1683,7 @@
     button.disabled = false;
   });
   let factAt = Math.floor(Math.random() * FACTS.length);
-  function drawFact() { const f = FACTS[factAt]; $('factText').textContent = f.t; $('factSource').textContent = `Source: ${f.s}`; $('factSource').href = f.u; }
+  function drawFact() { const f = FACTS[factAt]; $('factText').textContent = f.t; $('factSource').textContent = `(${f.s})`; $('factSource').href = f.u; }
   $('factNext').addEventListener('click', () => { factAt = (factAt + 1) % FACTS.length; drawFact(); fit(); });
   drawFact();
   $('payGo').addEventListener('click', () => { $('payNote').textContent = 'This is a prototype. The link goes here once we choose a partner. If you switch through it we may earn a fee.'; fit(); });

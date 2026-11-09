@@ -124,4 +124,5 @@ document = f"""<!doctype html>
 for extra in (HERE / 'pages').glob('*.html'):
     shutil.copy(extra, HERE / 'site' / extra.name)
 shutil.copy(HERE / 'brand' / 'share_preview.png', HERE / 'site' / 'share.png')
+shutil.copy(HERE / 'gas_net.json', HERE / 'site' / 'gas_net.json')
 print('OK', snapshot['taken'], 'slots', len(rows), 'bytes', len(page.encode('utf8')), 'top import', top_import)
