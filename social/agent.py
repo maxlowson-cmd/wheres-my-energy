@@ -305,6 +305,12 @@ def weekly(history):
 def main():
     today = dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d')
     history = relay('history').get('posts', [])
+    now_utc = dt.datetime.now(dt.timezone.utc)
+    slot = 'am' if now_utc.hour < 14 else 'pm'
+    same_slot = lambda r: r['day'] == today and ('am' if dt.datetime.fromtimestamp(r['posted'] / 1000, dt.timezone.utc).hour < 14 else 'pm') == slot
+    if not DRY and any(same_slot(r) for r in history):
+        print('already posted in this slot')
+        return
     if not DRY:
         refresh_stats(history)
     with sync_playwright() as p:
@@ -327,13 +333,13 @@ def main():
             if not DRY:
                 relay('telegram', text='Instagram agent skipped today: the site data is too old to post.')
             return
-        pick = choose(ideas, history, today)
+        pick = choose(ideas, history, f'{today}{slot}')
         print('pick', pick['id'])
         sheet = page.evaluate('WMESocial.facts()')
         signoff = page.evaluate('WMESocial.signoff')
         day = dt.date.fromisoformat(today)
         album = pick['novelty'] >= .8 or day.weekday() in (1, 3, 6)
-        angle = pick_angle(history, today)
+        angle = pick_angle(history, f'{today}{slot}')
         print('format', 'album' if album else 'single', 'angle', angle)
         plan = None if explainer_due(history) or os.environ.get('MOCK_ALBUM') == 'explain' else write_plan(pick, ideas, sheet, angle, album, [r.get('caption', '')[:200] for r in history[:7]], day)
         if plan is None and DRY and os.environ.get('MOCK_ALBUM') == '1':
@@ -373,15 +379,12 @@ def main():
                 (OUT / f"{idea['id']}_feed.jpg").write_bytes(base64.b64decode(image(idea['id'], 'feed').split(',', 1)[1]))
             (OUT / 'ideas.json').write_text(json.dumps({'pick': pick['id'], 'kind': kind, 'album': album, 'plan': plan, 'facts': sheet, 'caption': caption}, indent=1, ensure_ascii=False), encoding='utf8')
             return
-        if any(r['day'] == today for r in history):
-            print('already posted today')
-            return
         feeds = [image(a, 'feed', over) for a, over in parts]
         story = image(parts[0][0], 'story', parts[0][1])
         browser.close()
     urls = []
     for n, data in enumerate(feeds):
-        url, size = upload(f'{today}-{n}', data)
+        url, size = upload(f'{today}-{slot}-{n}', data)
         urls.append(url)
         print('image bytes', size)
     media = publish_album(urls, caption) if album else publish(urls[0], caption=caption, alt=alt)
@@ -389,11 +392,11 @@ def main():
     s, d = graph(f'/{media}', fields='permalink')
     relay('telegram', text=f"Posted to Instagram ({kind}):\n{caption.split(chr(10))[0][:200]}\n{d.get('permalink', '')}")
     try:
-        story_url, _ = upload(f'{today}-story', story)
+        story_url, _ = upload(f'{today}-{slot}-story', story)
         publish(story_url, story=True)
     except Exception as e:
         relay('telegram', text=f'Instagram story failed, the feed post went out: {str(e)[:300]}')
-    if dt.datetime.now(dt.timezone.utc).weekday() == 6:
+    if now_utc.weekday() == 6 and not any(r['day'] == today for r in history):
         weekly(history)
     print('posted', media)
 

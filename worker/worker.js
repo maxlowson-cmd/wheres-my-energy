@@ -124,7 +124,12 @@ const EMAIL = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
 const SITE_URL = 'https://wheresmyenergyfrom.co.uk';
 const RELAY_URL = 'https://wheres-my-energy-relay.wheresmyenergy.workers.dev';
 const ALERT_CRON = '30 6,7 * * *'; // Cloudflare's clock is UTC, so this covers 07:30 UK time in winter and summer
-const SOCIAL_CRON = '15 11,12 * * *'; // 12:15 UK time, winter and summer
+const SOCIAL_CRON = '15 7,8,11,12,19,20 * * *'; // covers each posting time in UK winter and summer; socialDue picks the real ones
+const TWICE_DAILY_UNTIL = '2026-11-16'; // the launch week: 08:15 and 20:15, then 12:15 once a day
+function socialDue(now) {
+  const [d, m, y] = ukDay.format(now).split('/'), hour = Number(ukHour.format(now));
+  return `${y}-${m}-${d}` <= TWICE_DAILY_UNTIL ? hour === 8 || hour === 20 : hour === 12;
+}
 const DAILY_CAP = 95; // stays inside the email service's free daily limit, leaving room for confirmation emails
 const SLOT = 1800000, LONDON = 'Europe/London';
 const part = (options) => new Intl.DateTimeFormat('en-GB', { timeZone: LONDON, ...options });
@@ -291,7 +296,7 @@ export default {
     return reply(404, headers, { error: 'not found' });
   },
   async scheduled(event, env, ctx) {
-    if (event.cron === SOCIAL_CRON) { if (Number(ukHour.format(new Date())) === 12) ctx.waitUntil(rebuild(env, 'social.yml', { dry_run: '0' })); return; }
+    if (event.cron === SOCIAL_CRON) { if (socialDue(new Date())) ctx.waitUntil(rebuild(env, 'social.yml', { dry_run: '0' })); return; }
     ctx.waitUntil(event.cron === ALERT_CRON ? morningEmails(env) : rebuild(env));
   },
 };

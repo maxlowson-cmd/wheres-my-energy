@@ -9,7 +9,7 @@ GH_WORKFLOW = "build.yml"
 GH_REF = "main"
 
 [triggers]
-crons = ["7,37 * * * *", "30 6,7 * * *", "15 11,12 * * *"]
+crons = ["7,37 * * * *", "30 6,7 * * *", "15 7,8,11,12,19,20 * * *"]
 
 [[d1_databases]]
 binding = "DB"
