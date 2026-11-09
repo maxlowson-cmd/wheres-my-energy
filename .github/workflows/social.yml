@@ -6,6 +6,9 @@ on:
       dry_run:
         description: 'Render the ideas without posting (1 or 0)'
         default: '1'
+      mock_album:
+        description: 'Test album rendering without wording (1 or 0)'
+        default: '0'
 
 permissions:
   contents: read
@@ -24,12 +27,14 @@ jobs:
           python-version: '3.12'
       - name: Install the browser
         run: |
-          pip install playwright==1.48.0
+          pip install playwright==1.48.0 anthropic
           playwright install --with-deps chromium
       - name: Run the agent
         env:
           INSTAGRAM_TOKEN: ${{ secrets.INSTAGRAM_TOKEN }}
           SOCIAL_KEY: ${{ secrets.SOCIAL_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MOCK_ALBUM: ${{ inputs.mock_album }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: python social/agent.py
       - uses: actions/upload-artifact@v4

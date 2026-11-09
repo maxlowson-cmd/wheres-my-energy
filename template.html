@@ -1222,7 +1222,7 @@
       return c;
     },
     fact(c, s) {
-      storyFrame(c, s, DK.solar);
+      storyFrame(c, s, s.glow || DK.solar);
       if (s.overlay) drawBritain(c, 400, 320, 1250, { fill: '#123229', noLine: true });
       else { drawBritain(c, 300, 180, 1760, { fill: '#123229', noLine: true }); c.fillStyle = 'rgba(10,27,23,.25)'; c.fillRect(0, 0, W, H); }
       const k = 7.4, ox = M - 60, oy = 340;
@@ -1230,6 +1230,7 @@
       const size = fitSize(c, s.text, W - 2 * M, 900, [104, 96, 88, 80, 72, 64], 800, DISPLAY, 1.1);
       textLines(c, s.text, M, 620 + size, W - 2 * M, size, 800, DISPLAY, DK.ink, 1.1, 14);
       storyChrome(c, s);
+      if (s.swipe) { setFont(c, 40, 700, BODY); c.fillStyle = DK.go; c.textAlign = 'right'; c.fillText('Swipe \u2192', W - M, 1672); c.textAlign = 'left'; }
     },
     league(c, s) {
       storyFrame(c, s, DK.go);
@@ -1467,7 +1468,7 @@
       if (!gb) return [];
       const ranked = fuelRows(gb), list5 = ranked.slice(0, 5).map(([k, p]) => [fuelDk(k), FUEL_NAME[k] || k, `${Math.round(p)}%`]), strip0 = fuelStrip(gb);
       const out = [];
-      const add = (id, type, novelty, spec, words) => { const s = { eyebrow: 'RIGHT NOW IN GREAT BRITAIN', foot: [`Estimate for Great Britain, ${time}.`], district: 'GB', key: id, ...spec }; cache.set(id, s); out.push({ id, type, novelty: clip(novelty), caption: words + sign, alt: words.split('. ')[0] }); };
+      const add = (id, type, novelty, spec, words) => { const s = { eyebrow: 'RIGHT NOW IN GREAT BRITAIN', foot: [`Estimate for Great Britain, ${time}.`], district: 'GB', key: id, ...spec }; cache.set(id, s); out.push({ id, type, art: s.art, limit: s.art === 'map' ? 60 : 85, novelty: clip(novelty), caption: words + sign, shows: words, alt: words.split('. ')[0] }); };
       const fuelPost = (fuel, label, min, word = FUEL_NAME[fuel], verb = 'is') => {
         const v = Math.round(gb[fuel] || 0), y = Math.round(year[fuel] || 0);
         if (v < min) return;
@@ -1500,10 +1501,31 @@
       }
       const x = FACTS[Math.floor(Date.now() / 864e5) % FACTS.length];
       add('fact', 'fact', .35, { art: 'fact', eyebrow: 'DID YOU KNOW?', text: x.t, foot: [`Source: ${x.s}`] }, `${x.t}\n\nSource: ${x.s}.`);
+      cache.set('hook', { art: 'fact', eyebrow: 'TODAY', text: '', foot: [], key: 'hook', district: 'GB', swipe: true, glow: DK.go });
+      cache.set('closing', { art: 'fact', eyebrow: 'WHAT IT MEANS FOR YOU', text: '', foot: ['Put in your postcode at the link in our bio.'], key: 'closing', district: 'GB', glow: DK.go });
       return out;
     }
-    async function image(id, format) {
-      const s = cache.get(id);
+    function facts() {
+      const gb = nowOf(18), year = yearOf(18), round = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Math.round(v)]));
+      const start = slotNow(), base = Math.floor(Date.now() / SLOT) * SLOT, ids = Object.keys(NAMES).filter((k) => Number(k) <= 14);
+      const grams = Array.from({ length: 48 }, (_, i) => { const v = ids.map((k) => SNAPSHOT.regions[k][start + i]).filter((x) => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; }).filter((x) => x != null);
+      const fossil = SNAPSHOT.mix[18].slice(start, start + 48).map((row) => row[SNAPSHOT.fuels.indexOf('gas')] + row[SNAPSHOT.fuels.indexOf('coal')]);
+      const pick = (better) => { let at = 0, b = null; for (let i = 0; i + 5 <= fossil.length; i++) { const v = fossil.slice(i, i + 5).reduce((x, y) => x + y, 0); if (b === null || better(v, b)) { b = v; at = i; } } return at; };
+      const low = pick((a, b) => a < b), high = pick((a, b) => a > b), mean = (at) => grams.slice(at, at + 5).reduce((a, b) => a + b, 0) / 5, gl = mean(low), gh = mean(high), when = (at) => say(base + at * SLOT, base + (at + 5) * SLOT);
+      const prices = SNAPSHOT.prices.slice(-48), vals = prices.map((x) => x.p), lo = prices[vals.indexOf(Math.min(...vals))], hi = prices[vals.indexOf(Math.max(...vals))];
+      const out = { reading_time: stamp(), britain_now_percent: round(gb), britain_12_month_average_percent: round(year), britain_renewable_now_percent: renewOfMix(gb), britain_renewable_12_month_percent: renewOfMix(year), regions_renewable_now_percent: ids.filter((k) => nowOf(k)).map((k) => ({ region: NAMES[k], percent: renewOfMix(nowOf(k)) })).sort((a, b) => b.percent - a.percent), number_of_regions: ids.length, top_import_country: SNAPSHOT.topImport,
+        next_24_hours: { cleanest_2_5_hours: when(low), least_clean_2_5_hours: when(high), fossil_percent_cleanest: Math.round(fossil.slice(low, low + 5).reduce((a, b) => a + b, 0) / 5), fossil_percent_least_clean: Math.round(fossil.slice(high, high + 5).reduce((a, b) => a + b, 0) / 5) },
+        everyday: { one_wash_uses_kwh: KWH.wash, one_ev_charge_uses_kwh: KWH.car, washing_grams_co2_cleanest_window: Math.round(gl * KWH.wash), washing_grams_co2_least_clean_window: Math.round(gh * KWH.wash), ev_charge_kg_co2_cleanest_window: +(gl * KWH.car / 1000).toFixed(1), ev_charge_kg_co2_least_clean_window: +(gh * KWH.car / 1000).toFixed(1), least_clean_vs_cleanest_ratio: +(gh / Math.max(gl, 1)).toFixed(1) },
+        wholesale_last_24_hours: { lowest_gbp_per_mwh: Math.round(lo.p), lowest_at: clock.format(new Date(lo.t)), highest_gbp_per_mwh: Math.round(hi.p), highest_at: clock.format(new Date(hi.t)) } };
+      if (GAS && GAS.terminals.length) { const totals = {}; GAS.terminals.forEach((x) => Object.entries(x.mix).forEach(([k, v]) => { totals[k] = (totals[k] || 0) + v; })); const sum = Object.values(totals).reduce((a, b) => a + b, 0); out.gas_landing_now_percent = Object.fromEntries(Object.entries(totals).map(([k, v]) => [GAS_NAME[k], Math.round(v / sum * 100)])); }
+      const x = FACTS[Math.floor(Date.now() / 864e5) % FACTS.length];
+      out.sourced_fact_of_the_day = x.t;
+      return out;
+    }
+    async function image(id, format, over) {
+      const s = { ...cache.get(id) };
+      if (over && over.text) { if (s.art === 'map') s.sub = over.text; else if (s.art === 'fact') s.text = over.text; else s.headline = over.text; }
+      if (over && over.eyebrow) s.eyebrow = over.eyebrow;
       try { await Promise.all([document.fonts.load('800 80px "Bricolage Grotesque"'), document.fonts.load('700 80px "Bricolage Grotesque"'), document.fonts.load('600 30px Figtree'), document.fonts.load('700 30px Figtree'), document.fonts.load('500 30px Figtree')]); } catch (e) {}
       const cv = document.createElement('canvas');
       cv.width = W; cv.height = H;
@@ -1519,7 +1541,7 @@
       c.drawImage(cv, 0, 200, W, 1520, 60, 0, 960, FH);
       return f.toDataURL('image/jpeg', .92);
     }
-    return { candidates, image };
+    return { candidates, image, facts, signoff: '\n\nSee where your power comes from: wheresmyenergyfrom.co.uk (link in bio)\n\nEstimates from the NESO Carbon Intensity forecast.\n\n#energy #renewables #uk #electricity #climate' };
   })();
 
   function currentShare() {
