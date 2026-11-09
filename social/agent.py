@@ -141,6 +141,7 @@ Truth rules, which matter more than being catchy:
 - Use only numbers that appear in the data you are given, exactly as given. Don't calculate new figures or round them differently. Loose words like "about a third" or "nearly three times" are fine where the data clearly supports them.
 - The data shows what is happening, not why. Don't claim a cause unless the data shows it: no storms, weather events, records, outages, news or price changes for customers. It is fair to say that with little wind, gas is doing more of the work.
 - Mention an occasion only if the data names one under "occasion_today".
+- The on-this-day slide uses metered main-grid figures, which differ from the wider "right now" mix. Never give both figures for the same fuel in one post, and call the on-this-day figure "on the main grid".
 - The figures are forecasts and estimates, so say "right now" or "around" rather than sounding exact to the kilowatt.
 
 Slides: an album is a little story, one thought per slide, each making you want the next. The opening slide is a hook that opens a question and doesn't give the answer away. The closing slide brings it back to the reader. Keep to the character limit given for each slide. A slide's text sits beside the chart or map it describes, so it must match that slide's figures.
@@ -187,6 +188,9 @@ def check_plan(plan, ideas, sheet, album):
             problems.append('hook, kicker or closing is too long')
         if len({s['id'] for s in plan['slides']}) != len(plan['slides']):
             problems.append('a slide is used twice')
+        ids = {s['id'] for s in plan['slides']}
+        if 'on-this-day' in ids and any(x.startswith('fuel-') for x in ids):
+            problems.append('on-this-day uses main-grid figures, so it cannot share an album with a fuel-mix slide')
     elif len(plan['slides']) != 1:
         problems.append('a single post needs exactly one slide')
     if len(plan['caption']) > 1800:
