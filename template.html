@@ -351,7 +351,7 @@
         <div class="seg gastabs" id="gasTabs" role="group" aria-label="Where your gas came from"></div>
         <div id="gasMap"></div>
         <ol class="journey" id="gasSteps"></ol>
-        <p class="note">An estimate from where gas is landing right now. Gas mixes in the pipes, and the lines aren't exact routes. <span id="gasTime"></span></p>
+        <p class="note">An estimate from where gas is landing right now. Gas mixes in the pipes, so these are likely routes. Pipelines &copy; OpenStreetMap contributors. <span id="gasTime"></span></p>
       </article>
 
       <article class="card" data-name="The whole country">
@@ -863,13 +863,15 @@
     });
     return out;
   }
-  function gasSvg(from, term, st, you) {
-    const W = 700, H = 540;
-    const v = viewFit([from.xy, term.xy, st.xy, you], .12, .14, 40, 75, W, H);
-    const pts = spread([from.xy, term.xy, st.xy, you].map(v.P), 56);
+  function gasSvg(from, term, st, you, real) {
+    const W = 700, H = 540, start = real ? real.sea[0] : from.xy;
+    const v = viewFit(real ? [...real.sea, ...real.land, ...real.power] : [from.xy, term.xy, st.xy, you], .12, .14, 40, 75, W, H);
+    const pts = spread([start, term.xy, st.xy, you].map(v.P), 56);
     const line = (a, b, colour) => `<path class="route" style="stroke:${colour};stroke-width:4" d="M${a.join(',')}L${b.join(',')}"/>`;
     const out = [`<svg class="map" viewBox="0 0 ${W} ${H}" role="img" aria-label="Map of the journey from ${esc(from.label)} to ${esc(term.name)}, then ${esc(st.short)}, then you">`, baseUse(v)];
-    out.push(line(pts[0], pts[1], 'var(--gas)'), line(pts[1], pts[2], 'var(--gas)'), line(pts[2], pts[3], 'var(--go)'));
+    const trace = (mid, a, b, colour) => `<path class="route" style="stroke:${colour};stroke-width:4" d="M${[a, ...mid.slice(1, -1).map(v.P), b].map((q) => q.join(',')).join('L')}"/>`;
+    if (real) out.push(trace(real.sea, pts[0], pts[1], 'var(--gas)'), trace(real.land, pts[1], pts[2], 'var(--gas)'), trace(real.power, pts[2], pts[3], 'var(--go)'));
+    else out.push(line(pts[0], pts[1], 'var(--gas)'), line(pts[1], pts[2], 'var(--gas)'), line(pts[2], pts[3], 'var(--go)'));
     const label = labeller();
     const labels = [];
     [from.label, term.name, st.short, 'You'].forEach((name, i) => {
@@ -891,6 +893,10 @@
     tabs.style.gridTemplateColumns = `repeat(${o.sources.length}, minmax(0, 1fr))`;
     tabs.replaceChildren(...o.sources.map((s) => { const b = make('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(s.key === sel)); b.append(make('strong', '', `${Math.round(s.share * 100)}%`), make('span', '', GAS_TAB[s.key])); b.addEventListener('click', () => { gasCtx.sel = s.key; renderGas(); fit(); }); return b; }));
     $('gasMap').innerHTML = gasSvg(from, term, st, model.p);
+    gasLegs(sel, term, from, st).then((legs) => {
+      if (!legs || !gasCtx || gasCtx.sel !== sel || gasCtx.model !== model) return;
+      $('gasMap').innerHTML = gasSvg(from, term, st, model.p, { sea: legs[0].pts, land: legs[1].pts, power: model.route(st) });
+    }).catch(() => {});
     const miles = (km) => Math.max(1, Math.round(km * .621));
     const others = stations.slice(1).map((s) => s.short);
     const [a, b] = gasStart(sel);
