@@ -72,6 +72,74 @@ async function stats(url, env) {
   return new Response(JSON.stringify({ since, total: results.reduce((a, r) => a + r.n, 0), districts: results }), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
 
+/* plain daily totals of page opens, where visits came from, and how far through the slides people get; nothing about any one person is kept */
+const HIT_STEPS = new Set(['your-gas', 'the-whole-country', 'across-britain', 'cost-and-next-24-hours', 'your-area-s-history', 'best-times', 'free-alerts', 'could-you-pay-less']);
+const HIT_SOURCES = new Set(['direct', 'instagram', 'facebook', 'search', 'x', 'whatsapp', 'telegram', 'reddit', 'tiktok', 'linkedin', 'other']);
+const HIT_SQL = 'INSERT INTO hits (day, name, detail, n) VALUES (?1, ?2, ?3, 1) ON CONFLICT (day, name, detail) DO UPDATE SET n = n + 1';
+async function hit(request, env, headers) {
+  if (/bot|crawl|spider|slurp|headless|lighthouse|preview/i.test(request.headers.get('User-Agent') || '')) return reply(204, headers);
+  const b = await readJson(request);
+  if (!b) return reply(400, headers, { error: 'bad request' });
+  const valid = b.e === 'view' ? ['home', 'method', 'privacy'].includes(b.d) : b.e === 'step' ? HIT_STEPS.has(b.d) : b.e === 'share' && b.d === 'open';
+  if (!valid) return reply(400, headers, { error: 'bad event' });
+  const who = await sha(`${request.headers.get('CF-Connecting-IP') || ''}|${env.STATS_KEY}`);
+  if (!await underLimit(env, `hit:${who}`, 3600000, 200)) return reply(204, headers); // stops one person inflating the numbers
+  const day = today(), writes = [env.DB.prepare(HIT_SQL).bind(day, b.e, b.d)];
+  if (b.e === 'view' && HIT_SOURCES.has(b.s)) writes.push(env.DB.prepare(HIT_SQL).bind(day, 'visit', b.s));
+  await env.DB.batch(writes);
+  return reply(204, headers);
+}
+
+const IG_GRAPH = 'https://graph.facebook.com/v25.0', IG_ACCOUNT = '17841480414221894';
+async function igNumbers(env) {
+  if (!env.INSTAGRAM_TOKEN) return null;
+  try {
+    const get = async (path, fields) => {
+      const r = await fetch(`${IG_GRAPH}/${path}?fields=${fields}&limit=100&access_token=${encodeURIComponent(env.INSTAGRAM_TOKEN)}`);
+      return r.ok ? r.json() : null;
+    };
+    const [account, media] = await Promise.all([get(IG_ACCOUNT, 'followers_count,media_count'), get(`${IG_ACCOUNT}/media`, 'id,timestamp,permalink,like_count,comments_count')]);
+    return account ? { followers: account.followers_count, posts: account.media_count, media: media ? media.data : [] } : null;
+  } catch { return null; }
+}
+const postGroup = (kind) => { const lead = String(kind).split('|')[0]; return lead === 'explainer' ? 'How it works' : lead === 'new-site' ? 'New' : ['on-this-day', 'growth'].includes(lead) ? 'History' : lead === 'fact' ? 'Did you know?' : 'Right now'; };
+
+/* everything the private dashboard shows, as one list of rows */
+async function dashboard(url, env) {
+  if (!env.STATS_KEY || url.searchParams.get('key') !== env.STATS_KEY) return new Response('Not found', { status: 404 });
+  const iso = (back) => new Date(Date.now() - back * 86400000).toISOString().slice(0, 10);
+  const since = iso(59), month = iso(29), ig = await igNumbers(env);
+  if (ig) await env.DB.prepare("INSERT INTO hits (day, name, detail, n) VALUES (?1, 'followers', 'instagram', ?2) ON CONFLICT (day, name, detail) DO UPDATE SET n = ?2").bind(today(), ig.followers).run();
+  const all = (sql, ...args) => env.DB.prepare(sql).bind(...args).all().then((r) => r.results);
+  const [hits, searches, areas, alerts, posts] = await Promise.all([
+    all('SELECT day, name, detail, n FROM hits WHERE day >= ?1', since),
+    all('SELECT day, SUM(n) AS n FROM counts WHERE day >= ?1 GROUP BY day', since),
+    all('SELECT district, SUM(n) AS n FROM counts WHERE day >= ?1 GROUP BY district ORDER BY n DESC LIMIT 12', month),
+    all('SELECT COUNT(*) AS n FROM subscribers WHERE confirmed = 1'),
+    all('SELECT media_id, day, type, caption, posted, stats FROM social_posts ORDER BY posted DESC LIMIT 60'),
+  ]);
+  const counted = hits.filter((h) => h.name === 'view').map((h) => h.day).sort()[0] || null;
+  const total = (rows) => rows.reduce((a, h) => a + h.n, 0);
+  const grouped = (name) => [...hits.filter((h) => h.name === name && h.day >= month).reduce((m, h) => m.set(h.detail, (m.get(h.detail) || 0) + h.n), new Map())].sort((a, b) => b[1] - a[1]);
+  const rows = [];
+  for (let back = 59; back >= 0; back--) {
+    const day = iso(back), that = hits.filter((h) => h.day === day), live = counted && day >= counted, follow = that.find((h) => h.name === 'followers');
+    const searched = searches.find((s) => s.day === day);
+    rows.push({ table: 'daily', day, views: live ? total(that.filter((h) => h.name === 'view')) : null, visits: live ? total(that.filter((h) => h.name === 'visit')) : null, searches: searched ? searched.n : 0, followers: follow ? follow.n : null });
+  }
+  grouped('visit').forEach(([source, n]) => rows.push({ table: 'source', source, visits: n }));
+  grouped('view').forEach(([page, n]) => rows.push({ table: 'page', page, views: n }));
+  grouped('step').forEach(([step, n]) => rows.push({ table: 'step', step, people: n }));
+  areas.forEach((a) => rows.push({ table: 'area', district: a.district, searches: a.n }));
+  const live = new Map(ig ? ig.media.map((m) => [m.id, m]) : []);
+  posts.forEach((p) => {
+    const now = live.get(p.media_id), saved = p.stats ? JSON.parse(p.stats) : {};
+    rows.push({ table: 'post', post: p.media_id, day: p.day, group: postGroup(p.type), likes: now ? now.like_count ?? 0 : saved.likes ?? null, comments: now ? now.comments_count ?? 0 : saved.comments ?? null, reach: saved.reach ?? null, link: now ? now.permalink : null, caption: String(p.caption || '').split('\n')[0].slice(0, 120) });
+  });
+  rows.push({ table: 'summary', followers: ig ? ig.followers : null, instagram_posts: ig ? ig.posts : null, alert_signups: alerts[0].n, share_opens: grouped('share').reduce((a, s) => a + s[1], 0), counting_since: counted, taken: new Date().toISOString() });
+  return new Response(JSON.stringify(rows), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+}
+
 /* the Instagram agent's small store: images it hands to Instagram, and how each post did */
 const IMAGE_ID = /^[a-z0-9-]{4,40}$/;
 async function socialImage(request, url, env) {
@@ -282,6 +350,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/stats') return stats(url, env);
+    if (request.method === 'GET' && url.pathname === '/dashboard') return dashboard(url, env);
     if (request.method === 'GET' && url.pathname.startsWith('/social/img/')) return socialServe(url, env);
     if (request.method === 'POST' && url.pathname === '/social/image') return socialImage(request, url, env);
     if (request.method === 'POST' && url.pathname === '/social') return socialOp(request, env);
@@ -291,6 +360,7 @@ export default {
     if (!headers) return new Response('Not found', { status: 404 });
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
     if (request.method === 'POST' && url.pathname === '/count') return count(request, env, headers);
+    if (request.method === 'POST' && url.pathname === '/hit') return hit(request, env, headers);
     if (request.method === 'POST' && url.pathname === '/contact') return contact(request, env, headers);
     if (request.method === 'POST' && url.pathname === '/alerts') return alertSignup(request, env, headers);
     return reply(404, headers, { error: 'not found' });

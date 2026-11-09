@@ -1623,7 +1623,7 @@
     setShareLinks(share);
     renderShare(share);
     fillSheet(share);
-    sheet.showModal();
+    countEvent('share', 'open'); sheet.showModal();
   });
   $('shareClose').addEventListener('click', () => sheet.close());
   sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.close(); });
@@ -1654,6 +1654,8 @@
   document.addEventListener('visibilitychange', refreshIfOld);
   setInterval(refreshIfOld, 5 * 60000);
   function setAddressBar(d) { try { history.replaceState(null, '', d ? `?pc=${d}` : location.pathname); } catch (e) {} }
+  const COUNTING = location.hostname.replace(/^www\./, '') === 'wheresmyenergyfrom.co.uk' && !navigator.webdriver;
+  function countEvent(e, d) { if (API && COUNTING) fetch(`${API}/hit`, { method: 'POST', keepalive: true, body: JSON.stringify({ e, d }) }).catch(() => {}); }
   function countDistrict(d) { if (API) fetch(`${API}/count`, { method: 'POST', keepalive: true, body: JSON.stringify({ d }) }).catch(() => {}); }
 
   function openResults(render) {
@@ -1670,6 +1672,7 @@
   /* cards */
   const deck = $('deck');
   let cards = [];
+  const reached = new Set();
   let current = 0;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   function setCards() {
@@ -1685,6 +1688,7 @@
   function fit() { deck.style.height = `${cards[current].offsetHeight}px`; }
   function sync() {
     fit();
+    if (current > 0 && !reached.has(cards[current])) { reached.add(cards[current]); countEvent('step', cards[current].dataset.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')); }
     $('prev').hidden = current === 0;
     [...$('dots').children].forEach((d, i) => d.setAttribute('aria-current', String(i === current)));
     $('next').textContent = current === cards.length - 1 ? 'Back to the start' : `Next: ${cards[current + 1].dataset.name}`;

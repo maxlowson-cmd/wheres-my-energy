@@ -94,7 +94,7 @@ split = page.index('</style>') + len('</style>')
 head, body = page[:split], page[split:]
 head = head.replace('<meta name="claude:viewport-fit-sides" content="cover">\n', '').replace('<meta charset="utf-8">\n', '')
 head = head.replace(f'<title>{TITLE}</title>\n', '')
-beacon = ('<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon=\'{"token": "%s"}\'></script>' % config['beacon']) if config['beacon'] else ''
+beacon = '<script defer src="hit.js" data-page="home"></script>'
 document = f"""<!doctype html>
 <html lang="en-GB">
 <head>
@@ -125,4 +125,5 @@ for extra in (HERE / 'pages').glob('*.html'):
     shutil.copy(extra, HERE / 'site' / extra.name)
 shutil.copy(HERE / 'brand' / 'share_preview.png', HERE / 'site' / 'share.png')
 shutil.copy(HERE / 'gas_net.json', HERE / 'site' / 'gas_net.json')
+shutil.copy(HERE / 'pages' / 'hit.js', HERE / 'site' / 'hit.js')
 print('OK', snapshot['taken'], 'slots', len(rows), 'bytes', len(page.encode('utf8')), 'top import', top_import)
