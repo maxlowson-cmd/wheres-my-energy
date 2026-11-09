@@ -1590,7 +1590,7 @@
         cache.set(x.id, s);
       });
     }
-    return { addExtras, candidates, image, facts, signoff: '\n\nSee where your power comes from: wheresmyenergyfrom.co.uk (link in bio)\n\nEstimates from the NESO Carbon Intensity forecast.\n\n#energy #renewables #uk #electricity #climate' };
+    return { addExtras, candidates, image, facts, spec: (id) => cache.get(id), signoff: '\n\nSee where your power comes from: wheresmyenergyfrom.co.uk (link in bio)\n\nEstimates from the NESO Carbon Intensity forecast.\n\n#energy #renewables #uk #electricity #climate' };
   })();
 
   function currentShare() {

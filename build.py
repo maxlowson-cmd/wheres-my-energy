@@ -1,4 +1,5 @@
 """Fetch the 48-hour regional carbon forecast plus GB grid data, and write index.html from template.html + lookup.json."""
+from html import escape as esc_html
 import json, pathlib, shutil, subprocess, sys, urllib.request, datetime as dt, collections
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -126,4 +127,18 @@ for extra in (HERE / 'pages').glob('*.html'):
 shutil.copy(HERE / 'brand' / 'share_preview.png', HERE / 'site' / 'share.png')
 shutil.copy(HERE / 'gas_net.json', HERE / 'site' / 'gas_net.json')
 shutil.copy(HERE / 'pages' / 'hit.js', HERE / 'site' / 'hit.js')
+credit_rows = '\n'.join(f'''  <li><strong>{esc_html(p['place'])}</strong>: <a href="{esc_html(p['source'])}">{esc_html(p['title'])}</a> by {esc_html(p['artist'])}, <a href="{esc_html(p['license_url'] or p['source'])}">{esc_html(p['license'])}</a></li>''' for p in sorted(json.loads((HERE / 'social' / 'photos.json').read_text(encoding='utf8')), key=lambda p: p['place']))
+credits_page = (HERE / 'pages' / 'method.html').read_text(encoding='utf8')
+credits_page = credits_page[:credits_page.index('<main>')] + f'''<main>
+  <a href="./">&#8592; Back to the site</a>
+  <h1>Photo credits</h1>
+  <p>The photos on our Instagram posts come from Wikimedia Commons, and we're grateful to the photographers who share them. We crop each one and add words on top. Our edited versions of the CC BY-SA photos are shared under the same licence as the original. The photos show real sites, but they don't mean your power came from that place.</p>
+  <ul>
+{credit_rows}
+  </ul>
+</main>
+</body>
+</html>
+'''
+(HERE / 'site' / 'credits.html').write_text(credits_page.replace("How it works | Where's My Energy From?", "Photo credits | Where's My Energy From?"), encoding='utf8')
 print('OK', snapshot['taken'], 'slots', len(rows), 'bytes', len(page.encode('utf8')), 'top import', top_import)

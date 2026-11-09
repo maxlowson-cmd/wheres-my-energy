@@ -254,6 +254,84 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
     return None
 
 
+PHOTOS = json.loads((pathlib.Path(__file__).resolve().parent / 'photos.json').read_text(encoding='utf8'))
+POSTER_COLOURS = {'now': ['sun', 'mint', 'blue'], 'history': ['sun', 'paper', 'mint'], 'new': ['blue', 'mint'], 'explain': ['lilac'], 'fact': ['coral', 'paper']}
+LOOK_WEIGHT = {'photo': 0, 'flag': .1, 'price': .1, 'battery': .1, 'scene': .2, 'poster': .6}
+SUBJECTS = {'fuel-wind': ('wind', ['offshore', 'onshore']), 'fuel-solar': ('solar', ['solar']), 'fuel-gas': ('gas', ['gas']), 'fuel-nuclear': ('nuclear', ['nuclear']), 'fuel-imports': ('pylons', ['pylons']), 'gas-origin': ('hob', ['gas_import']), 'day': ('wash', []), 'prices': ('pylons', ['pylons']), 'league': ('wind', ['pylons']), 'divide': ('pylons', ['pylons']), 'on-this-day': ('pylons', ['pylons']), 'growth-battery': (None, []), 'growth-solar-photovoltaics': ('solar', ['solar']), 'growth-wind-offshore': ('wind', ['offshore']), 'growth-wind-onshore': ('wind', ['onshore'])}
+FACT_SUBJECTS = [(r'hydro|\bdam\b|reservoir|Cruachan|Dinorwig|pumped', ('hydro', ['hydro'])), (r'nuclear|Sizewell|Calder Hall|Torness', ('nuclear', ['nuclear'])), (r'wind|turbine', ('wind', ['offshore', 'onshore'])), (r'solar', ('solar', ['solar'])), (r'\bgas\b|North Sea|LNG', ('hob', ['gas_import']))]
+
+
+def cover_subject(pick, spec):
+    """Which illustrated scene and which photos suit this post. Returns (scene or None, photo tags)."""
+    if pick['id'] == 'fact':
+        return next((v for pattern, v in FACT_SUBJECTS if re.search(pattern, spec.get('text', ''), re.I)), (None, []))
+    if pick['id'] == 'new-site':
+        fuel = str(spec.get('spotFuel') or spec.get('fuelGlow') or '')
+        return ('wind', ['offshore', 'onshore']) if fuel == 'wind' else ('solar', ['solar']) if fuel == 'solar' else (None, [])
+    return SUBJECTS.get(pick['id'], ('pylons', ['pylons']))
+
+
+def data_cover(pick, spec, sheet):
+    """A cover drawn entirely from the post's own figures, for posts that aren't opening with a hook."""
+    if pick['id'].startswith('fuel-'):
+        mix = sorted(((k, v) for k, v in sheet['britain_now_percent'].items() if v >= 3), key=lambda x: -x[1])
+        return {'look': 'flag', 'text': "What's powering Britain right now", 'mix': [list(x) for x in mix]}
+    if pick['id'] == 'prices':
+        found = [re.search(r'(\d\d:\d\d) \((£[\d,]+)\)', str(r[2])) for r in spec.get('rows', [])]
+        if len(found) == 2 and all(found):
+            return {'look': 'price', 'low': [found[0][2], found[0][1]], 'high': [found[1][2], found[1][1]]}
+    if pick['id'] == 'growth-battery':
+        (d0, v0), (d1, v1) = spec['rows']
+        number = lambda v: int(v.replace(' MW', '').replace(',', ''))
+        return {'look': 'battery', 'then': [number(v0), v0, d0], 'now': [number(v1), v1, d1]}
+    return None
+
+
+def choose_cover(pick, spec, sheet, history, is_hook, explainer, seed):
+    """Picks the look least used lately, so neighbouring squares on the grid differ. Returns (cover, label, caption credit)."""
+    rng = random.Random(seed)
+    past = [part.split(':', 1)[1] for row in sorted(history, key=lambda r: r['posted'], reverse=True) for part in row['type'].split('|') if part.startswith('cover:')]
+    recent = [p.split(':')[0] for p in past[:3]]
+    scene, tags = (('explain', []) if explainer else cover_subject(pick, spec))
+    cat = 'explain' if explainer else pick.get('cat', 'now')
+    colours = POSTER_COLOURS[cat]
+    fresh = [c for c in colours if f'poster:{c}' not in past[:2]] or colours
+    options = {'poster': {'look': 'poster', 'colour': rng.choice(fresh)}}
+    if scene and (scene != 'wash' or not is_hook):
+        options['scene'] = {'look': 'scene', 'scene': scene}
+    photos = [p for p in PHOTOS if p['tag'] in tags]
+    fresher = [p for p in photos if f"photo:{p['file']}" not in past[:12]] or photos
+    if fresher and not explainer:
+        named = [p for p in fresher if p['place'].split(',')[0] in str(spec.get('text', ''))]
+        options['photo'] = {'look': 'photo', 'chosen': rng.choice(named or fresher)}
+    extra = None if is_hook or explainer else data_cover(pick, spec, sheet)
+    if extra:
+        options[extra['look']] = extra
+    name = min(options, key=lambda k: recent.count(k) + LOOK_WEIGHT[k] + rng.random() * .3)
+    cover = dict(options[name])
+    credit, label = '', name
+    if name == 'photo':
+        p = cover.pop('chosen')
+        raw = (pathlib.Path(__file__).resolve().parent / 'photos' / p['file']).read_bytes()
+        cover['photo'] = 'data:image/jpeg;base64,' + base64.b64encode(raw).decode()
+        cover['credit'] = f"Photo: {p['place']}. {p['artist']}, {p['license']}"
+        credit = f"{cover['credit']}, cropped. All photo credits: wheresmyenergyfrom.co.uk/credits"
+        label = f"photo:{p['file']}"
+    elif name == 'poster':
+        label = f"poster:{cover['colour']}"
+    elif name == 'scene':
+        label = f"scene:{cover['scene']}"
+    return cover, label, credit
+
+
+def with_credit(caption, credit):
+    """Puts the photo credit above the hashtags."""
+    if not credit:
+        return caption
+    head, sep, tags = caption.rpartition('\n\n#')
+    return f'{head}\n\n{credit}{sep}{tags}' if sep else f'{caption}\n\n{credit}'
+
+
 def publish_album(urls, caption):
     kids = []
     for url in urls:
@@ -342,6 +420,7 @@ def main():
         page = browser.new_page(viewport={'width': 1080, 'height': 1400})
         page.goto(f'{SITE}?agent={int(time.time())}', wait_until='load', timeout=120000)
         page.wait_for_function('window.WMESocial && document.fonts.status === "loaded"', timeout=60000)
+        page.add_script_tag(path=str(pathlib.Path(__file__).resolve().parent / 'covers.js'))
         ideas = page.evaluate('WMESocial.candidates()')
         if ideas:
             signoff = page.evaluate('WMESocial.signoff')
@@ -362,7 +441,7 @@ def main():
         sheet = page.evaluate('WMESocial.facts()')
         signoff = page.evaluate('WMESocial.signoff')
         day = dt.date.fromisoformat(today)
-        album = pick['novelty'] >= .8 or day.weekday() in (1, 3, 6)
+        album = pick['novelty'] >= .8 or day.weekday() in (1, 3, 6) or os.environ.get('MOCK_ALBUM') == 'album'
         angle = pick_angle(history, f'{today}{slot}')
         print('format', 'album' if album else 'single', 'angle', angle)
         plan = None if explainer_due(history) or os.environ.get('MOCK_ALBUM') == 'explain' else write_plan(pick, ideas, sheet, angle, album, [r.get('caption', '')[:200] for r in history[:7]], day)
@@ -371,7 +450,10 @@ def main():
             plan = {'hook_kicker': 'TEST KICKER', 'hook': 'Test hook: this slide opens the story without giving it away.', 'slides': [{'id': x, 'text': 'Test wording for this slide.'} for x in lead], 'closing': 'Test closing that brings the story back to the reader.', 'caption': 'Test caption.', 'alt': 'Test.'}
             album = True
             print('mock check', check_plan(plan, ideas, sheet, True))
-        image = lambda a, fmt, over=None: page.evaluate('([a, b, c]) => WMESocial.image(a, b, c)', [a, fmt, over])
+        def image(a, fmt, over=None):
+            if over and over.get('cover'):
+                return page.evaluate('([s, f]) => WMECovers[f](s)', [over['cover'], fmt])
+            return page.evaluate('([a, b, c]) => WMESocial.image(a, b, c)', [a, fmt, over])
         no_text = lambda s: None if next(i for i in ideas if i['id'] == s['id'])['art'] == 'fact' else {'text': s['text']}
         cat = pick.get('cat', 'now')
         force = os.environ.get('MOCK_ALBUM') == 'explain'
@@ -395,6 +477,22 @@ def main():
             if album:
                 parts = [('hook', {'text': plan['hook'], 'eyebrow': plan['hook_kicker'].upper(), 'cat': cat})] + [(a, {**(o or {}), 'cat': cat}) for a, o in parts] + [('closing', {'text': plan['closing'], 'cat': cat})]
             kind = f"{pick['type']}|{'album' if album else 'single'}|{angle}"
+        spec = page.evaluate('id => WMESocial.spec(id)', pick['id']) or {}
+        explainer = kind.startswith('explainer')
+        cover, label, credit = choose_cover(pick, spec, sheet, history, album, explainer, f'{today}{slot}cover')
+        if album:
+            first = parts[0][1]
+            parts[0] = (parts[0][0], {**first, 'cover': {**cover, 'text': first['text'], 'eyebrow': first['eyebrow'], 'swipe': True}})
+        else:
+            words = spec.get('headline') or spec.get('sub') or re.split(r'(?<=[.!?])\s', spec.get('text', ''))[0]
+            parts.insert(0, ('cover', {'cover': {**cover, 'big': spec.get('big'), 'text': words, 'eyebrow': spec.get('eyebrow', ''), 'swipe': True}}))
+            album = True
+        if parts[-1][0] == 'closing':
+            shade = random.Random(f'{today}{slot}end').choice(POSTER_COLOURS[pick.get('cat', 'now')])
+            parts[-1] = ('closing', {**parts[-1][1], 'cover': {'look': 'poster', 'colour': shade, 'text': parts[-1][1]['text'], 'eyebrow': 'WHAT IT MEANS FOR YOU', 'note': 'Put in your postcode at the link in our bio.'}})
+        caption = with_credit(caption, credit)
+        kind += f'|cover:{label}'
+        print('cover', label)
         if DRY:
             OUT.mkdir(exist_ok=True)
             for n, (a, over) in enumerate(parts):
