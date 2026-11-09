@@ -1237,6 +1237,19 @@
       storyChrome(c, s);
       if (s.swipe) { setFont(c, 40, 700, BODY); c.fillStyle = accent(s); c.textAlign = 'right'; c.fillText('Swipe \u2192', W - M, 1672); c.textAlign = 'left'; }
     },
+    legend(c, s) {
+      storyFrame(c, s, accent(s));
+      textLines(c, 'What the colours mean', M, 440, W - 2 * M, 92, 800, DISPLAY, DK.ink, 1.08, 2);
+      let y = 590;
+      [['now', 'Right now', "What's happening on the grid today"], ['history', 'History', 'How far things have come'], ['new', 'New', 'Projects that have just switched on'], ['explain', 'How it works', 'How we work it all out'], ['fact', 'Did you know?', 'The stories behind the system']].forEach(([cat, name, note]) => {
+        const col = CATEGORY[cat];
+        c.save(); c.shadowColor = col; c.shadowBlur = 26; c.fillStyle = col; c.beginPath(); c.roundRect(M, y, 26, 134, 13); c.fill(); c.restore();
+        setFont(c, 56, 800, DISPLAY); c.fillStyle = col; c.fillText(name, M + 62, y + 58);
+        setFont(c, 38, 500, BODY); c.fillStyle = DK.ink; c.fillText(note, M + 62, y + 118);
+        y += 192;
+      });
+      storyChrome(c, s);
+    },
     bars(c, s) {
       const col = fuelDk(s.fuel);
       storyFrame(c, s, col);
@@ -1522,6 +1535,7 @@
       add('fact', 'fact', .35, { art: 'fact', eyebrow: 'DID YOU KNOW?', text: x.t, foot: [`Source: ${x.s}`] }, `${x.t}\n\nSource: ${x.s}.`);
       cache.set('hook', { art: 'fact', eyebrow: 'TODAY', text: '', foot: [], key: 'hook', district: 'GB', swipe: true });
       cache.set('closing', { art: 'fact', eyebrow: 'WHAT IT MEANS FOR YOU', text: '', foot: ['Put in your postcode at the link in our bio.'], key: 'closing', district: 'GB' });
+      cache.set('key', { art: 'legend', eyebrow: 'START HERE', foot: [], key: 'key', district: 'GB', cat: 'explain' });
       cache.set('explain', { art: 'fact', eyebrow: 'HOW IT WORKS', text: '', foot: [], key: 'explain', district: 'GB', cat: 'explain' });
       return out;
     }
@@ -1548,6 +1562,7 @@
       if (over && over.eyebrow) s.eyebrow = over.eyebrow;
       if (over && over.cat) s.cat = over.cat;
       if (over && over.swipe) s.swipe = true;
+      if (format === 'story') s.swipe = false;
       try { await Promise.all([document.fonts.load('800 80px "Bricolage Grotesque"'), document.fonts.load('700 80px "Bricolage Grotesque"'), document.fonts.load('600 30px Figtree'), document.fonts.load('700 30px Figtree'), document.fonts.load('500 30px Figtree')]); } catch (e) {}
       const cv = document.createElement('canvas');
       cv.width = W; cv.height = H;

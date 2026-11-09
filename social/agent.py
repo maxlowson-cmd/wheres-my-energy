@@ -349,7 +349,7 @@ def main():
             item, number = next_explainer(history)
             album, cat = True, 'explain'
             caption, alt = item['caption'] + signoff, item['hook']
-            parts = [('explain', {'text': item['hook'], 'eyebrow': item['kicker'], 'swipe': True})] + [('explain', {'text': s, 'eyebrow': item['kicker']}) for s in item['slides']] + [('closing', {'text': item['closing'], 'eyebrow': item['kicker'], 'cat': 'explain'})]
+            parts = [('explain', {'text': item['hook'], 'eyebrow': item['kicker'], 'swipe': True})] + [('explain', {'text': s, 'eyebrow': item['kicker']}) for s in item['slides']] + ([('key', {'eyebrow': item['kicker']})] if item.get('colour_key') else []) + [('closing', {'text': item['closing'], 'eyebrow': item['kicker'], 'cat': 'explain'})]
             kind = f'explainer|album|explain{number}'
             plan = {'explainer': number}
         elif plan is None:

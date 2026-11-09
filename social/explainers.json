@@ -1,5 +1,18 @@
 [
   {
+    "kicker": "START HERE",
+    "colour_key": true,
+    "hook": "Where does your electricity actually come from? Now you can find out.",
+    "slides": [
+      "Type in your postcode and we'll show you what's powering your area right now.",
+      "You'll see the power stations it's likely coming from, and where your gas started out.",
+      "And the cleanest time to run the washing or charge the car.",
+      "It's an estimate from public data, because electricity all mixes on the grid. Nobody can trace it exactly."
+    ],
+    "closing": "It's free, with no account needed. Link in bio. Where's yours from?",
+    "caption": "Every time you boil the kettle, the power came from somewhere. A wind farm off the coast, a gas plant down the road, a cable under the sea from another country. Most of us never get to see that.\n\nSo we built a free site that shows you. Type in your postcode and you'll see what's powering your area right now, where your gas started out, and the cleanest time to put the washing on.\n\nWe'll be posting here most days: what's happening on the grid, how far things have come, what's just been built, and how all of this works. Each kind of post has its own colour, so you can find the ones you like.\n\nWhat would you most like to know about where your energy comes from?"
+  },
+  {
     "kicker": "HOW IT WORKS",
     "hook": "Nobody can tell you which power station boils your kettle. So how do we do it?",
     "slides": [
