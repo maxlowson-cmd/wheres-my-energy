@@ -115,6 +115,11 @@ def main():
     caption = (f"Yesterday {top['name']} ran on {round(top['renewable'])}% renewable power, while {bottom['name']} managed {round(bottom['renewable'])}%. "
                f"Great Britain as a whole: {round(gb['renewable'])}%.\n\nWhere's yours from? {SITE}\n\n"
                "Estimates from the NESO Carbon Intensity API. Renewable includes biomass.")
+    import json as _json, datetime as _dt
+    facts = _json.loads((pathlib.Path(__file__).resolve().parent / 'facts.json').read_text(encoding='utf8'))
+    fact = facts[_dt.date.today().toordinal() % len(facts)]['t']
+    body, tags = caption.rsplit('\n\n', 1) if '\n\n' in caption and caption.rsplit('\n\n', 1)[1].startswith('#') else (caption, '')
+    caption = f'{body}\n\nDid you know? {fact}' + (f'\n\n{tags}' if tags else '')
     (out / 'daily.txt').write_text(caption, encoding='utf8')
     print(caption)
 

@@ -272,6 +272,7 @@
     <p class="error" id="error" role="alert" hidden></p>
   </form>
   <button class="example" id="exampleBtn" type="button">See an example for Brixton, SW9</button>
+  <p class="note" id="homeLine" hidden></p>
   </div>
 
   <section class="answer" id="answer" aria-live="polite" hidden>
@@ -313,6 +314,7 @@
           <div class="strip thin" id="strip"></div>
           <ul class="legend" id="legend"></ul>
           <p class="note"><span id="hint"></span> An estimate for your whole region.</p>
+          <p class="note" id="rankLine" hidden></p>
         </section>
         <section class="block">
           <p class="eyebrow">Likely coming from</p>
@@ -337,6 +339,13 @@
             <p class="lead">Check the postcode and try again.</p>
           </div>
         </section>
+      </article>
+
+      <article class="card" data-name="Did you know?">
+        <p class="eyebrow">Did you know?</p>
+        <h2 id="factText"></h2>
+        <p class="note"><a id="factSource" target="_blank" rel="noopener"></a></p>
+        <button class="next" id="factNext" type="button">Another one</button>
       </article>
 
       <article class="card" id="gasCard" data-name="Your gas">
@@ -533,6 +542,7 @@
   const API = /*API*/''/*END*/;
   const SITE = 'https://wheresmyenergyfrom.co.uk/';
   const ALERTS = /*ALERTS*/false/*END*/;
+  const FACTS = /*FACTS*/[]/*END*/;
   const NAMES = {1:'North Scotland',2:'South Scotland',3:'North West England',4:'North East England',5:'Yorkshire',6:'North Wales & Merseyside',7:'South Wales',8:'West Midlands',9:'East Midlands',10:'East of England',11:'South West England',12:'South England',13:'London',14:'South East England'};
   const FUEL_WORD = { gas: 'gas', wind: 'wind', nuclear: 'nuclear', imports: 'imports', biomass: 'biomass', solar: 'solar', hydro: 'hydro', coal: 'coal', other: 'other sources' };
   const FUEL_NAME = { gas: 'Gas', wind: 'Wind', nuclear: 'Nuclear', imports: 'Imports', biomass: 'Biomass', solar: 'Solar', hydro: 'Hydro', coal: 'Coal', other: 'Other' };
@@ -1063,6 +1073,9 @@
     $('stamp').textContent = `Forecast updated ${whenText(f.updated)}.`;
     $('staleLine').textContent = freshnessText(f); $('staleLine').hidden = !$('staleLine').textContent;
     if (GAS) $('gasTime').textContent = `Flows read ${whenText(Date.parse(GAS.taken))}.`;
+    const rank = regionRank(f.id);
+    $('rankLine').hidden = !rank;
+    if (rank) $('rankLine').textContent = rank.place === 1 ? `Your area is the cleanest of Britain's ${rank.total} regions right now.` : rank.place === rank.total ? `Your area has the most carbon-heavy power of Britain's ${rank.total} regions right now.` : `Your area is the ${ordinal(rank.place)} cleanest of Britain's ${rank.total} regions right now.`;
     prepareShare(f, w, outward);
   }
   const whenText = (t) => `${dayKey.format(new Date(t)) === dayKey.format(new Date()) ? 'today' : weekday.format(new Date(t))} at ${clock.format(new Date(t))}`;
@@ -1107,11 +1120,19 @@
     c.fillStyle = CARD.muted; c.font = `500 28px ${BODY}`; c.fillText(`Estimate for ${s.area}, ${s.time}.`, M, H - 84); c.fillText('Renewable includes biomass.', M, H - 46);
     return new Promise((done) => cv.toBlob(done, 'image/png'));
   }
+  const ordinal = (n) => `${n}${n > 10 && n < 14 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`;
+  const slotNow = () => Math.floor((Date.now() - Date.parse(SNAPSHOT.start)) / SLOT);
+  function regionRank(id) {
+    if (tooOld() || !SNAPSHOT.regions[id]) return null;
+    const i = slotNow(), now = Object.keys(NAMES).filter((k) => SNAPSHOT.regions[k]).map((k) => SNAPSHOT.regions[k][i]), mine = SNAPSHOT.regions[id][i];
+    if (mine == null || now.some((v) => v == null)) return null;
+    return { place: now.filter((v) => v < mine).length + 1, total: now.length };
+  }
   function prepareShare(f, w, outward) {
     const mix = f.mix[Math.min(w.skip, f.mix.length - 1)];
     const renew = Math.round(CARD_RENEW.reduce((a, k) => a + (mix[k] || 0), 0));
     const cleanest = nextWindow(f, WASH_HOURS, 5);
-    const s = { district: outward, area: f.area, mix, renew, best: cleanest ? `Cleanest time for the washing: ${say(cleanest.from, cleanest.to)}.` : null, time: `${clock.format(new Date())} ${shortDate(dayKey.format(new Date()))}`, link: pageLink(outward), text: `Right now ${renew}% of the power around ${outward} is renewable. Where's yours from?`, blob: null };
+    const s = { district: outward, area: f.area, mix, renew, best: cleanest ? `Cleanest time for the washing: ${say(cleanest.from, cleanest.to)}.` : null, time: `${clock.format(new Date())} ${shortDate(dayKey.format(new Date()))}`, link: pageLink(outward), text: `Right now ${renew}% of the power around ${outward} is renewable${regionRank(f.id) ? `, the ${ordinal(regionRank(f.id).place)} cleanest of Britain's ${regionRank(f.id).total} regions` : ''}. Where's yours from?`, blob: null };
     const enc = encodeURIComponent, msg = `${s.text} ${s.link}`;
     $('shareWa').href = `https://wa.me/?text=${enc(msg)}`;
     $('shareFb').href = `https://www.facebook.com/sharer/sharer.php?u=${enc(s.link)}`;
@@ -1355,12 +1376,24 @@
     } catch (err) { say("That didn't work. Please try again in a few minutes."); }
     button.disabled = false;
   });
+  let factAt = Math.floor(Math.random() * FACTS.length);
+  function drawFact() { const f = FACTS[factAt]; $('factText').textContent = f.t; $('factSource').textContent = `Source: ${f.s}`; $('factSource').href = f.u; }
+  $('factNext').addEventListener('click', () => { factAt = (factAt + 1) % FACTS.length; drawFact(); fit(); });
+  drawFact();
   $('payGo').addEventListener('click', () => { $('payNote').textContent = 'This is a prototype. The link goes here once we choose a partner. If you switch through it we may earn a fee.'; fit(); });
   document.querySelector('[data-name="Free alerts"]').hidden = !ALERTS;
   setCards();
   applyPause();
   drawGrid();
   drawCountry();
+  (() => {
+    if (tooOld()) return;
+    const i = slotNow(), renewOf = (id) => { const row = SNAPSHOT.mix[id][i]; return row ? Math.round(SNAPSHOT.fuels.reduce((a, k, j) => a + (CARD_RENEW.includes(k) ? row[j] : 0), 0)) : null; };
+    const gb = renewOf(18), best = Object.keys(NAMES).filter((k) => Number(k) <= 14 && renewOf(k) != null).sort((a, b) => renewOf(b) - renewOf(a))[0];
+    if (gb == null || !best) return;
+    $('homeLine').textContent = `Right now Britain's power is ${gb}% renewable. ${NAMES[best]} is leading at ${renewOf(best)}%.`;
+    $('homeLine').hidden = false;
+  })();
   $('exampleBtn').addEventListener('click', async () => {
     const f = storedForecast('SW9') || await liveForecast('SW9');
     if (!f) return fail(NO_DATA);
@@ -1377,7 +1410,7 @@
     msg.textContent = 'Sending…';
     try {
       const r = await fetch(`${API}/contact`, { method: 'POST', body: JSON.stringify({ message, reply: $('contactReply').value.trim(), website: $('contactSite').value }) });
-      if (r.ok) { msg.textContent = 'Thanks, that has been sent.'; $('contactForm').reset(); }
+      if (r.ok) { msg.textContent = "Thanks, that's with a real person now."; $('contactForm').reset(); }
       else msg.textContent = r.status === 429 ? "That's a lot of messages. Please try again later." : "That didn't send. Please try again.";
     } catch (err) { msg.textContent = "That didn't send. Please try again."; }
   });

@@ -93,6 +93,11 @@ const SLOT = 1800000, LONDON = 'Europe/London';
 const part = (options) => new Intl.DateTimeFormat('en-GB', { timeZone: LONDON, ...options });
 const ukHour = part({ hour: 'numeric', hourCycle: 'h23' }), ukClock = part({ hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }), ukDay = part({ year: 'numeric', month: '2-digit', day: '2-digit' });
 
+const FACTS = /*FACTS*/[]/*END*/; // from facts.json, filled in when the Worker is deployed
+const dailyFact = () => FACTS[Math.floor(Date.now() / 86400000) % FACTS.length];
+const factText = (f) => `Did you know? ${f.t}${f.u ? `\nSource: ${f.u}` : ''}`;
+const factBlock = (f) => `<div style="margin-top:26px;background:#f2fbf7;border-radius:12px;padding:16px 18px"><div style="font-size:13px;font-weight:700;color:#06704b;padding-bottom:5px">Did you know?</div><div style="font-size:15px;line-height:1.5;color:#10302a">${escapeHtml(f.t)}</div>${f.u ? `<div style="padding-top:6px;font-size:12px"><a href="${f.u}" style="color:#4c6a62">Source: ${escapeHtml(f.s)}</a></div>` : ''}</div>`;
+
 const stopLink = (token) => `${RELAY_URL}/alerts/stop?t=${token}`;
 
 /* emails use tables and inline styles because mail apps ignore most modern CSS; no images, as many apps block them */
@@ -139,14 +144,15 @@ async function alertSignup(request, env, headers) {
   const confirm = `${RELAY_URL}/alerts/confirm?t=${row.token}`;
   const ok = await sendEmails(env, [{
     to: [email], subject: 'Confirm your morning energy email',
-    text: `Confirm to get one email each morning with the cleanest time to use electricity around ${district}:\n\n${confirm}\n\nDidn't ask for this? Ignore this email and you won't hear from us again.`,
-    html: emailShell('One tap to turn on your morning energy email.', `<h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;font-weight:800">Confirm your morning email</h1><p style="margin:0 0 26px;font-size:17px;line-height:1.5;color:#4c6a62">Each morning we'll tell you the cleanest time to use electricity around <strong style="color:#10302a">${district}</strong>.</p>${emailButton(confirm, 'Yes, send me the email')}`, "Didn't ask for this? Ignore this email and you won't hear from us again."),
+    text: `Confirm to get one email each morning with the cleanest time to use electricity around ${district}:\n\n${confirm}\n\n${factText(dailyFact())}\n\nDidn't ask for this? Ignore this email and you won't hear from us again.`,
+    html: emailShell('One tap to turn on your morning energy email.', `<h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;font-weight:800">Confirm your morning email</h1><p style="margin:0 0 26px;font-size:17px;line-height:1.5;color:#4c6a62">Each morning we'll tell you the cleanest time to use electricity around <strong style="color:#10302a">${district}</strong>.</p>${emailButton(confirm, 'Yes, send me the email')}${factBlock(dailyFact())}`, "Didn't ask for this? Ignore this email and you won't hear from us again."),
   }]);
   return ok ? reply(204, headers) : reply(502, headers, { error: 'not delivered' });
 }
 
 function alertPage(heading, text, button) {
-  const html = `<!doctype html><html lang="en-GB"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${heading}</title><body style="font-family:system-ui,sans-serif;max-width:30rem;margin:3rem auto;padding:0 1rem;color:#10302a;line-height:1.5"><h1 style="font-size:1.5rem">${heading}</h1><p>${text}</p>${button ? `<form method="post"><button style="font:inherit;font-weight:600;color:#f2fbf7;background:#06704b;border:0;border-radius:999px;padding:.7rem 1.4rem;cursor:pointer">${button}</button></form>` : `<p><a href="${SITE_URL}" style="color:#06704b">Back to the site</a></p>`}</body></html>`;
+  const action = button ? `<form method="post" style="margin:0"><button style="font:inherit;font-size:17px;font-weight:700;color:#f2fbf7;background:#06704b;border:0;border-radius:999px;padding:17px 28px;cursor:pointer">${button}</button></form>` : emailButton(SITE_URL, 'Back to the site');
+  const html = `<!doctype html><html lang="en-GB"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${heading}</title><body style="margin:0;background:#dfeae6;font-family:${FONT};color:#10302a"><main style="max-width:480px;margin:0 auto;padding:28px 14px"><div style="padding:0 6px 16px;font-size:15px;font-weight:700;color:#06704b">Where's my energy from?</div><div style="background:#fff;border-radius:18px;padding:30px 26px"><h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;font-weight:800">${heading}</h1><p style="margin:0 0 26px;font-size:17px;line-height:1.5;color:#4c6a62">${text}</p>${action}${factBlock(dailyFact())}</div></main></body></html>`;
   return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
 
@@ -154,7 +160,7 @@ function alertPage(heading, text, button) {
 async function alertConfirm(request, url, env) {
   if (request.method === 'GET') return alertPage('Turn on your morning email?', 'One email each morning. You can unsubscribe at any time.', 'Yes, turn it on');
   const done = await env.DB.prepare('UPDATE subscribers SET confirmed = 1 WHERE token = ?1').bind(url.searchParams.get('t') || '').run();
-  return done.meta.changes ? alertPage("You're signed up", 'Your first email arrives tomorrow morning at about 07:30.') : alertPage('That link has expired', 'Please sign up again on the site.');
+  return done.meta.changes ? alertPage("You're signed up", "You'll get your first email at about 07:30 on the next morning.") : alertPage('That link has expired', 'Please sign up again on the site.');
 }
 
 async function alertStop(request, url, env) {
@@ -178,7 +184,7 @@ function whenWords(w, now) {
   return `${day}, ${ukClock.format(start)} to ${ukClock.format(new Date(w.to))}`;
 }
 
-function morningMail(sub, f, now) {
+function morningMail(sub, f, now, fact) {
   const wash = bestWindow(f.rows, 5, (a, b) => a < b), car = bestWindow(f.rows, 12, (a, b) => a < b), worst = bestWindow(f.rows, 5, (a, b) => a > b);
   const flat = worst.avg - wash.avg < Math.max(5, worst.avg * 0.05);
   const link = `${SITE_URL}/?pc=${sub.district}`, stop = stopLink(sub.token);
@@ -191,11 +197,22 @@ function morningMail(sub, f, now) {
     : `<p style="margin:0 0 6px;font-size:14px;font-weight:600;color:#4c6a62">Best time for washing and short jobs around ${sub.district}</p><h1 style="margin:0 0 14px;font-size:26px;line-height:1.2;font-weight:800">${capital(whenWords(wash, now))}</h1><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px">${row('Charging a car', whenWords(car, now))}${row('Try to avoid', whenWords(worst, now), true)}</table>`;
   return {
     to: [sub.email],
-    html: emailShell(flat ? 'Power stays about as clean all day.' : `Cleanest power: ${whenWords(wash, now)}.`, inner + emailButton(link, 'See the full picture'), `An estimate from the national carbon forecast for ${escapeHtml(f.name)}.<br><a href="${stop}" style="color:#4c6a62">Unsubscribe</a>`),
+    html: emailShell(flat ? 'Power stays about as clean all day.' : `Cleanest power: ${whenWords(wash, now)}.`, inner + emailButton(link, 'See the full picture') + factBlock(fact), `An estimate from the national carbon forecast for ${escapeHtml(f.name)}.<br><a href="${stop}" style="color:#4c6a62">Unsubscribe</a>`),
     subject: flat ? `Power around ${sub.district} is steady today` : `Cleanest power around ${sub.district}: ${whenWords(wash, now)}`,
-    text: `${lines.join('\n')}\n\nThe full picture: ${link}\n\nAn estimate from the national carbon forecast for ${f.name}.\n\nUnsubscribe: ${stop}`,
+    text: `${lines.join('\n')}\n\nThe full picture: ${link}\n\n${factText(fact)}\n\nAn estimate from the national carbon forecast for ${f.name}.\n\nUnsubscribe: ${stop}`,
     headers: { 'List-Unsubscribe': `<${stop}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
   };
+}
+
+/* every fourth day the fact is live: how the reader's area compares with the cleanest part of Britain this morning */
+const RENEWABLE = ['wind', 'solar', 'hydro', 'biomass'];
+function todaysFact(sub, slot, regions) {
+  if (Math.floor(Date.now() / 86400000) % 4 !== 0) return dailyFact();
+  const shares = slot.regions.filter((x) => x.regionid <= 14 && x.generationmix).map((x) => ({ id: x.regionid, name: x.shortname, pct: Math.round(x.generationmix.filter((m) => RENEWABLE.includes(m.fuel)).reduce((a, m) => a + m.perc, 0)) }));
+  const top = shares.reduce((a, b) => (b.pct > a.pct ? b : a), { pct: -1 }), mine = shares.find((x) => x.id === sub.region);
+  if (!mine || !regions[sub.region]) return dailyFact();
+  if (top.id === mine.id) return { t: `This morning ${mine.name} is forecast to have the cleanest mix in Britain, with ${mine.pct}% of its power from renewables.` };
+  return { t: `This morning ${top.name} is forecast to get ${top.pct}% of its power from renewables. ${mine.name} is forecast to get ${mine.pct}%.` };
 }
 
 async function morningEmails(env) {
@@ -210,11 +227,11 @@ async function morningEmails(env) {
   const from = new Date(Math.floor(Date.now() / SLOT) * SLOT).toISOString().slice(0, 16) + 'Z';
   const r = await fetch(`https://api.carbonintensity.org.uk/regional/intensity/${from}/fw24h`, { headers: { Accept: 'application/json' } });
   if (!r.ok) return telegram(env, `Morning emails were not sent: the forecast said ${r.status}.`);
-  const regions = {};
-  (await r.json()).data.forEach((slot) => slot.regions.forEach((x) => {
+  const regions = {}, feed = (await r.json()).data, firstSlot = feed[0];
+  feed.forEach((slot) => slot.regions.forEach((x) => {
     (regions[x.regionid] = regions[x.regionid] || { name: x.shortname, rows: [] }).rows.push({ t: Date.parse(slot.from), g: x.intensity.forecast });
   }));
-  const mails = results.slice(0, DAILY_CAP).filter((s) => regions[s.region] && regions[s.region].rows.length >= 12).map((s) => morningMail(s, regions[s.region], now));
+  const mails = results.slice(0, DAILY_CAP).filter((s) => regions[s.region] && regions[s.region].rows.length >= 12).map((s) => morningMail(s, regions[s.region], now, todaysFact(s, firstSlot, regions)));
   if (mails.length && !await sendEmails(env, mails)) problems.push('The email service refused today\'s morning emails.');
   if (problems.length) await telegram(env, problems.join('\n'));
 }

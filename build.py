@@ -82,6 +82,7 @@ page = page.replace('/*MEMBER*/null/*END*/', (HERE / 'member.json').read_text(en
 page = page.replace('/*GAS*/null/*END*/', (HERE / 'gas.json').read_text(encoding='utf8'))
 config = json.loads((HERE / 'site_config.json').read_text(encoding='utf8'))
 page = page.replace("/*API*/''/*END*/", json.dumps(config['api'].rstrip('/')))
+page = page.replace('/*FACTS*/[]/*END*/', json.dumps(json.loads((HERE / 'facts.json').read_text(encoding='utf8')), separators=(',', ':')))
 page = page.replace('/*ALERTS*/false/*END*/', 'true' if config.get('alerts') else 'false')
 (HERE / 'index.html').write_text(page, encoding='utf8')
 
