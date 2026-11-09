@@ -9,7 +9,7 @@ LAT0 = 54.0
 ELEXON = 'https://data.elexon.co.uk/bmrs/api/v1/datasets/FUELHH'
 GROUP = {'CCGT': 'gas', 'OCGT': 'gas', 'COAL': 'coal', 'NUCLEAR': 'nuclear', 'WIND': 'wind', 'BIOMASS': 'biomass', 'NPSHYD': 'hydro'}
 LABEL = {'coal': 'coal', 'gas': 'gas', 'wind': 'wind', 'nuclear': 'nuclear'}
-TECH = {'Wind Offshore': ('offshore wind', 'wind'), 'Solar Photovoltaics': ('large-scale solar', 'solar'), 'Battery': ('grid batteries', 'other'), 'Wind Onshore': ('onshore wind', 'wind')}
+TECH = {'Wind Offshore': ('offshore wind', 'wind'), 'Solar Photovoltaics': ('large-scale solar', 'solar'), 'Battery': ('grid batteries', 'hydro'), 'Wind Onshore': ('onshore wind', 'wind')}
 
 
 def clip(v):
@@ -124,7 +124,7 @@ def new_sites(rows, posted):
             lat, lon = bng_to_ll(float(r['X-coordinate'].replace(',', '')), float(r['Y-coordinate'].replace(',', '')))
         except ValueError:
             continue
-        kind, fuel = {'Solar Photovoltaics': ('solar farm', 'solar'), 'Wind Onshore': ('wind farm', 'wind'), 'Wind Offshore': ('offshore wind farm', 'wind'), 'Battery': ('battery site', 'other')}[r['Technology Type']]
+        kind, fuel = {'Solar Photovoltaics': ('solar farm', 'solar'), 'Wind Onshore': ('wind farm', 'wind'), 'Wind Offshore': ('offshore wind farm', 'wind'), 'Battery': ('battery site', 'hydro')}[r['Technology Type']]
         place = (r.get('County') or r.get('Region') or '').strip()
         words = f"{name}, a {round(mw)} MW {kind}{' in ' + place if place else ''}, started operating in {when:%B %Y}."
         return [{'id': 'new-site', 'type': 'new-site', 'art': 'map', 'limit': 60, 'novelty': .8, 'shows': words, 'caption': words, 'alt': words,

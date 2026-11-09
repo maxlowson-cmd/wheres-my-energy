@@ -1560,7 +1560,7 @@
       const time = stamp();
       list.forEach((x) => {
         const s = { district: 'GB', key: x.id, foot: [`Estimate, ${time}.`], ...x.spec };
-        if (s.mixBars) { s.bars = s.mixBars.map(([name, mix, pct]) => [name, fuelStrip(mix), pct]); s.legend = fuelRows(s.mixBars[1][1]).slice(0, 6).map(([k]) => [fuelDk(k), FUEL_NAME[k] || k]); }
+        if (s.mixBars) { s.bars = s.mixBars.map(([name, mix, pct]) => [name, fuelStrip(mix), pct]); const most = {}; s.mixBars.forEach(([, mix]) => Object.entries(mix).forEach(([k, v]) => { most[k] = Math.max(most[k] || 0, v); })); s.legend = fuelRows(most).slice(0, 7).map(([k]) => [fuelDk(k), FUEL_NAME[k] || k]); }
         if (s.fuelGlow) s.glow = fuelDk(s.fuelGlow);
         cache.set(x.id, s);
       });
