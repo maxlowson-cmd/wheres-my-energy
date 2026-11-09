@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How it works | Where's My Energy From?</title>
+<meta name="description" content="How Where's My Energy From? estimates where your electricity and gas come from, and what it can't tell you.">
+<style>
+  :root { --bg: #dfeae6; --panel: #f4f8f6; --ink: #10302a; --muted: #4c6a62; --line: #bfd2cb; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0f211d; --panel: #18302a; --ink: #e6f2ee; --muted: #9db8b0; --line: #2d4a42; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  main { max-width: 40rem; margin: 0 auto; padding: 2.5rem 16px 4rem; }
+  h1 { font-size: clamp(2.1rem, 7vw, 3rem); line-height: 1.08; margin: .6rem 0 1rem; }
+  h2 { font-size: 1.3rem; margin: 2rem 0 .3rem; }
+  p, li { color: var(--ink); } ul { padding-left: 1.2rem; }
+  a { color: inherit; } .small { color: var(--muted); font-size: .92rem; }
+</style>
+</head>
+<body>
+<main>
+  <a href="./">&#8592; Back to the site</a>
+  <h1>How it works</h1>
+  <p>Electricity and gas mix once they're in the network, so nobody can say which power station or gas field reached a particular home. Everything here is a reasonable estimate of what is most likely, built from public data.</p>
+
+  <h2>Your electricity mix</h2>
+  <p>The fuel mix and carbon forecast come from the Carbon Intensity API, run by NESO with the University of Oxford and partners. It splits Great Britain into 14 regions, so your figures are for your whole region. Northern Ireland isn't covered.</p>
+
+  <h2>The stations on your map</h2>
+  <p>We take the stations running right now from Elexon's data and match them to the real high-voltage lines. Each fuel's share of your area is then split between its stations, with bigger and closer ones counting for more. Your location is the middle of your postcode district, not your home.</p>
+
+  <h2>Your gas</h2>
+  <p>National Gas publishes how much gas is entering Britain at each terminal. We give each terminal a share based on its flow divided by its distance from you, so closer terminals count for more. Anything nearer than 50 km counts as 50 km.</p>
+  <ul>
+    <li>Langeled at Easington is treated as Norwegian gas.</li>
+    <li>The North Sea pipeline into St Fergus carries both Norwegian and UK gas. We assume 75% Norwegian and 25% UK.</li>
+    <li>Milford Haven and the Isle of Grain are treated as tanker gas. The country shown is last year's national split, not the tanker unloading today.</li>
+    <li>The Bacton interconnectors are treated as gas from Europe, wherever it was first produced.</li>
+    <li>Gas coming out of storage is left out.</li>
+  </ul>
+
+  <h2>Best times</h2>
+  <p>We look for the lowest-carbon stretch in the next 24 hours of forecast. Washing is a 2.5 hour cycle between 07:00 and 22:00. A car is a 6 hour charge between 19:00 and 07:00. If you say you're on Agile, we use Octopus's published half-hourly prices instead of carbon.</p>
+
+  <h2>Could you pay less?</h2>
+  <p>We compare Ofgem's price cap with Octopus's published tariffs for your region. A car charge counts as 30 units and a typical home as 3,100 units a year. Your own usage and standing charges will change the answer.</p>
+
+  <h2>Daily league table</h2>
+  <p>Each region's renewable share is the average of the 48 half-hourly estimates for that day. Renewable means wind, solar, hydro and biomass.</p>
+
+  <p class="small">The full list of data sources is at the bottom of the main page.</p>
+</main>
+</body>
+</html>

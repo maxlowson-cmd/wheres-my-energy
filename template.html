@@ -193,6 +193,22 @@
   .proto b { color: var(--ink); font-weight: 600; }
   .primary.fit { align-self: flex-start; }
   .askline { font-weight: 600; }
+  a.next { display: inline-block; text-decoration: none; text-align: center; box-sizing: border-box; }
+  .forrow { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+  .forrow > div { flex: 1 1 auto; min-width: 0; }
+  .sharepanel { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); gap: .9rem; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: .9rem; }
+  .sharepanel img { width: 100%; height: auto; border-radius: 8px; display: block; }
+  .shareside { display: flex; flex-direction: column; gap: .5rem; align-items: stretch; }
+  .shareside .note { margin: 0; }
+  @media (max-width: 30rem) { .sharepanel { grid-template-columns: 1fr; } .sharepanel img { max-width: 14rem; } }
+  .contactbox form { margin-top: .6rem; max-width: 30rem; }
+  .contactbox .opt { font-weight: 400; color: var(--muted); }
+  .contactbox .note { margin: 0; }
+  .foot .contactbox summary { font-size: .92rem; }
+  textarea { font: inherit; font-size: 1rem; color: var(--ink); background: var(--panel); border: 2px solid var(--line); border-radius: 10px; padding: .6rem .75rem; resize: vertical; width: 100%; box-sizing: border-box; }
+  .contactbox input { flex: none; width: 100%; box-sizing: border-box; font-size: 1rem; }
+  textarea:focus-visible { outline: 3px solid var(--go); outline-offset: 2px; }
+  .trap { position: absolute; left: -9999px; height: 1px; overflow: hidden; }
   .foot .contact { margin: 0; font-size: .92rem; overflow-wrap: anywhere; }
   .card .seg.gastabs { display: grid; align-self: stretch; }
   .gastabs button { display: flex; flex-direction: column; align-items: center; gap: 0; padding: .4rem .2rem; min-width: 0; }
@@ -229,7 +245,7 @@
 </style>
 
 <main class="page">
-  <div class="proto"><span><b>Prototype.</b> Alerts, referral and donation links aren't connected yet.</span></div>
+  <div class="proto"><span><b>Prototype.</b> Alerts and the tariff link aren't connected yet.</span></div>
   <!--MAP_FUELS-->
   <div class="home" id="home">
   <header>
@@ -253,7 +269,22 @@
       <button class="back" id="change" type="button">&#8592; Change address</button>
       <span class="brand">Where's my energy from?</span>
     </div>
-    <p class="for"><span class="tag" id="exampleTag">Example</span>For <strong id="forWhere"></strong><span id="forArea"></span></p>
+    <div class="forrow">
+      <div>
+        <p class="for"><span class="tag" id="exampleTag">Example</span>For <strong id="forWhere"></strong><span id="forArea"></span></p>
+        <p class="stamp" id="stamp"></p>
+      </div>
+      <button class="next" id="shareBtn" type="button">Share</button>
+    </div>
+    <div class="sharepanel" id="sharePanel" hidden>
+      <img id="shareImg" alt="An image showing the power mix for your postcode district">
+      <div class="shareside">
+        <p class="note">To post on Instagram, save the image and add it to a post or story. The image and link only show the first half of your postcode.</p>
+        <a class="next" id="shareSave" download>Save image</a>
+        <button class="next" id="shareCopy" type="button">Copy link</button>
+        <p class="note" id="shareMsg" role="status"></p>
+      </div>
+    </div>
 
     <div class="deck" id="deck" tabindex="0" aria-label="Your results, swipe for more">
       <article class="card" data-name="Where it's from">
@@ -295,7 +326,7 @@
         <div class="seg gastabs" id="gasTabs" role="group" aria-label="Where your gas came from"></div>
         <div id="gasMap"></div>
         <ol class="journey" id="gasSteps"></ol>
-        <p class="note">An estimate from where gas is landing right now. Gas mixes in the pipes, and the lines aren't exact routes.</p>
+        <p class="note">An estimate from where gas is landing right now. Gas mixes in the pipes, and the lines aren't exact routes. <span id="gasTime"></span></p>
       </article>
 
       <article class="card" data-name="The whole country">
@@ -304,6 +335,7 @@
         <div class="strip thin" id="gbStrip"></div>
         <ul class="legend" id="gbLegend"></ul>
         <p class="note" id="gbHint"></p>
+        <p class="stamp" id="gbTime"></p>
         <div class="mapside">
           <!--MAP_ALL-->
           <div class="side">
@@ -436,16 +468,27 @@
       <div class="dots" id="dots"></div>
       <button class="next" id="next" type="button"></button>
     </div>
-    <p class="stamp" id="stamp"></p>
-    <div class="support"><span id="supportText">This site is free. If it's useful, you can help keep it running.</span><button class="next" id="donate" type="button">Buy me a coffee</button></div>
+    <div class="support"><span id="supportText">This site is free. If it's useful, you can help keep it running.</span><a class="next" id="donate" href="https://ko-fi.com/wheresmyenergyfrom" target="_blank" rel="noopener">Buy me a coffee</a></div>
   </section>
   <footer class="foot">
-    <p class="contact">Got an idea, or spotted something wrong? Email <a href="mailto:hello@wheresmyenergyfrom.co.uk">hello@wheresmyenergyfrom.co.uk</a></p>
+    <details class="contactbox" id="contactBox">
+      <summary>Got an idea, or spotted something wrong? Tell us</summary>
+      <form id="contactForm" novalidate>
+        <label for="contactText">Your message</label>
+        <textarea id="contactText" rows="4" maxlength="2000"></textarea>
+        <label for="contactReply">Email or handle, if you'd like a reply <span class="opt">(optional)</span></label>
+        <input id="contactReply" type="text" maxlength="200" autocomplete="off">
+        <div class="trap" aria-hidden="true"><label for="contactSite">Leave this empty</label><input id="contactSite" type="text" tabindex="-1" autocomplete="off"></div>
+        <button class="primary fit" type="submit">Send</button>
+        <p class="note" id="contactMsg" role="status"></p>
+      </form>
+    </details>
+    <p class="contact"><a href="method.html">How the estimates work</a> &middot; <a href="privacy.html">Privacy</a></p>
     <details>
       <summary>How this works</summary>
       <p>The fuel mix and carbon forecast for your area come from the Carbon Intensity API, which covers 14 regions of Great Britain. The stations on your map are the ones running right now, matched to the real high-voltage lines. Each fuel's share of your area is split between its stations, and bigger, closer ones count for more.</p>
       <p>Electricity mixes on the grid, so nobody can say which station reached a particular home. Treat the stations, routes and percentages as a reasonable estimate. The map uses the middle of your postcode district.</p>
-      <p>Your address stays in your browser. Only the first half of your postcode is sent, to fetch the forecast.</p>
+      <p>Your address stays in your browser. Only the first half of your postcode is sent, to fetch the forecast and add to an anonymous count of areas looked up.</p>
       <p>Tariff figures use Octopus Energy's published prices for your region and Ofgem's price cap. A car charge counts as 30 units and a typical home as 3,100 units a year.</p>
     </details>
     <details>
@@ -470,6 +513,8 @@
   const LOOKUP = /*LOOKUP*/null/*END*/;
   const GEO = /*GEO*/null/*END*/;
   const GAS = /*GAS*/null/*END*/;
+  const API = /*API*/''/*END*/;
+  const SITE = 'https://wheresmyenergyfrom.co.uk/';
   const NAMES = {1:'North Scotland',2:'South Scotland',3:'North West England',4:'North East England',5:'Yorkshire',6:'North Wales & Merseyside',7:'South Wales',8:'West Midlands',9:'East Midlands',10:'East of England',11:'South West England',12:'South England',13:'London',14:'South East England'};
   const FUEL_WORD = { gas: 'gas', wind: 'wind', nuclear: 'nuclear', imports: 'imports', biomass: 'biomass', solar: 'solar', hydro: 'hydro', coal: 'coal', other: 'other sources' };
   const FUEL_NAME = { gas: 'Gas', wind: 'Wind', nuclear: 'Nuclear', imports: 'Imports', biomass: 'Biomass', solar: 'Solar', hydro: 'Hydro', coal: 'Coal', other: 'Other' };
@@ -870,6 +915,7 @@
     const i = Math.min(rows.length - 1, Math.max(0, Math.floor((Date.now() - Date.parse(SNAPSHOT.start)) / SLOT)));
     const m = Object.fromEntries(rows[i].map((p, k) => [SNAPSHOT.fuels[k], p]));
     $('gbFuel').textContent = renderMix(m, 'gbStrip', 'gbLegend', document.querySelector('.map.tall'), $('gbHint'), null, document.querySelector('.mapside .mapkey'));
+    $('gbTime').textContent = `Stations and flows updated ${whenText(Date.parse(SNAPSHOT.taken))}.`;
     $('importLine').textContent = SNAPSHOT.topImport ? `Most imported power is arriving from ${SNAPSHOT.topImport}.` : '';
   }
 
@@ -966,8 +1012,82 @@
     if (w.dish) drawDay(f, w, flat);
     region.mine = f.id; region.focus = f.id; drawRegions();
     lastF = f; renderMember();
-    $('stamp').textContent = `Forecast updated ${dayKey.format(new Date(f.updated)) === dayKey.format(new Date()) ? 'today' : weekday.format(new Date(f.updated))} at ${clock.format(new Date(f.updated))}.`;
+    $('stamp').textContent = `Forecast updated ${whenText(f.updated)}.${Date.now() - f.updated > 3 * 3600000 ? ' This is older than usual, so check back soon.' : ''}`;
+    if (GAS) $('gasTime').textContent = `Flows read ${whenText(Date.parse(GAS.taken))}.`;
+    prepareShare(f, w, outward);
   }
+  const whenText = (t) => `${dayKey.format(new Date(t)) === dayKey.format(new Date()) ? 'today' : weekday.format(new Date(t))} at ${clock.format(new Date(t))}`;
+
+  /* sharing: the card and link only ever carry the postcode district, never the address typed in */
+  const CARD = { bg: '#dfeae6', panel: '#f4f8f6', ink: '#10302a', muted: '#4c6a62', line: '#bfd2cb', gas: '#c8553d', wind: '#2f7fb5', nuclear: '#6a4fa3', imports: '#b0719a', biomass: '#6f8f3a', solar: '#d9a21b', hydro: '#2aa198', coal: '#55524d', other: '#8d8577' };
+  const CARD_RENEW = ['wind', 'solar', 'hydro', 'biomass'];
+  let share = null;
+  const pageLink = (d) => { const here = /^https?:$/.test(location.protocol) && !location.hostname.includes('claude') ? location.origin + location.pathname : SITE; return `${here}?pc=${d}`; };
+  function wrapText(c, text, width) {
+    const lines = []; let cur = '';
+    text.split(' ').forEach((w) => { const trial = cur ? `${cur} ${w}` : w; if (c.measureText(trial).width <= width) cur = trial; else { lines.push(cur); cur = w; } });
+    return [...lines, cur];
+  }
+  async function drawCard(s) {
+    try { await Promise.all([document.fonts.load('700 80px "Bricolage Grotesque"'), document.fonts.load('600 30px Figtree')]); } catch (e) {}
+    const W = 1080, H = 1350, M = 72, cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const c = cv.getContext('2d'), DISPLAY = '"Bricolage Grotesque", "Trebuchet MS", sans-serif', BODY = 'Figtree, "Segoe UI", sans-serif';
+    c.fillStyle = CARD.bg; c.fillRect(0, 0, W, H);
+    c.textBaseline = 'alphabetic';
+    let y = 112;
+    c.fillStyle = CARD.muted; c.font = `600 30px ${BODY}`; c.fillText(`RIGHT NOW IN ${s.district}`, M, y);
+    y += 112;
+    c.fillStyle = CARD.ink; c.font = `700 104px ${DISPLAY}`;
+    wrapText(c, `${s.renew}% of this area's power is renewable.`, W - 2 * M).forEach((line) => { c.fillText(line, M, y); y += 112; });
+    y += 12;
+    const fuels = Object.entries(s.mix).filter(([, p]) => p >= 1).sort((a, b) => b[1] - a[1]);
+    const total = fuels.reduce((a, [, p]) => a + p, 0), barW = W - 2 * M, gap = 4, barH = 64;
+    let x = M;
+    fuels.forEach(([k, p]) => { const w = (barW - gap * (fuels.length - 1)) * p / total; c.fillStyle = CARD[k] || CARD.other; c.beginPath(); c.roundRect(x, y, Math.max(w, 2), barH, 8); c.fill(); x += w + gap; });
+    y += barH + 66;
+    fuels.slice(0, 5).forEach(([k, p]) => {
+      c.fillStyle = CARD[k] || CARD.other; c.beginPath(); c.roundRect(M, y - 28, 34, 34, 7); c.fill();
+      c.fillStyle = CARD.ink; c.font = `500 40px ${BODY}`; c.textAlign = 'left'; c.fillText(FUEL_NAME[k] || k, M + 54, y);
+      c.font = `600 40px ${BODY}`; c.textAlign = 'right'; c.fillText(`${Math.round(p)}%`, W - M, y); c.textAlign = 'left';
+      y += 66;
+    });
+    if (s.best && y < H - 280) { y += 22; c.fillStyle = CARD.muted; c.font = `500 34px ${BODY}`; wrapText(c, s.best, W - 2 * M).forEach((line) => { c.fillText(line, M, y); y += 44; }); }
+    c.fillStyle = CARD.ink; c.font = `700 40px ${DISPLAY}`; c.fillText('wheresmyenergyfrom.co.uk', M, H - 128);
+    c.fillStyle = CARD.muted; c.font = `500 28px ${BODY}`; c.fillText(`Estimate for ${s.area}, ${s.time}.`, M, H - 84); c.fillText('Renewable includes biomass.', M, H - 46);
+    return new Promise((done) => cv.toBlob(done, 'image/png'));
+  }
+  function prepareShare(f, w, outward) {
+    const mix = f.mix[Math.min(w.skip, f.mix.length - 1)];
+    const renew = Math.round(CARD_RENEW.reduce((a, k) => a + (mix[k] || 0), 0));
+    const cleanest = nextWindow(f, WASH_HOURS, 5);
+    const s = { district: outward, area: f.area, mix, renew, best: cleanest ? `Cleanest time for the washing: ${say(cleanest.from, cleanest.to)}.` : null, time: `${clock.format(new Date())} ${shortDate(dayKey.format(new Date()))}`, link: pageLink(outward), text: `Right now ${renew}% of the power around ${outward} is renewable. Where's yours from?`, blob: null };
+    share = s;
+    $('sharePanel').hidden = true;
+    drawCard(s).then((b) => { s.blob = b; }).catch(() => {});
+  }
+  function openSharePanel(s) {
+    if (s.url) URL.revokeObjectURL(s.url);
+    s.url = URL.createObjectURL(s.blob);
+    $('shareImg').src = s.url; $('shareSave').href = s.url; $('shareSave').download = `wheres-my-energy-${s.district}.png`;
+    $('shareMsg').textContent = '';
+    $('sharePanel').hidden = false;
+  }
+  $('shareBtn').addEventListener('click', async () => {
+    const s = share;
+    if (!s) return;
+    if (!s.blob) s.blob = await drawCard(s);
+    const file = new File([s.blob], `wheres-my-energy-${s.district}.png`, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], text: `${s.text} ${s.link}` }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    if ($('sharePanel').hidden) openSharePanel(s); else $('sharePanel').hidden = true;
+  });
+  $('shareCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(share.link); $('shareMsg').textContent = 'Link copied.'; } catch (e) { $('shareMsg').textContent = share.link; }
+  });
+  function setAddressBar(d) { try { history.replaceState(null, '', d ? `?pc=${d}` : location.pathname); } catch (e) {} }
+  function countDistrict(d) { if (API) fetch(`${API}/count`, { method: 'POST', keepalive: true, body: JSON.stringify({ d }) }).catch(() => {}); }
 
   function openResults(render) {
     $('error').hidden = true;
@@ -1026,6 +1146,7 @@
     if (f === 'unknown') return fail(`We couldn't find ${a.outward}. Check the postcode and try again.`);
     openResults(() => show(f, a.label, false, a.outward));
     go(0);
+    setAddressBar(a.outward); countDistrict(a.outward);
     const box = $('answer'); box.classList.remove('fresh'); void box.offsetWidth; box.classList.add('fresh');
   });
 
@@ -1146,11 +1267,34 @@
     fit();
   });
   $('payGo').addEventListener('click', () => { $('payNote').textContent = 'This is a prototype. The link goes here once we choose a partner. If you switch through it we may earn a fee.'; fit(); });
-  $('donate').addEventListener('click', () => { $('supportText').textContent = 'This is a prototype. Your donation link goes here.'; });
   setCards();
   drawGrid();
   drawCountry();
   $('exampleBtn').addEventListener('click', () => openResults(() => show(storedForecast('SW9'), 'Brixton, SW9', true, 'SW9')));
-  $('change').addEventListener('click', () => { $('answer').hidden = true; $('home').hidden = false; scrollTo(0, 0); $('address').focus(); });
+  $('change').addEventListener('click', () => { setAddressBar(null); $('answer').hidden = true; $('home').hidden = false; scrollTo(0, 0); $('address').focus(); });
   sync();
+
+  $('contactForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = $('contactMsg'), message = $('contactText').value.trim();
+    if (message.length < 3) { msg.textContent = 'Add a few words first.'; return; }
+    if (!API) { msg.textContent = "This is a prototype, so nothing was sent."; return; }
+    msg.textContent = 'Sending…';
+    try {
+      const r = await fetch(`${API}/contact`, { method: 'POST', body: JSON.stringify({ message, reply: $('contactReply').value.trim(), website: $('contactSite').value }) });
+      if (r.ok) { msg.textContent = 'Thanks, that has been sent.'; $('contactForm').reset(); }
+      else msg.textContent = r.status === 429 ? "That's a lot of messages. Please try again later." : "That didn't send. Please try again.";
+    } catch (err) { msg.textContent = "That didn't send. Please try again."; }
+  });
+
+  /* a shared link opens straight on that district */
+  (() => {
+    const pc = (new URLSearchParams(location.search).get('pc') || '').toUpperCase();
+    if (!/^[A-Z]{1,2}\d[A-Z\d]?$/.test(pc) || /^(BT|JE|GY|IM)\d/.test(pc)) return;
+    const f = storedForecast(pc);
+    if (f === 'unknown') return;
+    openResults(() => show(f, pc, false, pc));
+    countDistrict(pc);
+    liveForecast(pc).then((l) => { if (l && !$('answer').hidden && share && share.district === pc) show(l, pc, false, pc); });
+  })();
 </script>

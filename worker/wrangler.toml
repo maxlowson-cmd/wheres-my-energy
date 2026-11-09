@@ -1,0 +1,17 @@
+name = "wheres-my-energy-relay"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+ALLOWED_ORIGINS = "https://wheresmyenergyfrom.co.uk,https://www.wheresmyenergyfrom.co.uk,http://localhost:8766"
+GH_REPO = "maxlowson-cmd/wheres-my-energy"
+GH_WORKFLOW = "build.yml"
+GH_REF = "main"
+
+[triggers]
+crons = ["7,37 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "wheres-my-energy"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"

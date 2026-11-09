@@ -1,5 +1,5 @@
 """Fetch the 48-hour regional carbon forecast plus GB grid data, and write index.html from template.html + lookup.json."""
-import json, pathlib, subprocess, sys, urllib.request, datetime as dt, collections
+import json, pathlib, shutil, subprocess, sys, urllib.request, datetime as dt, collections
 
 HERE = pathlib.Path(__file__).resolve().parent
 FUELS = ['gas', 'wind', 'nuclear', 'imports', 'biomass', 'solar', 'hydro', 'coal', 'other']
@@ -80,6 +80,8 @@ page = page.replace('/*SNAPSHOT*/null/*END*/', json.dumps(snapshot, separators=(
 page = page.replace('/*LOOKUP*/null/*END*/', json.dumps(lookup, separators=(',', ':')))
 page = page.replace('/*MEMBER*/null/*END*/', (HERE / 'member.json').read_text(encoding='utf8'))
 page = page.replace('/*GAS*/null/*END*/', (HERE / 'gas.json').read_text(encoding='utf8'))
+config = json.loads((HERE / 'site_config.json').read_text(encoding='utf8'))
+page = page.replace("/*API*/''/*END*/", json.dumps(config['api'].rstrip('/')))
 (HERE / 'index.html').write_text(page, encoding='utf8')
 
 # the public website: a complete document (index.html above is the same page without its <head>)
@@ -90,6 +92,7 @@ split = page.index('</style>') + len('</style>')
 head, body = page[:split], page[split:]
 head = head.replace('<meta name="claude:viewport-fit-sides" content="cover">\n', '').replace('<meta charset="utf-8">\n', '')
 head = head.replace(f'<title>{TITLE}</title>\n', '')
+beacon = ('<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon=\'{"token": "%s"}\'></script>' % config['beacon']) if config['beacon'] else ''
 document = f"""<!doctype html>
 <html lang="en-GB">
 <head>
@@ -107,9 +110,12 @@ document = f"""<!doctype html>
 </head>
 <body>
 {body}
+{beacon}
 </body>
 </html>
 """
 (HERE / 'site').mkdir(exist_ok=True)
 (HERE / 'site' / 'index.html').write_text(document, encoding='utf8')
+for extra in (HERE / 'pages').glob('*.html'):
+    shutil.copy(extra, HERE / 'site' / extra.name)
 print('OK', snapshot['taken'], 'slots', len(rows), 'bytes', len(page.encode('utf8')), 'top import', top_import)
