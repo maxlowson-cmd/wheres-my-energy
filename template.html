@@ -1266,8 +1266,8 @@
     },
     league(c, s) {
       storyFrame(c, s, DK.go);
-      const size = fitSize(c, s.headline, W - 2 * M, 280, [92, 84, 76, 68], 800, DISPLAY);
-      textLines(c, s.headline, M, 340 + size, W - 2 * M, size, 800, DISPLAY, DK.ink, 1.08, 3);
+      const size = fitSize(c, s.headline, W - 2 * M, 280, [92, 84, 76, 68, 60, 54], 800, DISPLAY);
+      textLines(c, s.headline, M, 340 + size, W - 2 * M, size, 800, DISPLAY, DK.ink, 1.08, 4);
       const k = 1.5, x0 = 0, y0 = 640;
       c.save(); c.translate(x0, y0); c.scale(k, k);
       const max = Math.max(...Object.values(s.shares), 1);
