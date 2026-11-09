@@ -216,7 +216,7 @@ EDITOR = """You are the last check on an Instagram post from a free British site
 
 List every sentence or slide line they would have to read twice, or could not act on or picture. Flag lines that are vague or sound nice but say nothing ("the timing is yours to play with"), figures of speech standing in for a plain statement ("gas is doing more of the work"), two facts joined as if one caused the other without saying how, and anything that answers a question not yet asked or relies on something the reader hasn't seen. The caption and each slide must each make sense alone.
 
-Quote the exact words and say in a few words what is unclear. Don't flag tone, style, length or the figures themselves. Units such as MW or grams of CO2 are fine when the post gives a sense of scale or comparison. Flag only what would really trip someone up. If everything is clear first time, return an empty list."""
+Quote the exact words and say in a few words what is unclear. Don't flag tone, style, length or the figures themselves. Units such as MW or grams of CO2 are fine when the post gives a sense of scale or comparison. Flag only what would really trip someone up, and list at most the two worst. A post doesn't have to explain everything: never ask for more explanation, such as why a time is cleaner or what CO2 is, and a fact may simply stand on its own. Different figures can come from different sources, so don't flag those. If everything is clear first time, return an empty list."""
 EDITOR_SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['unclear'], 'properties': {'unclear': {'type': 'array', 'items': {'type': 'string'}}}}
 
 
@@ -437,11 +437,14 @@ def main():
                 relay('telegram', text='Instagram agent skipped today: the site data is too old to post.')
             return
         pick = choose(ideas, history, f'{today}{slot}')
+        test_pick = os.environ.get('MOCK_ALBUM', '').partition(':')[2] if DRY else ''  # a no-post test can name the story to try
+        if test_pick:
+            pick = next(i for i in ideas if i['id'] == test_pick)
         print('pick', pick['id'])
         sheet = page.evaluate('WMESocial.facts()')
         signoff = page.evaluate('WMESocial.signoff')
         day = dt.date.fromisoformat(today)
-        album = pick['novelty'] >= .8 or day.weekday() in (1, 3, 6) or os.environ.get('MOCK_ALBUM') == 'album'
+        album = pick['novelty'] >= .8 or day.weekday() in (1, 3, 6) or os.environ.get('MOCK_ALBUM', '').startswith('album')
         angle = pick_angle(history, f'{today}{slot}')
         print('format', 'album' if album else 'single', 'angle', angle)
         plan = None if explainer_due(history) or os.environ.get('MOCK_ALBUM') == 'explain' else write_plan(pick, ideas, sheet, angle, album, [r.get('caption', '')[:200] for r in history[:7]], day)
