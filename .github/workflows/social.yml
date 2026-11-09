@@ -9,6 +9,9 @@ on:
       mock_album:
         description: 'Test album rendering without wording (1 or 0)'
         default: '0'
+      extra_post:
+        description: 'Post even if this morning or afternoon already has one (1 or 0)'
+        default: '0'
 
 permissions:
   contents: read
@@ -36,6 +39,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MOCK_ALBUM: ${{ inputs.mock_album }}
           DRY_RUN: ${{ inputs.dry_run }}
+          EXTRA_POST: ${{ inputs.extra_post }}
         run: python social/agent.py
       - uses: actions/upload-artifact@v4
         if: ${{ inputs.dry_run == '1' }}

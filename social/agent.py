@@ -306,7 +306,7 @@ def main():
     today = dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d')
     history = relay('history').get('posts', [])
     now_utc = dt.datetime.now(dt.timezone.utc)
-    slot = 'am' if now_utc.hour < 14 else 'pm'
+    slot = f'x{now_utc:%H%M}' if os.environ.get('EXTRA_POST') == '1' else 'am' if now_utc.hour < 14 else 'pm'  # a post asked for by hand gets its own slot
     same_slot = lambda r: r['day'] == today and ('am' if dt.datetime.fromtimestamp(r['posted'] / 1000, dt.timezone.utc).hour < 14 else 'pm') == slot
     if not DRY and any(same_slot(r) for r in history):
         print('already posted in this slot')
