@@ -73,17 +73,37 @@ def score_posts(history):
     return by_type
 
 
+def category_of(kind):
+    lead = kind.split('|')[0]
+    return 'explain' if lead == 'explainer' else 'new' if lead == 'new-site' else 'history' if lead in ('on-this-day', 'growth') else 'fact' if lead == 'fact' else 'now'
+
+
+def explainer_due(history):
+    """Every fourth post explains how the site works, so people understand and trust it."""
+    ordered = sorted(history, key=lambda r: r['posted'], reverse=True)
+    since = next((i for i, r in enumerate(ordered) if r['type'].startswith('explainer')), len(ordered))
+    return len(ordered) >= 3 and since >= 3
+
+
+def next_explainer(history):
+    items = json.loads((pathlib.Path(__file__).resolve().parent / 'explainers.json').read_text(encoding='utf8'))
+    done = sum(1 for r in history if r['type'].startswith('explainer'))
+    return items[done % len(items)], done % len(items)
+
+
 def choose(ideas, history, today):
     """Half how unusual today is, half what has worked, with enough randomness to keep trying everything."""
     rng = random.Random(today)
     perf = score_posts(history)
-    recent = [r['type'].split('|')[0] for r in sorted(history, key=lambda r: r['posted'], reverse=True)[:2]]
+    ordered = sorted(history, key=lambda r: r['posted'], reverse=True)
+    recent = [r['type'].split('|')[0] for r in ordered[:2]]
+    last_cat = category_of(ordered[0]['type']) if ordered else None
     table = []
     for idea in ideas:
         got = perf.get(idea['type'], [])
         mean = sum(got) / len(got) if got else .5
         sampled = min(1, max(0, rng.gauss(mean, .35 / math.sqrt(len(got) + 1))))
-        total = .5 * idea['novelty'] + .5 * sampled - (.5 if idea['type'] in recent else 0)
+        total = .5 * idea['novelty'] + .5 * sampled - (.5 if idea['type'] in recent else 0) - (.3 if idea['cat'] == last_cat else 0)
         table.append((round(total, 3), idea['id'], round(idea['novelty'], 2), round(mean, 2), len(got)))
     table.sort(reverse=True)
     for row in table:
@@ -311,7 +331,7 @@ def main():
         album = pick['novelty'] >= .8 or day.weekday() in (1, 3, 6)
         angle = pick_angle(history, today)
         print('format', 'album' if album else 'single', 'angle', angle)
-        plan = write_plan(pick, ideas, sheet, angle, album, [r.get('caption', '')[:200] for r in history[:7]], day)
+        plan = None if explainer_due(history) or os.environ.get('MOCK_ALBUM') == 'explain' else write_plan(pick, ideas, sheet, angle, album, [r.get('caption', '')[:200] for r in history[:7]], day)
         if plan is None and DRY and os.environ.get('MOCK_ALBUM') == '1':
             lead = [pick['id']] + [i['id'] for i in ideas if i['id'] != pick['id'] and i['type'] != 'fact'][:3]
             plan = {'hook_kicker': 'TEST KICKER', 'hook': 'Test hook: this slide opens the story without giving it away.', 'slides': [{'id': x, 'text': 'Test wording for this slide.'} for x in lead], 'closing': 'Test closing that brings the story back to the reader.', 'caption': 'Test caption.', 'alt': 'Test.'}
@@ -319,7 +339,16 @@ def main():
             print('mock check', check_plan(plan, ideas, sheet, True))
         image = lambda a, fmt, over=None: page.evaluate('([a, b, c]) => WMESocial.image(a, b, c)', [a, fmt, over])
         no_text = lambda s: None if next(i for i in ideas if i['id'] == s['id'])['art'] == 'fact' else {'text': s['text']}
-        if plan is None:
+        cat = pick.get('cat', 'now')
+        force = os.environ.get('MOCK_ALBUM') == 'explain'
+        if explainer_due(history) or force:
+            item, number = next_explainer(history)
+            album, cat = True, 'explain'
+            caption, alt = item['caption'] + signoff, item['hook']
+            parts = [('explain', {'text': item['hook'], 'eyebrow': item['kicker'], 'swipe': True})] + [('explain', {'text': s, 'eyebrow': item['kicker']}) for s in item['slides']] + [('closing', {'text': item['closing'], 'eyebrow': item['kicker'], 'cat': 'explain'})]
+            kind = f'explainer|album|explain{number}'
+            plan = {'explainer': number}
+        elif plan is None:
             album = False
             caption, alt = pick['caption'], pick['alt']
             parts = [(pick['id'], None)]
@@ -330,7 +359,7 @@ def main():
             caption, alt = plan['caption'].strip() + signoff, plan['alt']
             parts = [(s['id'], no_text(s)) for s in plan['slides']]
             if album:
-                parts = [('hook', {'text': plan['hook'], 'eyebrow': plan['hook_kicker'].upper()})] + parts + [('closing', {'text': plan['closing']})]
+                parts = [('hook', {'text': plan['hook'], 'eyebrow': plan['hook_kicker'].upper(), 'cat': cat})] + [(a, {**(o or {}), 'cat': cat}) for a, o in parts] + [('closing', {'text': plan['closing'], 'cat': cat})]
             kind = f"{pick['type']}|{'album' if album else 'single'}|{angle}"
         if DRY:
             OUT.mkdir(exist_ok=True)

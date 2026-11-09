@@ -1,0 +1,74 @@
+[
+  {
+    "kicker": "HOW IT WORKS",
+    "hook": "Nobody can tell you which power station boils your kettle. So how do we do it?",
+    "slides": [
+      "Electricity all mixes together once it's on the grid. There's no way to follow it to one home.",
+      "So we make an informed estimate, using public data on what's running right now.",
+      "We match those power stations to the real high-voltage lines near you.",
+      "Then each fuel's share is split between its stations. Bigger and closer ones count for more."
+    ],
+    "closing": "It's the most likely answer, not a certainty. Want to see yours?",
+    "caption": "Here's a slightly awkward truth about electricity: once it's on the grid, it's all mixed together. Nobody can trace the power in your socket back to one place.\n\nWhat we can do is work out what's most likely, using live public data and the real map of high-voltage lines.\n\nWhich power station would you guess is feeding your home right now?"
+  },
+  {
+    "kicker": "HOW IT WORKS",
+    "hook": "How can we possibly know where your gas came from?",
+    "slides": [
+      "National Gas publishes how much gas is entering Britain at each terminal.",
+      "We give every terminal a share based on how much is flowing, and how far away it is from you.",
+      "Gas landing through the Langeled pipeline at Easington counts as Norwegian.",
+      "Gas at Milford Haven and the Isle of Grain arrived on tankers."
+    ],
+    "closing": "Gas mixes in the pipes too, so it's a best estimate. Curious where yours started out?",
+    "caption": "Gas doesn't come with a label on it. It all mixes in the pipes on its way to your boiler.\n\nBut Britain's entry points are public, so we can work out where the gas near you most likely started, whether that's a North Sea field, Norway or a tanker from across the ocean.\n\nWhere do you think yours came from today?"
+  },
+  {
+    "kicker": "HOW IT WORKS",
+    "hook": "How do we pick the best time to put your washing on?",
+    "slides": [
+      "We read the carbon forecast for your region, up to 24 hours ahead.",
+      "Then we hunt for the cleanest stretch that actually suits real life.",
+      "A wash is treated as a 2.5 hour cycle, between 07:00 and 22:00. Nobody wants a 3am spin.",
+      "A car gets a 6 hour charge, between 19:00 and 07:00."
+    ],
+    "closing": "Same wash, different hour, different carbon. When's your best time today?",
+    "caption": "The cleanest hour of the day is no use if it's 3am and you're asleep.\n\nSo when we pick your best time, we only look at hours when you'd realistically press the button: daytime and evening for washing, overnight for the car.\n\nWhat's the one job you'd happily move to a cleaner time?"
+  },
+  {
+    "kicker": "HOW IT WORKS",
+    "hook": "When we say 'renewable', what do we actually mean?",
+    "slides": [
+      "We count four things: wind, solar, hydro and biomass.",
+      "Biomass is included because that's how the official figures treat it, and we always say so.",
+      "Gas and coal count as fossil fuels. Nuclear and imports are shown on their own.",
+      "Britain is split into 14 regions, so your figure is for your whole region."
+    ],
+    "closing": "Now you know how we count. How renewable is your region right now?",
+    "caption": "Percentages only mean something if you know what's being counted.\n\nSo here's exactly what goes into our renewable figure, and what doesn't. We'd rather you knew than took our word for it.\n\nDoes anything on that list surprise you?"
+  },
+  {
+    "kicker": "HOW IT WORKS",
+    "hook": "You type in your address. What happens to it?",
+    "slides": [
+      "Your full address and postcode stay in your browser.",
+      "Only the first half of your postcode, like SW9, ever leaves your device.",
+      "That's enough to fetch your region's forecast and place you on the map.",
+      "Your location on the map is the middle of your postcode district, not your home."
+    ],
+    "closing": "No accounts. No tracking cookies. Just where your energy comes from.",
+    "caption": "A site that asks for your address should be able to say exactly what it does with it.\n\nThe short version: it stays on your device. We only ever use the first half of your postcode.\n\nIs there anything else you'd like us to explain about how this works?"
+  },
+  {
+    "kicker": "HOW IT WORKS",
+    "hook": "Where does all this data actually come from?",
+    "slides": [
+      "The forecast comes from the Carbon Intensity API, run by NESO with the University of Oxford and partners.",
+      "Which stations are running comes from Elexon's public data.",
+      "Gas flows come from National Gas, and renewable sites from a government database.",
+      "Power lines and pipeline routes are mapped by OpenStreetMap contributors."
+    ],
+    "closing": "All public. All free for anyone to check. We just put it in one place for you.",
+    "caption": "None of this is secret. Britain publishes a remarkable amount of information about its energy system. It's just scattered around and hard to read.\n\nWe pull it together so you can type in a postcode and actually see it.\n\nWhat would you most like to know about your energy that you can't find out?"
+  }
+]

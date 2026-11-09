@@ -2,7 +2,7 @@
 
 Sources: Elexon generation records, and the government's Renewable Energy Planning Database (large-scale sites only).
 """
-import collections, csv, datetime as dt, json, math, pathlib, urllib.request
+import collections, csv, datetime as dt, json, math, pathlib, random, urllib.request
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 LAT0 = 54.0
@@ -56,10 +56,20 @@ def day_mix(day, up_to):
     return ({k: v / total * 100 for k, v in totals.items()}, len(periods)) if total else ({}, 0)
 
 
+def lookback(now, choices, salt):
+    """A different distance back on different days, so the history posts don't all read the same."""
+    return random.Random(f'{now.date()}{salt}').choice(choices)
+
+
+def ago_words(n):
+    return 'a year ago' if n == 1 else f'{n} years ago'
+
+
 def on_this_day(now):
-    """Today so far against the same hours of the same date ten years ago. Metered generation on both sides, so it compares like with like."""
+    """Today so far against the same hours of the same date in an earlier year. Metered generation on both sides, so it compares like with like."""
+    back = lookback(now, (1, 2, 3, 5, 8, 10), 'day')
     try:
-        then_day = now.date().replace(year=now.year - 10)
+        then_day = now.date().replace(year=now.year - back)
     except ValueError:
         return []
     period = now.hour * 2 + (now.minute >= 30)
@@ -74,8 +84,8 @@ def on_this_day(now):
     renew = lambda m: round(m.get('wind', 0) + m.get('biomass', 0) + m.get('hydro', 0))
     date_words = f'{then_day.day} {then_day:%B %Y}'
     words = f'On {date_words}, {LABEL[fuel]} made {a}% of the power on Britain\'s main grid at this point in the day. Today it is {b}%.'
-    return [{'id': 'on-this-day', 'type': 'on-this-day', 'art': 'year', 'limit': 60, 'novelty': clip(abs(a - b) / 25), 'shows': words, 'caption': words, 'alt': words,
-             'spec': {'art': 'year', 'eyebrow': f'THIS DAY IN {then_day.year}', 'big': f'{a}%', 'sub': f'of our grid power came from {LABEL[fuel]}. Today: {b}%.', 'mixBars': [[str(then_day.year), then, renew(then)], [str(now.year), today, renew(today)]], 'month': [], 'glow': '#8f8b84', 'foot': ['Metered generation so far today against the same hours then. Elexon.']}}]
+    return [{'id': 'on-this-day', 'type': 'on-this-day', 'cat': 'history', 'art': 'year', 'limit': 60, 'novelty': clip(abs(a - b) / 25), 'shows': words, 'caption': words, 'alt': words,
+             'spec': {'art': 'year', 'eyebrow': f'THIS DAY IN {then_day.year}', 'big': f'{a}%', 'sub': f'of our grid power came from {LABEL[fuel]}. Today: {b}%.', 'mixBars': [[str(then_day.year), then, renew(then)], [str(now.year), today, renew(today)]], 'month': [], 'foot': ['Metered generation so far today against the same hours then. Elexon.']}}]
 
 
 def repd_rows():
@@ -98,18 +108,19 @@ def growth(rows, now):
     for tech, (name, fuel) in TECH.items():
         mine = [(w, mw) for w, mw, r in rows if r.get('Technology Type') == tech]
         at = lambda d: sum(mw for w, mw in mine if w <= d)
-        latest, then_day = at(newest), newest.replace(year=newest.year - 10)
+        back = lookback(now, (3, 5, 7, 10), tech)
+        latest, then_day = at(newest), newest.replace(year=newest.year - back)
         then = at(then_day)
         if latest < 500:
             continue
-        years = list(range(newest.year - 10, newest.year + 1))
+        years = list(range(newest.year - back, newest.year + 1))
         bars = [[str(y), round(at(min(dt.date(y, newest.month, min(newest.day, 28)), newest)))] for y in years]
         ratio = latest / max(then, 1)
         grown = 'gone from almost nothing' if then < 100 else 'more than tripled' if ratio >= 3 else 'more than doubled' if ratio >= 2 else 'grown by over half' if ratio >= 1.5 else 'kept growing'
         have = 'have' if name.endswith('s') else 'has'
-        words = f"In ten years, Britain's {name} {have} {grown}: from {round(then):,} MW to {round(latest):,} MW."
-        out.append({'id': 'growth-' + tech.lower().replace(' ', '-'), 'type': 'growth', 'art': 'bars', 'limit': 85, 'novelty': .45 + (.2 if ratio >= 3 else 0), 'shows': words, 'caption': words, 'alt': words,
-                    'spec': {'art': 'bars', 'eyebrow': 'TEN YEARS OF CHANGE', 'headline': f"Britain's {name} {have} {grown} in 10 years." if then >= 100 else f"Britain's {name}: from almost nothing to {round(latest):,} MW in 10 years.", 'bars': bars, 'fuel': fuel, 'rows': [[f'{then_day:%B %Y}', f'{round(then):,} MW'], [f'{newest:%B %Y}', f'{round(latest):,} MW']], 'foot': ['Large-scale operating sites, government planning database.']}})
+        words = f"In {back} years, Britain's {name} {have} {grown}: from {round(then):,} MW to {round(latest):,} MW."
+        out.append({'id': 'growth-' + tech.lower().replace(' ', '-'), 'type': 'growth', 'cat': 'history', 'art': 'bars', 'limit': 85, 'novelty': .45 + (.2 if ratio >= 3 else 0), 'shows': words, 'caption': words, 'alt': words,
+                    'spec': {'art': 'bars', 'eyebrow': f'{back} YEARS OF CHANGE', 'headline': f"Britain's {name} {have} {grown} in {back} years." if then >= 100 else f"Britain's {name}: from almost nothing to {round(latest):,} MW in {back} years.", 'bars': bars, 'fuel': fuel, 'rows': [[f'{then_day:%B %Y}', f'{round(then):,} MW'], [f'{newest:%B %Y}', f'{round(latest):,} MW']], 'foot': ['Large-scale operating sites, government planning database.']}})
     return out
 
 
@@ -127,7 +138,7 @@ def new_sites(rows, posted):
         kind, fuel = {'Solar Photovoltaics': ('solar farm', 'solar'), 'Wind Onshore': ('wind farm', 'wind'), 'Wind Offshore': ('offshore wind farm', 'wind'), 'Battery': ('battery site', 'hydro')}[r['Technology Type']]
         place = (r.get('County') or r.get('Region') or '').strip()
         words = f"{name}, a {round(mw)} MW {kind}{' in ' + place if place else ''}, started operating in {when:%B %Y}."
-        return [{'id': 'new-site', 'type': 'new-site', 'art': 'map', 'limit': 60, 'novelty': .8, 'shows': words, 'caption': words, 'alt': words,
+        return [{'id': 'new-site', 'type': 'new-site', 'cat': 'new', 'art': 'map', 'limit': 60, 'novelty': .8, 'shows': words, 'caption': words, 'alt': words,
                  'spec': {'art': 'map', 'glow': None, 'fuelGlow': fuel, 'eyebrow': 'NEW ON THE GRID', 'big': f'{round(mw)} MW', 'sub': f'{kind} now running: {name}.', 'list': [], 'spot': to_xy(lat, lon), 'spotFuel': fuel, 'spotLabel': name, 'foot': [f'Started operating {when:%B %Y}. Government planning database.']}}]
     return []
 

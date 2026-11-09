@@ -1104,6 +1104,9 @@
   /* story images, 1080 x 1920: everything important stays between y 250 and y 1680, clear of Instagram's own buttons */
   const DK = { ink: '#f0f8f5', muted: '#a3beb6', go: '#4fd6a2', land: '#1b4a3e', line: 'rgba(124,240,196,.32)', track: 'rgba(240,248,245,.10)', stop: '#ff8a70', gas: '#e0735c', wind: '#58a6da', nuclear: '#9a82d6', imports: '#cf93b9', biomass: '#9dbb5f', solar: '#e8bb49', hydro: '#4cc4ba', coal: '#8f8b84', other: '#aaa294' };
   const fuelDk = (k) => DK[k] || DK.other;
+  /* each kind of post has its own colour, so a glance at the feed shows what's what */
+  const CATEGORY = { now: '#4fd6a2', history: '#f2b84b', new: '#5db4f0', explain: '#b79cf2', fact: '#ff8a70' };
+  const accent = (s) => CATEGORY[s.cat] || DK.go;
   const DISPLAY = '"Bricolage Grotesque", "Trebuchet MS", sans-serif', BODY = 'Figtree, "Segoe UI", sans-serif';
   const W = 1080, H = 1920, M = 72;
   function setFont(c, size, weight, fam) { c.font = `${weight} ${size}px ${fam}`; }
@@ -1129,8 +1132,8 @@
     setFont(c, 30, 700, BODY);
     if ('letterSpacing' in c) c.letterSpacing = '3px';
     const w = c.measureText(s.eyebrow).width;
-    c.fillStyle = 'rgba(79,214,162,.16)'; c.beginPath(); c.roundRect(M, 244, w + 52, 60, 30); c.fill();
-    c.fillStyle = DK.go; c.fillText(s.eyebrow, M + 26, 285);
+    c.fillStyle = accent(s) + '29'; c.beginPath(); c.roundRect(M, 244, w + 52, 60, 30); c.fill();
+    c.fillStyle = accent(s); c.fillText(s.eyebrow, M + 26, 285);
     if ('letterSpacing' in c) c.letterSpacing = '0px';
     (s.foot || []).slice(0, 2).forEach((line, i, all) => { setFont(c, 26, 500, BODY); c.fillStyle = DK.muted; c.fillText(line, M, 1612 - (all.length - 1 - i) * 34); });
     setFont(c, 40, 700, DISPLAY); c.fillStyle = DK.ink; c.fillText('wheresmyenergyfrom.co.uk', M, 1672);
@@ -1211,7 +1214,7 @@
       }
       if (s.you) { const [x, y] = P(s.you); youMarker(c, x, y); }
       const size = fitSize(c, s.big, 540, 300, [270, 240, 210, 180], 800, DISPLAY);
-      setFont(c, size, 800, DISPLAY); c.fillStyle = DK.go; c.shadowColor = DK.go; c.shadowBlur = 40; c.fillText(s.big, M - 6, 330 + size * .92); c.shadowBlur = 0;
+      setFont(c, size, 800, DISPLAY); c.fillStyle = accent(s); c.shadowColor = accent(s); c.shadowBlur = 40; c.fillText(s.big, M - 6, 330 + size * .92); c.shadowBlur = 0;
       let y = textLines(c, s.sub, M, 330 + size * .92 + 84, 430, 54, 700, DISPLAY, DK.ink, 1.12, 5) + 34;
       if (s.listTitle) { setFont(c, 30, 700, BODY); c.fillStyle = DK.muted; c.fillText(s.listTitle, M, y); y += 58; }
       y = colourList(c, s.list || [], M, y, 400, 36, 56);
@@ -1223,15 +1226,16 @@
       return c;
     },
     fact(c, s) {
-      storyFrame(c, s, s.glow || DK.solar);
+      storyFrame(c, s, s.glow || (s.cat ? accent(s) : DK.solar));
       if (s.overlay) drawBritain(c, 400, 320, 1250, { fill: '#123229', noLine: true });
       else { drawBritain(c, 300, 180, 1760, { fill: '#123229', noLine: true }); c.fillStyle = 'rgba(10,27,23,.25)'; c.fillRect(0, 0, W, H); }
       const k = 7.4, ox = M - 60, oy = 340;
-      c.save(); c.shadowColor = DK.solar; c.shadowBlur = 40; c.fillStyle = DK.solar; c.beginPath(); [[18, 5], [9, 18], [15, 18], [14, 27], [23, 14], [17, 14]].forEach(([x, y], i) => (i ? c.lineTo(ox + x * k, oy + y * k) : c.moveTo(ox + x * k, oy + y * k))); c.closePath(); c.fill(); c.restore();
+      const bolt = s.cat ? accent(s) : DK.solar;
+      c.save(); c.shadowColor = bolt; c.shadowBlur = 40; c.fillStyle = bolt; c.beginPath(); [[18, 5], [9, 18], [15, 18], [14, 27], [23, 14], [17, 14]].forEach(([x, y], i) => (i ? c.lineTo(ox + x * k, oy + y * k) : c.moveTo(ox + x * k, oy + y * k))); c.closePath(); c.fill(); c.restore();
       const size = fitSize(c, s.text, W - 2 * M, 900, [104, 96, 88, 80, 72, 64], 800, DISPLAY, 1.1);
       textLines(c, s.text, M, 620 + size, W - 2 * M, size, 800, DISPLAY, DK.ink, 1.1, 14);
       storyChrome(c, s);
-      if (s.swipe) { setFont(c, 40, 700, BODY); c.fillStyle = DK.go; c.textAlign = 'right'; c.fillText('Swipe \u2192', W - M, 1672); c.textAlign = 'left'; }
+      if (s.swipe) { setFont(c, 40, 700, BODY); c.fillStyle = accent(s); c.textAlign = 'right'; c.fillText('Swipe \u2192', W - M, 1672); c.textAlign = 'left'; }
     },
     bars(c, s) {
       const col = fuelDk(s.fuel);
@@ -1292,7 +1296,7 @@
     year(c, s) {
       storyFrame(c, s, DK.wind);
       drawBritain(c, 620, 230, 680, { fill: '#163e34' });
-      setFont(c, 270, 800, DISPLAY); c.fillStyle = DK.go; c.shadowColor = DK.go; c.shadowBlur = 40; c.fillText(s.big, M - 6, 570); c.shadowBlur = 0;
+      setFont(c, 270, 800, DISPLAY); c.fillStyle = accent(s); c.shadowColor = accent(s); c.shadowBlur = 40; c.fillText(s.big, M - 6, 570); c.shadowBlur = 0;
       textLines(c, s.sub, M, 660, 640, 56, 700, DISPLAY, DK.ink, 1.12, 3);
       let y = 900;
       s.bars.forEach(([name, parts, pct]) => {
@@ -1483,7 +1487,7 @@
       if (!gb) return [];
       const ranked = fuelRows(gb), list5 = ranked.slice(0, 5).map(([k, p]) => [fuelDk(k), FUEL_NAME[k] || k, `${Math.round(p)}%`]), strip0 = fuelStrip(gb);
       const out = [];
-      const add = (id, type, novelty, spec, words) => { const s = { eyebrow: 'RIGHT NOW IN GREAT BRITAIN', foot: [`Estimate for Great Britain, ${time}.`], district: 'GB', key: id, ...spec }; cache.set(id, s); out.push({ id, type, art: s.art, limit: s.art === 'map' ? 60 : 85, novelty: clip(novelty), caption: words + sign, shows: words, alt: words.split('. ')[0] }); };
+      const add = (id, type, novelty, spec, words) => { const cat = id === 'fact' ? 'fact' : 'now', s = { eyebrow: 'RIGHT NOW IN GREAT BRITAIN', foot: [`Estimate for Great Britain, ${time}.`], district: 'GB', key: id, cat, ...spec }; cache.set(id, s); out.push({ id, type, cat, art: s.art, limit: s.art === 'map' ? 60 : 85, novelty: clip(novelty), caption: words + sign, shows: words, alt: words.split('. ')[0] }); };
       const fuelPost = (fuel, label, min, word = FUEL_NAME[fuel], verb = 'is') => {
         const v = Math.round(gb[fuel] || 0), y = Math.round(year[fuel] || 0);
         if (v < min) return;
@@ -1516,8 +1520,9 @@
       }
       const x = FACTS[Math.floor(Date.now() / 864e5) % FACTS.length];
       add('fact', 'fact', .35, { art: 'fact', eyebrow: 'DID YOU KNOW?', text: x.t, foot: [`Source: ${x.s}`] }, `${x.t}\n\nSource: ${x.s}.`);
-      cache.set('hook', { art: 'fact', eyebrow: 'TODAY', text: '', foot: [], key: 'hook', district: 'GB', swipe: true, glow: DK.go });
-      cache.set('closing', { art: 'fact', eyebrow: 'WHAT IT MEANS FOR YOU', text: '', foot: ['Put in your postcode at the link in our bio.'], key: 'closing', district: 'GB', glow: DK.go });
+      cache.set('hook', { art: 'fact', eyebrow: 'TODAY', text: '', foot: [], key: 'hook', district: 'GB', swipe: true });
+      cache.set('closing', { art: 'fact', eyebrow: 'WHAT IT MEANS FOR YOU', text: '', foot: ['Put in your postcode at the link in our bio.'], key: 'closing', district: 'GB' });
+      cache.set('explain', { art: 'fact', eyebrow: 'HOW IT WORKS', text: '', foot: [], key: 'explain', district: 'GB', cat: 'explain' });
       return out;
     }
     function facts() {
@@ -1541,25 +1546,28 @@
       const s = { ...cache.get(id) };
       if (over && over.text) { if (s.art === 'map') s.sub = over.text; else if (s.art === 'fact') s.text = over.text; else s.headline = over.text; }
       if (over && over.eyebrow) s.eyebrow = over.eyebrow;
+      if (over && over.cat) s.cat = over.cat;
+      if (over && over.swipe) s.swipe = true;
       try { await Promise.all([document.fonts.load('800 80px "Bricolage Grotesque"'), document.fonts.load('700 80px "Bricolage Grotesque"'), document.fonts.load('600 30px Figtree'), document.fonts.load('700 30px Figtree'), document.fonts.load('500 30px Figtree')]); } catch (e) {}
       const cv = document.createElement('canvas');
       cv.width = W; cv.height = H;
       if (format === 'story') { artists[s.art](cv.getContext('2d'), s); return cv.toDataURL('image/jpeg', .92); }
       artists[s.art](cv.getContext('2d'), { ...s, overlay: true });
       /* a feed post can be no taller than 4:5, so the story layout is scaled onto a shorter background */
-      const f = document.createElement('canvas'), c = f.getContext('2d'), FH = 1350, glow = s.glow || (s.art === 'fact' ? DK.solar : DK.go);
+      const f = document.createElement('canvas'), c = f.getContext('2d'), FH = 1350, glow = s.glow || accent(s);
       f.width = W; f.height = FH;
       const g = c.createLinearGradient(0, 0, 0, FH); g.addColorStop(0, '#0a1b17'); g.addColorStop(.6, '#0e2a23'); g.addColorStop(1, '#0a1b17');
       c.fillStyle = g; c.fillRect(0, 0, W, FH);
       const r = c.createRadialGradient(W * .78, FH * .26, 40, W * .78, FH * .26, 760); r.addColorStop(0, glow + '55'); r.addColorStop(1, glow + '00');
       c.fillStyle = r; c.fillRect(0, 0, W, FH);
       c.drawImage(cv, 0, 200, W, 1520, 60, 0, 960, FH);
+      c.fillStyle = accent(s); c.fillRect(0, 0, W, 18);
       return f.toDataURL('image/jpeg', .92);
     }
     function addExtras(list) {
       const time = stamp();
       list.forEach((x) => {
-        const s = { district: 'GB', key: x.id, foot: [`Estimate, ${time}.`], ...x.spec };
+        const s = { district: 'GB', key: x.id, cat: x.cat, foot: [`Estimate, ${time}.`], ...x.spec };
         if (s.mixBars) { s.bars = s.mixBars.map(([name, mix, pct]) => [name, fuelStrip(mix), pct]); const most = {}; s.mixBars.forEach(([, mix]) => Object.entries(mix).forEach(([k, v]) => { most[k] = Math.max(most[k] || 0, v); })); s.legend = fuelRows(most).slice(0, 7).map(([k]) => [fuelDk(k), FUEL_NAME[k] || k]); }
         if (s.fuelGlow) s.glow = fuelDk(s.fuelGlow);
         cache.set(x.id, s);
