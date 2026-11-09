@@ -85,7 +85,7 @@ page = page.replace("/*API*/''/*END*/", json.dumps(config['api'].rstrip('/')))
 (HERE / 'index.html').write_text(page, encoding='utf8')
 
 # the public website: a complete document (index.html above is the same page without its <head>)
-TITLE = "Where's My Energy From? v2"
+TITLE = "Where's My Energy From?"
 DESCRIPTION = "Type your address to see where your electricity is likely coming from right now, and the greenest hours to use it."
 ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%2306704b'/%3E%3Cpath d='M18 5 9 18h6l-1 9 9-13h-6z' fill='%23f2fbf7'/%3E%3C/svg%3E"
 split = page.index('</style>') + len('</style>')

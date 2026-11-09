@@ -1,4 +1,4 @@
-<title>Where's My Energy From? v2</title>
+<title>Where's My Energy From?</title>
 <meta charset="utf-8">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -256,7 +256,6 @@
 </style>
 
 <main class="page">
-  <div class="proto"><span><b>Prototype.</b> Alerts and the tariff link aren't connected yet.</span></div>
   <!--MAP_FUELS-->
   <div class="home" id="home">
   <header>
@@ -437,7 +436,7 @@
         <p class="avoid" id="avoidLine"><b>Try to avoid:</b> <span id="avoidWhen"></span></p>
       </article>
 
-      <article class="card" data-name="Free alerts">
+      <article class="card" data-name="Free alerts" hidden>
         <p class="eyebrow">Free alerts</p>
         <h2>We'll tell you when.</h2>
         <div class="toggles">
@@ -1324,7 +1323,7 @@
     }
     $('payHead').textContent = head; $('payBody').textContent = body;
     $('payCatch').textContent = catchLine; $('payCatch').hidden = !catchLine;
-    $('payLink').hidden = !link;
+    $('payLink').hidden = true; /* comes back when there is a link to send people to */
   }
 
   function drawYear(f) {

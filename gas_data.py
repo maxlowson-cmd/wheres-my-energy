@@ -65,6 +65,7 @@ try:
                                'lngTop': ['US', round(LNG_2025['US'] / total * 100)]}, separators=(',', ':')), encoding='utf8')
 except Exception as e:
     if not out.exists():
-        raise
-    print('gas feed unavailable, keeping the last good reading:', e)
+        # a fresh build has no earlier reading: leave the gas card out rather than stop the whole site updating
+        out.write_text(json.dumps({'taken': dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:00Z'), 'terminals': [], 'lngTop': ['US', 0]}, separators=(',', ':')), encoding='utf8')
+    print('gas feed unavailable, keeping the last good reading if there is one:', e)
 print(out.read_text(encoding='utf8')[:400])
