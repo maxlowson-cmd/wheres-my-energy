@@ -99,7 +99,7 @@ async function sendEmails(env, mails) {
   const r = await fetch('https://api.resend.com/emails/batch', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.RESEND_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(mails.map((m) => ({ from: env.ALERT_FROM || "Where's My Energy From? <alerts@wheresmyenergyfrom.co.uk>", ...m }))),
+    body: JSON.stringify(mails.map((m) => ({ from: env.ALERT_FROM || "Where's My Energy From? <alerts@mail.wheresmyenergyfrom.co.uk>", ...m }))),
   });
   return r.ok;
 }
