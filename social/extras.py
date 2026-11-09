@@ -116,7 +116,7 @@ def growth(rows, now):
         years = list(range(newest.year - back, newest.year + 1))
         bars = [[str(y), round(at(min(dt.date(y, newest.month, min(newest.day, 28)), newest)))] for y in years]
         ratio = latest / max(then, 1)
-        grown = 'gone from almost nothing' if then < 100 else 'more than tripled' if ratio >= 3 else 'more than doubled' if ratio >= 2 else 'grown by over half' if ratio >= 1.5 else 'kept growing'
+        grown = 'gone from almost nothing' if then < 100 else f'grown about {round(ratio)} times over' if ratio >= 4 else 'more than tripled' if ratio >= 3 else 'more than doubled' if ratio >= 2 else 'grown by over half' if ratio >= 1.5 else 'kept growing'
         have = 'have' if name.endswith('s') else 'has'
         words = f"In {back} years, Britain's {name} {have} {grown}: from {round(then):,} MW to {round(latest):,} MW."
         out.append({'id': 'growth-' + tech.lower().replace(' ', '-'), 'type': 'growth', 'cat': 'history', 'art': 'bars', 'limit': 85, 'novelty': .45 + (.2 if ratio >= 3 else 0), 'shows': words, 'caption': words, 'alt': words,

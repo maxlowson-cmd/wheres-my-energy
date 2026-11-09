@@ -216,7 +216,7 @@ EDITOR = """You are the last check on an Instagram post from a free British site
 
 List every sentence or slide line they would have to read twice, or could not act on or picture. Flag lines that are vague or sound nice but say nothing ("the timing is yours to play with"), figures of speech standing in for a plain statement ("gas is doing more of the work"), two facts joined as if one caused the other without saying how, and anything that answers a question not yet asked or relies on something the reader hasn't seen. The caption and each slide must each make sense alone.
 
-Quote the exact words and say in a few words what is unclear. Don't flag tone, style, length or the figures themselves. If everything is clear first time, return an empty list."""
+Quote the exact words and say in a few words what is unclear. Don't flag tone, style, length or the figures themselves. Units such as MW or grams of CO2 are fine when the post gives a sense of scale or comparison. Flag only what would really trip someone up. If everything is clear first time, return an empty list."""
 EDITOR_SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['unclear'], 'properties': {'unclear': {'type': 'array', 'items': {'type': 'string'}}}}
 
 
@@ -239,7 +239,7 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
              'instructions': ('Write 3 to 6 chart slides in story order, starting from the lead slide if it suits the story, plus the hook and closing. Hook at most 90 characters, kicker at most 28, closing at most 140. The fact slide cannot be reworded.' if album else 'Write exactly one slide: the lead slide. Leave hook, hook_kicker and closing as empty strings.'),
              'recent_captions_to_avoid_repeating': recent}
     messages = [{'role': 'user', 'content': json.dumps(brief, ensure_ascii=False)}]
-    for attempt in range(3):
+    for attempt in range(4):
         response = client.beta.messages.create(model='claude-opus-5-5', max_tokens=16000, system=VOICE, messages=messages, betas=['server-side-fallback-2026-07-01'], fallbacks='default', output_config={'effort': 'medium', 'format': {'type': 'json_schema', 'schema': PLAN_SCHEMA}})
         if response.stop_reason in ('refusal', 'max_tokens'):
             print('no usable wording:', response.stop_reason)
@@ -250,7 +250,7 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
         print('wording check', attempt, problems or 'passed')
         if not problems:
             return plan
-        messages += [{'role': 'assistant', 'content': text}, {'role': 'user', 'content': 'Please fix these and return the whole post again: ' + '; '.join(problems)}]
+        messages += [{'role': 'assistant', 'content': text}, {'role': 'user', 'content': 'Please fix these and return the whole post again. Fix each one by cutting the line or saying the plain thing. Shorter is better, so do not add new sentences to explain it: ' + '; '.join(problems)}]
     return None
 
 
