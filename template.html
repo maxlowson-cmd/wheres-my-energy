@@ -204,7 +204,7 @@
   .sheethead h2 { margin: 0; font-size: 1.2rem; }
   .sheetclose { font: inherit; font-size: 1.5rem; line-height: 1; color: var(--ink); background: none; border: 0; padding: .1rem .4rem; cursor: pointer; }
   .sheetimg { display: grid; place-items: center; min-height: 8rem; }
-  .sheetimg img { display: block; height: min(36dvh, 19rem); width: auto; max-width: 100%; border-radius: 8px; }
+  .sheetimg img { display: block; height: min(42dvh, 24rem); width: auto; max-width: 100%; border-radius: 8px; }
   .sheetbtns { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
   .sheetbtns .next { width: 100%; box-sizing: border-box; }
   .sheetbtns .next:disabled { opacity: .5; cursor: default; }
@@ -930,6 +930,7 @@
     // the first map stays local: the four likeliest sources within about 125 miles along the lines
     const within = model.rows.filter((s) => s.km <= 200 && s.share > 0);
     const picks = (within.length >= 2 ? within : model.rows).slice(0, 4);
+    lastMap = { p, picks };
     holder.innerHTML = nearSvg(model, picks) + ['gas', 'nuclear', 'imports', 'coal'].map((f) => fuelSvg(model, f, mix[f])).join('');
     drawGasStory(model, mix.gas);
     const names = picks.slice(0, 3).map((s) => `<em>${esc(s.short)}</em>`);
@@ -1085,53 +1086,232 @@
   const CARD_RENEW = ['wind', 'solar', 'hydro', 'biomass'];
   let share = null;
   const sheet = $('shareSheet');
-  const pageLink = (d) => { const here = /^https?:$/.test(location.protocol) && !location.hostname.includes('claude') ? location.origin + location.pathname : SITE; return `${here}?pc=${d}`; };
+  const pageLink = () => (/^https?:$/.test(location.protocol) && !location.hostname.includes('claude') ? location.origin + location.pathname : SITE);
+  let lastMap = null, lastDay = null;
   function wrapText(c, text, width) {
     const lines = []; let cur = '';
     text.split(' ').forEach((w) => { const trial = cur ? `${cur} ${w}` : w; if (c.measureText(trial).width <= width) cur = trial; else { lines.push(cur); cur = w; } });
     return [...lines, cur];
   }
   /* one layout for every slide: a headline, then whichever of bar, chart and rows that slide has */
-  async function drawCard(s) {
-    try { await Promise.all([document.fonts.load('700 80px "Bricolage Grotesque"'), document.fonts.load('600 30px Figtree')]); } catch (e) {}
-    const W = 1080, H = 1350, M = 72, cv = document.createElement('canvas');
-    cv.width = W; cv.height = H;
-    const c = cv.getContext('2d'), DISPLAY = '"Bricolage Grotesque", "Trebuchet MS", sans-serif', BODY = 'Figtree, "Segoe UI", sans-serif', barW = W - 2 * M;
-    c.fillStyle = CARD.bg; c.fillRect(0, 0, W, H);
-    c.textBaseline = 'alphabetic';
-    c.fillStyle = CARD.muted; c.font = `600 30px ${BODY}`; c.fillText(s.eyebrow, M, 112);
-    const room = s.segments || s.spark || s.rows ? 360 : 760;
-    let size = 104, lines = [];
-    for (size of [104, 92, 80, 68, 58, 50]) { c.font = `700 ${size}px ${DISPLAY}`; lines = wrapText(c, s.headline, barW); if (lines.length * size * 1.08 <= room) break; }
-    let y = 112 + size * 1.08 + 4;
-    c.fillStyle = CARD.ink;
-    lines.forEach((line) => { c.fillText(line, M, y); y += size * 1.08; });
-    y += 12;
-    if (s.segments) {
-      const total = s.segments.reduce((a, x) => a + x[1], 0), gap = 4, barH = 64;
-      let x = M;
-      s.segments.forEach(([colour, v]) => { const part = (barW - gap * (s.segments.length - 1)) * v / total; c.fillStyle = colour; c.beginPath(); c.roundRect(x, y, Math.max(part, 2), barH, 8); c.fill(); x += part + gap; });
-      y += barH + 66;
+  /* story images, 1080 x 1920: everything important stays between y 250 and y 1680, clear of Instagram's own buttons */
+  const DK = { ink: '#f0f8f5', muted: '#a3beb6', go: '#4fd6a2', land: '#1b4a3e', line: 'rgba(124,240,196,.32)', track: 'rgba(240,248,245,.10)', stop: '#ff8a70', gas: '#e0735c', wind: '#58a6da', nuclear: '#9a82d6', imports: '#cf93b9', biomass: '#9dbb5f', solar: '#e8bb49', hydro: '#4cc4ba', coal: '#8f8b84', other: '#aaa294' };
+  const fuelDk = (k) => DK[k] || DK.other;
+  const DISPLAY = '"Bricolage Grotesque", "Trebuchet MS", sans-serif', BODY = 'Figtree, "Segoe UI", sans-serif';
+  const W = 1080, H = 1920, M = 72;
+  function setFont(c, size, weight, fam) { c.font = `${weight} ${size}px ${fam}`; }
+  function textLines(c, text, x, y, width, size, weight, fam, colour, lead = 1.14, maxLines = 9) {
+    setFont(c, size, weight, fam); c.fillStyle = colour;
+    const lines = wrapText(c, text, width).slice(0, maxLines);
+    lines.forEach((line, i) => c.fillText(line, x, y + i * size * lead));
+    return y + lines.length * size * lead;
+  }
+  function fitSize(c, text, width, height, sizes, weight, fam, lead = 1.08) {
+    for (const size of sizes) { setFont(c, size, weight, fam); if (wrapText(c, text, width).length * size * lead <= height) return size; }
+    return sizes[sizes.length - 1];
+  }
+  function storyFrame(c, s, glow) {
+    const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0a1b17'); g.addColorStop(.6, '#0e2a23'); g.addColorStop(1, '#0a1b17');
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    const r = c.createRadialGradient(W * .78, H * .28, 40, W * .78, H * .28, 900); r.addColorStop(0, glow + '55'); r.addColorStop(1, glow + '00');
+    c.fillStyle = r; c.fillRect(0, 0, W, H);
+    c.textBaseline = 'alphabetic'; c.textAlign = 'left';
+  }
+  function storyChrome(c, s) {
+    setFont(c, 30, 700, BODY);
+    if ('letterSpacing' in c) c.letterSpacing = '3px';
+    const w = c.measureText(s.eyebrow).width;
+    c.fillStyle = 'rgba(79,214,162,.16)'; c.beginPath(); c.roundRect(M, 244, w + 52, 60, 30); c.fill();
+    c.fillStyle = DK.go; c.fillText(s.eyebrow, M + 26, 285);
+    if ('letterSpacing' in c) c.letterSpacing = '0px';
+    (s.foot || []).slice(0, 2).forEach((line, i, all) => { setFont(c, 26, 500, BODY); c.fillStyle = DK.muted; c.fillText(line, M, 1612 - (all.length - 1 - i) * 34); });
+    setFont(c, 40, 700, DISPLAY); c.fillStyle = DK.ink; c.fillText('wheresmyenergyfrom.co.uk', M, 1672);
+  }
+  function drawBritain(c, x, y, h, o = {}) {
+    const svg = document.querySelector('.map.tall'), k = h / 770, A = GEO.all;
+    const P = (q) => [x + (q[0] - A.x0) * A.k * k, y + (A.y1 - q[1]) * A.k * k];
+    c.save(); c.translate(x, y); c.scale(k, k);
+    /* the outline also holds Ireland and France; the story images show Great Britain alone */
+    const land = new Path2D(svg.querySelector('.land').getAttribute('d').split(/(?=M)/).filter((part) => {
+      const pts = [...part.matchAll(/(-?[\d.]+),(-?[\d.]+)/g)], xs = pts.map((m) => +m[1]), ys = pts.map((m) => +m[2]);
+      return !(pts.length >= 50 && (Math.min(...ys) >= 680 || Math.max(...xs) <= 115));
+    }).join(''));
+    c.fillStyle = o.fill || DK.land; c.fill(land);
+    if (!o.noLine) { c.strokeStyle = DK.line; c.lineWidth = 1.1; c.stroke(land); }
+    if (o.stations || o.sites) svg.querySelectorAll('.site').forEach((path) => { c.fillStyle = fuelDk(path.dataset.f) + '77'; for (const m of path.getAttribute('d').matchAll(/M(-?[\d.]+)[ ,](-?[\d.]+)/g)) { c.beginPath(); c.arc(+m[1], +m[2], o.dotPx ? o.dotPx / k : 1.6, 0, 7); c.fill(); } });
+    if (o.stations) {
+      svg.querySelectorAll('.run').forEach((dot) => { const f = fuelDk(dot.dataset.f); c.shadowColor = f; c.shadowBlur = 16 * k; c.fillStyle = f; c.beginPath(); c.arc(+dot.getAttribute('cx'), +dot.getAttribute('cy'), +dot.getAttribute('r') * 1.05, 0, 7); c.fill(); });
+      c.shadowBlur = 0;
     }
-    if (s.spark) {
-      const h = 170, max = Math.max(...s.spark.map((b) => b[0]), 1), step = barW / s.spark.length;
-      s.spark.forEach(([v, colour], i) => { const bar = Math.max(4, h * v / max); c.fillStyle = colour; c.beginPath(); c.roundRect(M + i * step, y + h - bar, Math.max(step - 4, 3), bar, 4); c.fill(); });
-      y += h + 72;
-    }
-    (s.rows || []).forEach(([colour, label, value, strong]) => {
-      if (y > H - 230) return;
-      const x = colour ? M + 54 : M;
-      if (colour) { c.fillStyle = colour; c.beginPath(); c.roundRect(M, y - 28, 34, 34, 7); c.fill(); }
-      let px = 40;
-      const width = () => { c.font = `600 ${px}px ${BODY}`; const v = c.measureText(value).width; c.font = `${strong ? 700 : 500} ${px}px ${BODY}`; return c.measureText(label).width + v; };
-      while (px > 28 && width() > W - M - x - 28) px -= 2;
-      c.fillStyle = CARD.ink; c.font = `${strong ? 700 : 500} ${px}px ${BODY}`; c.fillText(label, x, y);
-      c.font = `${strong ? 700 : 600} ${px}px ${BODY}`; c.textAlign = 'right'; c.fillText(value, W - M, y); c.textAlign = 'left';
-      y += 66;
+    c.restore();
+    return P;
+  }
+  function glowLine(c, pts, colour, width) {
+    c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = colour; c.lineWidth = width; c.shadowColor = colour; c.shadowBlur = 26;
+    c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke(); c.restore();
+  }
+  function glowDot(c, x, y, r, colour) { c.save(); c.shadowColor = colour; c.shadowBlur = 28; c.fillStyle = colour; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.restore(); }
+  function youMarker(c, x, y) {
+    c.strokeStyle = DK.ink; c.lineWidth = 4; c.beginPath(); c.arc(x, y, 30, 0, 7); c.stroke();
+    glowDot(c, x, y, 15, DK.ink);
+    setFont(c, 36, 700, DISPLAY); c.fillStyle = DK.ink; c.textAlign = 'right'; c.fillText('You', x - 42, y + 12); c.textAlign = 'left';
+  }
+  function colourList(c, rows, x, y, width, size = 38, gap = 58) {
+    rows.forEach(([colour, label, value]) => {
+      glowDot(c, x + 12, y - 12, 11, colour);
+      setFont(c, size, 600, BODY); c.fillStyle = DK.ink; c.fillText(label, x + 40, y);
+      if (value) { c.textAlign = 'right'; c.fillText(value, x + width, y); c.textAlign = 'left'; }
+      y += gap;
     });
-    if (s.note && y < H - 280) { y += 22; c.fillStyle = CARD.muted; c.font = `500 34px ${BODY}`; wrapText(c, s.note, barW).forEach((line) => { c.fillText(line, M, y); y += 44; }); }
-    c.fillStyle = CARD.ink; c.font = `700 40px ${DISPLAY}`; c.fillText('wheresmyenergyfrom.co.uk', M, H - 128);
-    c.fillStyle = CARD.muted; c.font = `500 28px ${BODY}`; s.foot.slice(0, 2).forEach((line, i) => c.fillText(line, M, H - 84 + i * 38));
+    return y;
+  }
+  function strip(c, parts, y, h) {
+    const total = parts.reduce((a, x) => a + x[1], 0), gap = 5, width = W - 2 * M;
+    let x = M;
+    parts.forEach(([colour, v]) => { const w = (width - gap * (parts.length - 1)) * v / total; c.fillStyle = colour; c.beginPath(); c.roundRect(x, y, Math.max(w, 3), h, 10); c.fill(); x += w + gap; });
+  }
+  const artists = {
+    /* a big number beside a glowing map of Britain */
+    map(c, s) {
+      storyFrame(c, s, s.glow);
+      let mapX = 452, mapY = 300, mapH = 1130;
+      const zoomed = !!(s.zoom && s.you && s.routes.length);
+      const layer = zoomed ? document.createElement('canvas') : null;
+      if (layer) { layer.width = W; layer.height = H; }
+      const m = layer ? layer.getContext('2d') : c;
+      if (zoomed) {
+        const A = GEO.all, far = Math.max(30, ...s.routes.map((r) => Math.hypot(r.pts[0][0] - s.you[0], r.pts[0][1] - s.you[1])));
+        mapH = Math.min(6000, Math.max(1130, 330 / (far * A.k) * 770));
+        const k = mapH / 770;
+        mapX = 770 - (s.you[0] - A.x0) * A.k * k; mapY = 880 - (A.y1 - s.you[1]) * A.k * k;
+      }
+      const P = drawBritain(m, mapX, mapY, mapH, { stations: s.stations, sites: s.zoom, dotPx: s.zoom ? 3.4 : 0, fill: s.stations ? '#163e34' : DK.land });
+      const P2 = (q) => { const [x, y] = P(q); return [Math.min(x, W - 34), y]; };
+      (s.routes || []).forEach((r) => glowLine(m, r.pts.map(P2), r.colour, r.width || 6));
+      (s.routes || []).forEach((r) => r.pts.slice(0, -1).forEach((q) => { const [x, y] = P2(q); glowDot(m, x, y, r.dot || 15, r.colour); }));
+      if (zoomed) {
+        const fade = (x0, y0, x1, y1) => { const g = m.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)'); m.globalCompositeOperation = 'destination-in'; m.fillStyle = g; m.fillRect(0, 0, W, H); m.globalCompositeOperation = 'source-over'; };
+        fade(340, 0, 720, 0); fade(0, 330, 0, 480); fade(0, 1450, 0, 1300);
+        c.drawImage(layer, 0, 0);
+        let last = -99;
+        s.routes.map((r) => { const [x, y] = P2(r.pts[0]); return { x, y, text: r.label }; }).filter((a) => a.x >= 540 && a.text).sort((a, b) => a.y - b.y).forEach((a) => {
+          const base = Math.max(a.y + 11, last + 44); last = base;
+          setFont(c, 32, 700, BODY); c.fillStyle = DK.ink;
+          c.fillText(a.text, Math.min(a.x + 26, W - 16 - c.measureText(a.text).width), base);
+        });
+      }
+      if (s.you) { const [x, y] = P(s.you); youMarker(c, x, y); }
+      const size = fitSize(c, s.big, 540, 300, [270, 240, 210, 180], 800, DISPLAY);
+      setFont(c, size, 800, DISPLAY); c.fillStyle = DK.go; c.shadowColor = DK.go; c.shadowBlur = 40; c.fillText(s.big, M - 6, 330 + size * .92); c.shadowBlur = 0;
+      let y = textLines(c, s.sub, M, 330 + size * .92 + 84, 430, 54, 700, DISPLAY, DK.ink, 1.12, 5) + 34;
+      if (s.listTitle) { setFont(c, 30, 700, BODY); c.fillStyle = DK.muted; c.fillText(s.listTitle, M, y); y += 58; }
+      y = colourList(c, s.list || [], M, y, 400, 36, 56);
+      if (s.note && y < 1380) textLines(c, s.note, M, y + 20, 400, 32, 500, BODY, DK.muted, 1.25, 3);
+      strip(c, s.strip, 1476, 44);
+      if (s.chips) { let x = M; s.chips.slice(0, 5).forEach(([colour, label]) => { setFont(c, 28, 600, BODY); const w = c.measureText(label).width + 62; if (x + w > W - M) return; glowDot(c, x + 10, 1558, 9, colour); c.fillStyle = DK.ink; c.fillText(label, x + 30, 1568); x += w; }); }
+      storyChrome(c, s);
+      return c;
+    },
+    fact(c, s) {
+      storyFrame(c, s, DK.solar);
+      drawBritain(c, 300, 180, 1760, { fill: '#123229', noLine: true });
+      c.fillStyle = 'rgba(10,27,23,.25)'; c.fillRect(0, 0, W, H);
+      const k = 7.4, ox = M - 60, oy = 340;
+      c.save(); c.shadowColor = DK.solar; c.shadowBlur = 40; c.fillStyle = DK.solar; c.beginPath(); [[18, 5], [9, 18], [15, 18], [14, 27], [23, 14], [17, 14]].forEach(([x, y], i) => (i ? c.lineTo(ox + x * k, oy + y * k) : c.moveTo(ox + x * k, oy + y * k))); c.closePath(); c.fill(); c.restore();
+      const size = fitSize(c, s.text, W - 2 * M, 900, [104, 96, 88, 80, 72, 64], 800, DISPLAY, 1.1);
+      textLines(c, s.text, M, 620 + size, W - 2 * M, size, 800, DISPLAY, DK.ink, 1.1, 14);
+      storyChrome(c, s);
+    },
+    league(c, s) {
+      storyFrame(c, s, DK.go);
+      const size = fitSize(c, s.headline, W - 2 * M, 280, [92, 84, 76, 68], 800, DISPLAY);
+      textLines(c, s.headline, M, 340 + size, W - 2 * M, size, 800, DISPLAY, DK.ink, 1.08, 3);
+      const k = 1.5, x0 = 0, y0 = 640;
+      c.save(); c.translate(x0, y0); c.scale(k, k);
+      const max = Math.max(...Object.values(s.shares), 1);
+      document.querySelectorAll('.regions .reg').forEach((el) => {
+        const id = el.dataset.id, shape = new Path2D(el.getAttribute('d')), v = (s.shares[id] || 0) / max;
+        c.fillStyle = '#17433a'; c.fill(shape);
+        c.fillStyle = `rgba(79,214,162,${(.1 + v * .9).toFixed(3)})`; c.fill(shape);
+        c.strokeStyle = '#0a1b17'; c.lineWidth = 1.2; c.stroke(shape);
+      });
+      document.querySelectorAll('.regions .reg').forEach((el) => { if (Number(el.dataset.id) === s.mine) { c.strokeStyle = DK.ink; c.lineWidth = 3.4; c.shadowColor = DK.ink; c.shadowBlur = 10; c.stroke(new Path2D(el.getAttribute('d'))); c.shadowBlur = 0; } });
+      c.restore();
+      let y = 760;
+      s.rows.forEach(([label, value, mine, place]) => {
+        c.fillStyle = mine ? 'rgba(240,248,245,.14)' : 'rgba(240,248,245,.06)'; c.beginPath(); c.roundRect(540, y, 468, 124, 22); c.fill();
+        setFont(c, 44, 800, DISPLAY); c.fillStyle = DK.go; c.fillText(`${place}`, 566, y + 78);
+        setFont(c, 24, 600, BODY); c.fillStyle = DK.muted; const name = label; let px = 34; do { setFont(c, px, 700, BODY); px -= 2; } while (c.measureText(name).width > 272 && px > 20);
+        c.fillStyle = DK.ink; c.fillText(name, 634, y + 74);
+        setFont(c, 40, 800, DISPLAY); c.textAlign = 'right'; c.fillText(value, 986, y + 76); c.textAlign = 'left';
+        y += 142;
+      });
+      storyChrome(c, s);
+    },
+    day(c, s) {
+      storyFrame(c, s, DK.go);
+      const size = fitSize(c, s.headline, W - 2 * M, 300, [108, 96, 86, 76], 800, DISPLAY);
+      textLines(c, s.headline, M, 340 + size, W - 2 * M, size, 800, DISPLAY, DK.ink, 1.08, 3);
+      const top = 720, h = 470, max = Math.max(...s.v, 1), step = (W - 2 * M) / s.v.length;
+      const inWin = (at, win) => win && at >= win.from && at < win.to;
+      s.v.forEach((v, i) => {
+        const bar = Math.max(10, h * v / max), good = inWin(s.t[i], s.dish), bad = inWin(s.t[i], s.avoid), col = good ? DK.go : bad ? DK.stop : 'rgba(163,190,182,.34)';
+        c.save(); if (good || bad) { c.shadowColor = col; c.shadowBlur = 26; } c.fillStyle = col; c.beginPath(); c.roundRect(M + i * step, top + h - bar, Math.max(step - 5, 4), bar, 6); c.fill(); c.restore();
+      });
+      setFont(c, 30, 600, BODY); c.fillStyle = DK.muted;
+      [0, 16, 32, 47].forEach((i) => { if (s.t[i] == null) return; c.textAlign = i === 47 ? 'right' : i ? 'center' : 'left'; c.fillText(i ? clock.format(new Date(s.t[i])) : 'Now', i === 47 ? W - M : M + i * step, top + h + 52); });
+      c.textAlign = 'left';
+      colourList(c, s.rows, M, 1310, W - 2 * M, 38, 66);
+      storyChrome(c, s);
+    },
+    year(c, s) {
+      storyFrame(c, s, DK.wind);
+      drawBritain(c, 620, 230, 680, { fill: '#163e34' });
+      setFont(c, 270, 800, DISPLAY); c.fillStyle = DK.go; c.shadowColor = DK.go; c.shadowBlur = 40; c.fillText(s.big, M - 6, 570); c.shadowBlur = 0;
+      textLines(c, s.sub, M, 660, 640, 56, 700, DISPLAY, DK.ink, 1.12, 3);
+      let y = 900;
+      s.bars.forEach(([name, parts, pct]) => {
+        setFont(c, 34, 700, BODY); c.fillStyle = DK.ink; c.fillText(name, M, y);
+        c.textAlign = 'right'; c.fillStyle = DK.go; c.fillText(`${pct}% renewable`, W - M, y); c.textAlign = 'left';
+        strip(c, parts, y + 22, 72); y += 150;
+      });
+      const legend = s.legend; let x = M, row = y + 4;
+      legend.forEach(([colour, label]) => { setFont(c, 30, 600, BODY); const w = c.measureText(label).width + 66; if (x + w > W - M) { x = M; row += 50; } glowDot(c, x + 11, row - 10, 10, colour); c.fillStyle = DK.ink; c.fillText(label, x + 32, row); x += w; });
+      if (s.month.length) {
+        const top = row + 62, h = 180, step = (W - 2 * M) / s.month.length;
+        setFont(c, 30, 700, BODY); c.fillStyle = DK.muted; c.fillText('Carbon per unit, last 30 days', M, top);
+        s.month.forEach(([v, kind], i) => { const bar = Math.max(6, h * v / 100), col = kind === 'hi' ? DK.go : kind === 'bad' ? DK.stop : 'rgba(163,190,182,.36)'; c.save(); if (kind) { c.shadowColor = col; c.shadowBlur = 20; } c.fillStyle = col; c.beginPath(); c.roundRect(M + i * step, top + 28 + h - bar, Math.max(step - 6, 4), bar, 6); c.fill(); c.restore(); });
+      }
+      storyChrome(c, s);
+    },
+    clock(c, s) {
+      storyFrame(c, s, DK.go);
+      const size = fitSize(c, s.headline, W - 2 * M, 200, [84, 76, 68, 60], 800, DISPLAY);
+      textLines(c, s.headline, M, 340 + size, W - 2 * M, size, 800, DISPLAY, DK.ink, 1.08, 3);
+      const cx = W / 2, cy = 960, R = 340, fraction = (t) => { const [h, m] = clock.format(new Date(t)).split(':').map(Number); return (h + m / 60) / 24; }, A0 = -Math.PI / 2;
+      setFont(c, 34, 700, BODY); c.fillStyle = DK.muted; c.textAlign = 'center';
+      [['00:00', 0], ['06:00', .25], ['12:00', .5], ['18:00', .75]].forEach(([label, f]) => { const a = A0 + f * Math.PI * 2; c.fillText(label, cx + Math.cos(a) * (R + 80), cy + Math.sin(a) * (R + 80) + 12); });
+      c.textAlign = 'left';
+      for (let i = 0; i < 96; i++) { const a = A0 + i / 96 * Math.PI * 2, long = i % 24 === 0; c.strokeStyle = long ? DK.muted : DK.track; c.lineWidth = long ? 4 : 2; c.beginPath(); c.moveTo(cx + Math.cos(a) * (R + 40), cy + Math.sin(a) * (R + 40)); c.lineTo(cx + Math.cos(a) * (R + (long ? 16 : 26)), cy + Math.sin(a) * (R + (long ? 16 : 26))); c.stroke(); }
+      s.rings.forEach(([colour, win], i) => {
+        const r = R - i * 84;
+        c.strokeStyle = DK.track; c.lineWidth = 56; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.stroke();
+        if (!win) return;
+        const a = A0 + fraction(win.from) * Math.PI * 2, sweep = (win.to - win.from) / 864e5 * Math.PI * 2;
+        c.save(); c.lineCap = 'round'; c.strokeStyle = colour; c.shadowColor = colour; c.shadowBlur = 34; c.lineWidth = 56; c.beginPath(); c.arc(cx, cy, r, a, a + sweep); c.stroke(); c.restore();
+      });
+      const a = A0 + fraction(Date.now()) * Math.PI * 2;
+      glowDot(c, cx + Math.cos(a) * (R + 33), cy + Math.sin(a) * (R + 33), 13, DK.ink);
+      c.textAlign = 'center'; setFont(c, 34, 700, BODY); c.fillStyle = DK.muted; c.fillText('Next', cx, cy - 8); c.fillText('24 hours', cx, cy + 36); c.textAlign = 'left';
+      colourList(c, s.rows, M, 1440, W - 2 * M, 36, 58);
+      storyChrome(c, s);
+    },
+  };
+  async function drawCard(s) {
+    try { await Promise.all([document.fonts.load('800 80px "Bricolage Grotesque"'), document.fonts.load('700 80px "Bricolage Grotesque"'), document.fonts.load('600 30px Figtree'), document.fonts.load('700 30px Figtree'), document.fonts.load('500 30px Figtree')]); } catch (e) {}
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    artists[s.art](cv.getContext('2d'), s);
     return new Promise((done) => cv.toBlob(done, 'image/png'));
   }
   const ordinal = (n) => `${n}${n > 10 && n < 14 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`;
@@ -1143,17 +1323,15 @@
     return { place: now.filter((v) => v < mine).length + 1, total: now.length };
   }
   const slideSlug = (name) => name.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '');
-  const mixParts = (mix) => {
-    const fuels = Object.entries(mix).filter(([, p]) => p >= 1).sort((a, b) => b[1] - a[1]);
-    return { segments: fuels.map(([k, p]) => [CARD[k] || CARD.other, p]), rows: fuels.slice(0, 5).map(([k, p]) => [CARD[k] || CARD.other, FUEL_NAME[k] || k, `${Math.round(p)}%`]) };
-  };
+  const fuelRows = (mix) => Object.entries(mix).filter(([, p]) => p >= 1).sort((a, b) => b[1] - a[1]);
+  const fuelStrip = (mix) => fuelRows(mix).map(([k, p]) => [fuelDk(k), p]);
   const renewOfMix = (mix) => Math.round(CARD_RENEW.reduce((a, k) => a + (mix[k] || 0), 0));
   let shareBase = null, shareCache = new Map();
   function setShareLinks(s) {
-    const enc = encodeURIComponent;
-    $('shareWa').href = `https://wa.me/?text=${enc(`${s.text} ${s.link}`)}`;
+    const enc = encodeURIComponent, say2 = s.messageText || s.text;
+    $('shareWa').href = `https://wa.me/?text=${enc(`${say2} ${s.link}`)}`;
     $('shareFb').href = `https://www.facebook.com/sharer/sharer.php?u=${enc(s.link)}`;
-    $('shareX').href = `https://x.com/intent/post?text=${enc(s.text)}&url=${enc(s.link)}`;
+    $('shareX').href = `https://x.com/intent/post?text=${enc(say2)}&url=${enc(s.link)}`;
   }
   function renderShare(s) {
     if (s.started) return;
@@ -1165,8 +1343,10 @@
     const renew = renewOfMix(mix);
     const cleanest = nextWindow(f, WASH_HOURS, 5), rank = regionRank(f.id);
     const time = `${clock.format(new Date())} ${shortDate(dayKey.format(new Date()))}`;
-    const main = { key: 'main', title: 'your area', district: outward, eyebrow: `RIGHT NOW IN ${outward}`, headline: `${renew}% of this area's power is renewable.`, ...mixParts(mix),
-      note: cleanest ? `Cleanest time for the washing: ${say(cleanest.from, cleanest.to)}.` : null, foot: [`Estimate for ${f.area}, ${time}.`, 'Renewable includes biomass.'], link: pageLink(outward),
+    const picks = lastMap ? lastMap.picks.slice(0, 3) : [];
+    const main = { key: 'main', art: 'map', glow: DK.go, title: 'your area', district: outward, eyebrow: `RIGHT NOW IN ${outward}`, big: `${renew}%`, sub: "of this area's power is renewable.", listTitle: picks.length ? 'Likely coming from' : null,
+      list: picks.map((x) => [fuelDk(x.f), x.short, `${Math.round(x.share * 100)}%`]), zoom: true, routes: picks.map((x) => ({ pts: [x.xy, lastMap.p], colour: fuelDk(x.f), width: 7, dot: 18, label: x.short })), you: lastMap && lastMap.p, strip: fuelStrip(mix), chips: fuelRows(mix).map(([k, p]) => [fuelDk(k), `${FUEL_NAME[k] || k} ${Math.round(p)}%`]),
+      note: cleanest ? `Cleanest for the washing: ${say(cleanest.from, cleanest.to)}.` : null, foot: [`Estimate for ${f.area}, ${time}. Renewable includes biomass.`], link: pageLink(),
       text: `Right now ${renew}% of the power around ${outward} is renewable${rank ? `, the ${ordinal(rank.place)} cleanest of Britain's ${rank.total} regions` : ''}. Where's yours from?`, blob: null };
     shareBase = { f, w, d: outward, time, main };
     shareCache = new Map();
@@ -1177,50 +1357,48 @@
   /* what to share for each slide; slides that are personal or a form share the area card */
   function slideShare(name) {
     const { f, w, d, time, main } = shareBase;
-    const make = (o) => ({ key: slideSlug(name), title: name, district: d, link: `${pageLink(d)}&c=${slideSlug(name)}`, foot: [`Estimate for ${f.area}, ${time}.`], blob: null, ...o });
-    if (name === 'Did you know?') { const x = FACTS[factAt]; return make({ eyebrow: 'DID YOU KNOW?', headline: x.t, foot: [`Source: ${x.s}`], text: `Did you know? ${x.t}` }); }
+    const make = (o) => ({ key: slideSlug(name), title: name, district: d, link: pageLink(), foot: [`Estimate for ${f.area}, ${time}.`], blob: null, ...o });
+    if (name === 'Did you know?') { const x = FACTS[factAt]; return make({ art: 'fact', eyebrow: 'DID YOU KNOW?', text: x.t, foot: [`Source: ${x.s}`], messageText: `Did you know? ${x.t}` }); }
     if (name === 'Your gas') {
-      if (!gasCtx) return main;
-      const COL = { uk: CARD.wind, norway: CARD.nuclear, lng: CARD.gas, europe: CARD.imports }, list = gasCtx.o.sources, top = list[0], pct = (x) => Math.round(x.share * 100);
-      const line = `About ${pct(top)}% of the gas around ${d} likely came from ${top.key === 'lng' ? 'LNG tankers' : GAS_TAB[top.key] === 'Europe' ? 'Europe' : GAS_NAME[top.key]}.`;
-      return make({ eyebrow: `YOUR GAS IN ${d}`, headline: line, segments: list.map((x) => [COL[x.key] || CARD.other, x.share]), rows: list.slice(0, 5).map((x) => [COL[x.key] || CARD.other, GAS_NAME[x.key] || x.key, `${pct(x)}%`]), foot: ['An estimate from where gas is landing right now.', 'Gas mixes in the pipes.'], text: `${line} Where's yours from?` });
+      if (!gasCtx || !lastMap) return main;
+      const COL = { uk: DK.wind, norway: DK.nuclear, lng: DK.gas, europe: DK.imports }, list = gasCtx.o.sources, top = list[0], pct = (x) => Math.round(x.share * 100);
+      const term = gasCtx.o.terminals.find((x) => x.name === top.via[0]), from = term.from[top.key], st = gasCtx.stations[0];
+      const place = { uk: 'the UK North Sea', norway: 'Norway', lng: 'LNG tankers', europe: 'Europe' }[top.key];
+      return make({ art: 'map', glow: DK.gas, eyebrow: `YOUR GAS IN ${d}`, big: `${pct(top)}%`, sub: `of the gas around ${d} likely came from ${place}.`, listTitle: 'Its journey', list: [[DK.nuclear, from.label], [DK.solar, `Ashore at ${term.name}`], [DK.gas, `Burned at ${st.short}`], [DK.ink, `Reached ${d}`]], routes: [{ pts: [from.xy, term.xy, st.xy, lastMap.p], colour: DK.gas, width: 7, dot: 18 }], you: lastMap.p, strip: list.map((x) => [COL[x.key] || DK.other, x.share]), chips: list.map((x) => [COL[x.key] || DK.other, `${GAS_TAB[x.key]} ${pct(x)}%`]), foot: ['An estimate from where gas is landing. Gas mixes in the pipes.'], messageText: `About ${pct(top)}% of the gas around ${d} likely came from ${place}. Where's yours from?` });
     }
     if (name === 'The whole country') {
       const row = SNAPSHOT.mix[18][slotNow()];
       if (!row) return main;
-      const mix = Object.fromEntries(row.map((p, i) => [SNAPSHOT.fuels[i], p])), fuel = $('gbFuel').textContent;
-      return make({ eyebrow: 'RIGHT NOW ACROSS GREAT BRITAIN', headline: `Britain's biggest power source right now is ${fuel.toLowerCase()}.`, ...mixParts(mix), foot: [`Estimate for Great Britain, ${time}.`, 'Renewable includes biomass.'], text: `Britain's biggest power source right now is ${fuel.toLowerCase()}. Where's yours from?` });
+      const mix = Object.fromEntries(row.map((p, i) => [SNAPSHOT.fuels[i], p])), ranked = fuelRows(mix), fuel = FUEL_NAME[ranked[0][0]] || ranked[0][0], word = fuel.toLowerCase();
+      return make({ art: 'map', glow: fuelDk(ranked[0][0]), stations: true, eyebrow: 'ACROSS GREAT BRITAIN', big: `${Math.round(ranked[0][1])}%`, sub: `of Britain's power is ${word} right now.`, listTitle: 'The mix', list: ranked.slice(0, 5).map(([k, p]) => [fuelDk(k), FUEL_NAME[k] || k, `${Math.round(p)}%`]), strip: fuelStrip(mix), foot: [`Estimate for Great Britain, ${time}. Dots are power stations.`], messageText: `${Math.round(ranked[0][1])}% of Britain's power is ${word} right now. Where's yours from?` });
     }
     if (name === 'Across Britain') {
-      const list = Object.keys(NAMES).filter((k) => Number(k) <= 14).map((k) => ({ id: Number(k), v: regionShare(k) })).sort((a, b) => b.v - a.v).map((x, i) => ({ ...x, at: i + 1 }));
-      const shown5 = list.slice(0, 5), mine = list.find((x) => x.id === region.mine);
-      if (mine && mine.at > 5) shown5[4] = mine;
-      const when = region.period === 'now' ? 'right now' : 'over the last 12 months', what = METRICS[region.metric][0];
-      const line = `${NAMES[list[0].id]} is top for ${what} ${when}.`;
-      return make({ eyebrow: 'ACROSS BRITAIN', headline: line, rows: shown5.map((x) => [null, `${x.at}. ${NAMES[x.id]}`, `${Math.round(x.v)}%`, x.id === region.mine]), foot: [`Share of power from ${what}, ${when === 'right now' ? time : 'last 12 months'}.`, 'Your region is in bold.'], text: `${line} Where does your area rank?` });
+      const shares = {}, list = Object.keys(NAMES).filter((k) => Number(k) <= 14).map((k) => { shares[k] = regionShare(k); return { id: Number(k), v: shares[k] }; }).sort((a, b) => b.v - a.v).map((x, i) => ({ ...x, at: i + 1 }));
+      const top5 = list.slice(0, 5), mine = list.find((x) => x.id === region.mine);
+      if (mine && mine.at > 5) top5[4] = mine;
+      const when = region.period === 'now' ? 'right now' : 'over 12 months', what = METRICS[region.metric][0], line = `${NAMES[list[0].id]} is top for ${what} ${when}.`;
+      return make({ art: 'league', eyebrow: 'ACROSS BRITAIN', headline: line, shares, mine: region.mine, rows: top5.map((x) => [NAMES[x.id], `${Math.round(x.v)}%`, x.id === region.mine, x.at]), foot: [`Share of power from ${what}, ${region.period === 'now' ? time : 'last 12 months'}. Your region is outlined.`], messageText: `${line} Where does your area rank?` });
     }
     if (name === 'Cost and next 24 hours') {
       if (!w.dish || !w.avoid) return main;
       const line = $('dayLine').textContent.replace('Power in your area', `Power around ${d}`).replace('Your area', d), flat = /about as clean/.test(line);
-      const inWin = (at, win) => at >= win.from && at < win.to;
-      const spark = w.v.slice(0, 48).map((v, i) => [v, flat ? CARD.line : inWin(w.t[i], w.dish) ? '#06704b' : inWin(w.t[i], w.avoid) ? CARD.gas : CARD.line]);
-      const rows = flat ? [] : [['#06704b', 'Cleanest 2.5 hours', say(w.dish.from, w.dish.to)], [CARD.gas, 'Try to avoid', say(w.avoid.from, w.avoid.to)]];
-      if (!$('cheapAt').closest('.block').hidden) rows.push([null, 'Cheapest wholesale', $('cheapAt').textContent], [null, 'Dearest wholesale', $('dearAt').textContent]);
-      return make({ eyebrow: `NEXT 24 HOURS AROUND ${d}`, headline: line, spark, rows, foot: [`Carbon forecast for ${f.area}, ${time}.`, 'Taller bars mean more CO2 per unit.'], text: `${line} When's your best time?` });
+      const rows = flat ? [] : [[DK.go, 'Cleanest 2.5 hours', say(w.dish.from, w.dish.to)], [DK.stop, 'Try to avoid', say(w.avoid.from, w.avoid.to)]];
+      if (!$('cheapAt').closest('.block').hidden) rows.push([DK.solar, 'Cheapest wholesale', $('cheapAt').textContent]);
+      return make({ art: 'day', eyebrow: `NEXT 24 HOURS AROUND ${d}`, headline: line, v: w.v.slice(0, 48), t: w.t.slice(0, 48), dish: flat ? null : w.dish, avoid: flat ? null : w.avoid, rows, foot: [`Carbon forecast for ${f.area}, ${time}. Taller bars mean more CO2.`], messageText: `${line} When's your best time?` });
     }
     if (name === "Your area's history") {
-      const toMix = (id) => Object.fromEntries(SNAPSHOT.year.regions[id].map((p, i) => [SNAPSHOT.fuels[i], p])), mine = toMix(f.id), gb = renewOfMix(toMix(18)), pct = renewOfMix(mine);
-      const line = `${pct}% of ${f.area}'s power was renewable over the last 12 months.`;
-      return make({ eyebrow: `${f.area.toUpperCase()}, LAST 12 MONTHS`, headline: line, ...mixParts(mine), note: `Great Britain overall: ${gb}% renewable.`, foot: [`12-month estimate for ${f.area}.`, 'Renewable includes biomass.'], text: `${line} Great Britain managed ${gb}%. How does your area compare?` });
+      const toMix = (id) => Object.fromEntries(SNAPSHOT.year.regions[id].map((p, i) => [SNAPSHOT.fuels[i], p])), mine = toMix(f.id), gbMix = toMix(18), gb = renewOfMix(gbMix), pct = renewOfMix(mine);
+      const month = [...$('monthBars').children].map((b) => [parseFloat(b.style.height) || 0, b.classList.contains('hi') ? 'hi' : b.classList.contains('bad') ? 'bad' : '']);
+      return make({ art: 'year', eyebrow: `${f.area.toUpperCase()}, LAST 12 MONTHS`, big: `${pct}%`, sub: `of ${f.area}'s power was renewable.`, bars: [[f.area, fuelStrip(mine), pct], ['Great Britain', fuelStrip(gbMix), gb]], legend: fuelRows(mine).slice(0, 6).map(([k]) => [fuelDk(k), FUEL_NAME[k] || k]), month, foot: [`12-month estimate for ${f.area}. Renewable includes biomass.`], messageText: `${pct}% of ${f.area}'s power was renewable over the last 12 months. Great Britain managed ${gb}%. How does your area compare?` });
     }
     if (name === 'Best times') {
-      const wash = $('myWashWhen').textContent, car = $('myCarWhen').textContent;
+      const wash = lastDay && lastDay.wash, car = lastDay && lastDay.car;
       if (!wash) return main;
-      const rows = [];
-      if (car) rows.push([CARD.wind, 'Electric car', car]);
-      if (!$('avoidLine').hidden && $('avoidWhen').textContent) rows.push([CARD.gas, 'Try to avoid', $('avoidWhen').textContent]);
-      const line = `Best time for the washing around ${d}: ${wash}.`;
-      return make({ eyebrow: `BEST TIMES AROUND ${d}`, headline: line, rows, text: `${line} When's yours?` });
+      const line = `Best time for the washing around ${d}: ${say(wash.from, wash.to)}.`;
+      const rows = [[DK.go, 'Washing', say(wash.from, wash.to)]];
+      if (car) rows.push([DK.wind, 'Electric car', say(car.from, car.to)]);
+      if (w.avoid) rows.push([DK.stop, 'Try to avoid', say(w.avoid.from, w.avoid.to)]);
+      return make({ art: 'clock', eyebrow: `BEST TIMES AROUND ${d}`, headline: `Your day, around ${d}.`, rings: [[DK.go, wash], [DK.wind, car], [DK.stop, w.avoid]], rows, messageText: `${line} When's yours?` });
     }
     return main;
   }
@@ -1270,7 +1448,7 @@
   });
   $('shareMore').addEventListener('click', () => {
     const s = share;
-    if (s && s.blob) navigator.share({ files: [shareFile(s)], text: `${s.text} ${s.link}` }).catch((e) => { if (e.name !== 'AbortError') sheetSay('That did not work on this device. Try Save image or Copy link.'); });
+    if (s && s.blob) navigator.share({ files: [shareFile(s)], text: `${s.messageText || s.text} ${s.link}` }).catch((e) => { if (e.name !== 'AbortError') sheetSay('That did not work on this device. Try Save image or Copy link.'); });
   });
   $('shareCopy').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(share.link); sheetSay('Link copied.'); } catch (e) { sheetSay(share.link); }
@@ -1388,6 +1566,7 @@
   function drawMyDay(f, w) {
     $('dayBasis').textContent = S.tariff === 'agile' ? 'Your cheapest times' : 'Your cleanest times';
     const wash = nextWindow(f, WASH_HOURS, 5), car = nextWindow(f, CAR_HOURS, 12);
+    lastDay = { wash, car };
     $('myWashWhen').textContent = wash ? say(wash.from, wash.to) : 'No forecast yet';
     $('myWashGain').textContent = wash ? gainText(wash, KWH.wash) : '';
     $('myCarWhen').textContent = car ? say(car.from, car.to) : 'No forecast yet';
@@ -1519,8 +1698,6 @@
     if (!f) return fail(NO_DATA);
     openResults(() => show(f, pc, false, pc));
     countDistrict(pc);
-    const slide = cards.findIndex((x) => slideSlug(x.dataset.name) === new URLSearchParams(location.search).get('c'));
-    if (slide > 0) go(slide, true);
     if (stored) liveForecast(pc).then((l) => { if (l && !$('answer').hidden && share && share.district === pc) show(l, pc, false, pc); });
   })();
 </script>
