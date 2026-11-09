@@ -1,4 +1,4 @@
-<title>Where's My Energy From?</title>
+<title>Where's My Energy From? v2</title>
 <meta charset="utf-8">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -187,14 +187,54 @@
   .stamp { margin: 0; font-size: .85rem; color: var(--muted); }
 
   @media (prefers-reduced-motion: no-preference) { .answer.fresh { animation: rise .35s ease-out; } @keyframes rise { from { opacity: .3; transform: translateY(8px); } to { opacity: 1; transform: none; } } }
+
+  /* v2 */
+  .proto { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; font-size: .88rem; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: .6rem; }
+  .proto b { color: var(--ink); font-weight: 600; }
+  .primary.fit { align-self: flex-start; }
+  .askline { font-weight: 600; }
+  .foot .contact { margin: 0; font-size: .92rem; overflow-wrap: anywhere; }
+  .card .seg.gastabs { display: grid; align-self: stretch; }
+  .gastabs button { display: flex; flex-direction: column; align-items: center; gap: 0; padding: .4rem .2rem; min-width: 0; }
+  .gastabs strong { font-family: var(--display); font-size: 1.25rem; line-height: 1.15; color: inherit; }
+  .gastabs span { font-size: .85rem; }
+  .map .stop { fill: var(--gas); stroke: var(--panel); stroke-width: 3; }
+  .map .stop.end { fill: var(--go); }
+  .map .stopn { font-family: var(--body); font-size: 28px; font-weight: 700; fill: var(--panel); }
+  .journey { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .journey li { position: relative; display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: .7rem; padding-bottom: .9rem; }
+  .journey li:last-child { padding-bottom: 0; }
+  .journey li:not(:last-child)::before { content: ""; position: absolute; left: calc(1rem - 1px); top: 2rem; bottom: 0; width: 2px; background: var(--line); }
+  .journey .num { width: 2rem; height: 2rem; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: var(--panel); background: var(--gas); }
+  .journey .end .num { background: var(--go); }
+  .journey div { display: flex; flex-direction: column; min-width: 0; }
+  .journey b { font-weight: 600; font-size: 1.08rem; line-height: 1.3; }
+  .journey div span { color: var(--muted); }
+  .card .seg.pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-self: stretch; }
+  .card .seg.pick button { text-align: center; min-height: 2.6rem; }
+  .paylink { display: flex; flex-direction: column; gap: .5rem; }
+  .primary.fit { align-self: flex-start; }
+  .support { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; font-size: .92rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: .75rem; }
+  .support span { flex: 1 1 14rem; min-width: 0; }
+  .toggles { display: flex; flex-direction: column; gap: .55rem; }
+  .toggles label { display: flex; align-items: flex-start; gap: .55rem; font-weight: 500; font-size: .98rem; cursor: pointer; }
+  .toggles input { flex: none; width: 1.1rem; height: 1.1rem; margin: .2rem 0 0; accent-color: var(--go); }
+  .toggles small { display: block; font-weight: 400; font-size: .88rem; color: var(--muted); }
+  .compare { display: grid; grid-template-columns: max-content minmax(0, 1fr) minmax(0, 1fr); gap: .45rem .75rem; align-items: center; font-size: .92rem; }
+  .compare b { font-weight: 600; font-size: .85rem; overflow-wrap: anywhere; }
+  .cc { display: grid; grid-template-columns: minmax(0, 1fr) 2.6em; gap: .4rem; align-items: center; }
+  .cc span { text-align: right; font-variant-numeric: tabular-nums; }
+  .ct { height: .7rem; border-radius: 3px; background: color-mix(in srgb, var(--bar) 30%, transparent); overflow: hidden; }
+  .ct i { display: block; height: 100%; border-radius: 3px; }
 </style>
 
 <main class="page">
+  <div class="proto"><span><b>Prototype.</b> Alerts, referral and donation links aren't connected yet.</span></div>
   <!--MAP_FUELS-->
   <div class="home" id="home">
   <header>
     <h1>Where's my energy from?</h1>
-    <p class="intro">Type your address to see where your power is likely coming from right now, and the greenest hours to charge your car or run the dishwasher.</p>
+    <p class="intro">Type your address to see where your power is likely coming from right now, and the greenest hours to charge your car or put the washing on.</p>
   </header>
 
   <form id="lookup" novalidate>
@@ -247,6 +287,15 @@
             <p class="lead">Check the postcode and try again.</p>
           </div>
         </section>
+      </article>
+
+      <article class="card" id="gasCard" data-name="Your gas">
+        <p class="eyebrow">Your gas</p>
+        <h2 id="gasHead"></h2>
+        <div class="seg gastabs" id="gasTabs" role="group" aria-label="Where your gas came from"></div>
+        <div id="gasMap"></div>
+        <ol class="journey" id="gasSteps"></ol>
+        <p class="note">An estimate from where gas is landing right now. Gas mixes in the pipes, and the lines aren't exact routes.</p>
       </article>
 
       <article class="card" data-name="The whole country">
@@ -308,24 +357,77 @@
           <h3 id="dayLine"></h3>
           <div class="bars" id="dayBars" aria-hidden="true"></div>
           <div class="ticks" id="dayTicks" aria-hidden="true"></div>
-          <div class="key" id="dayKey"><span><i style="background:var(--go)"></i>Best for the dishwasher</span><span><i style="background:var(--stop)"></i>Try to avoid</span><span><i style="background:color-mix(in srgb, var(--bar) 38%, transparent)"></i>Outside the next 24 hours</span></div>
+          <div class="key" id="dayKey"><span><i style="background:var(--go)"></i>Best for the washing</span><span><i style="background:var(--stop)"></i>Try to avoid</span><span><i style="background:color-mix(in srgb, var(--bar) 38%, transparent)"></i>Outside the next 24 hours</span></div>
           <p class="note">Taller bars mean more CO<sub>2</sub> for each unit of electricity. It doesn't change your bill unless your tariff varies by the hour.</p>
         </section>
       </article>
 
+      <article class="card" data-name="Your area's history">
+        <section class="block first">
+          <p class="eyebrow">Your area, last 12 months</p>
+          <h3><span id="yearName"></span> against Great Britain</h3>
+          <div class="compare" id="yearCompare"></div>
+        </section>
+        <section class="block">
+          <p class="eyebrow">Last 30 days</p>
+          <h3 id="monthLine"></h3>
+          <div class="bars" id="monthBars" aria-hidden="true"></div>
+          <div class="ticks" id="monthTicks" aria-hidden="true"></div>
+          <p class="note" id="monthNote"></p>
+        </section>
+      </article>
+
       <article class="card" data-name="Best times">
-        <p class="eyebrow">Your best times</p>
-        <div class="slot">
-          <span class="what">Dishwasher <span>2.5 hour cycle</span></span>
-          <span class="when" id="dishWhen"></span>
-          <span class="gain" id="dishGain"></span>
-        </div>
-        <div class="slot">
-          <span class="what">Electric car <span>6 hour charge</span></span>
-          <span class="when" id="evWhen"></span>
-          <span class="gain" id="evGain"></span>
-        </div>
+        <p class="eyebrow" id="dayBasis"></p>
+        <div class="slot"><span class="what">Washing <span>2.5 hour cycle</span></span><span class="when" id="myWashWhen"></span><span class="gain" id="myWashGain"></span></div>
+        <div class="slot"><span class="what">Electric car <span>6 hour charge</span></span><span class="when" id="myCarWhen"></span><span class="gain" id="myCarGain"></span></div>
+        <p class="note" id="priceNote" hidden>Tonight's exact prices arrive about 4pm. Until then this is our best guess.</p>
         <p class="avoid" id="avoidLine"><b>Try to avoid:</b> <span id="avoidWhen"></span></p>
+      </article>
+
+      <article class="card" data-name="Free alerts">
+        <p class="eyebrow">Free alerts</p>
+        <h2>We'll tell you when.</h2>
+        <div class="toggles">
+          <label><input type="checkbox" id="al-morning"><span>Morning, 07:30<small id="alertMorningText"></small></span></label>
+          <label><input type="checkbox" id="al-evening"><span>Evening, 17:00<small id="alertEveningText"></small></span></label>
+          <label><input type="checkbox" id="al-plunge"><span>Unusually cheap power<small>Only when prices drop well below normal.</small></span></label>
+        </div>
+        <form id="alertForm" novalidate>
+          <label for="alertEmail">Your email</label>
+          <div class="field">
+            <input id="alertEmail" type="email" autocomplete="email" placeholder="you@example.com">
+            <button class="primary" type="submit">Turn on alerts</button>
+          </div>
+          <p class="note" id="alertMsg" role="status"></p>
+        </form>
+      </article>
+
+      <article class="card" data-name="Could you pay less?">
+        <p class="eyebrow">Could you pay less?</p>
+        <section class="block first">
+          <span class="askline">Do you have an electric car?</span>
+          <div class="seg pick two" id="carSeg" role="group" aria-label="Do you have an electric car?">
+            <button type="button" data-car="yes" aria-pressed="false">Yes</button>
+            <button type="button" data-car="no" aria-pressed="false">No</button>
+          </div>
+          <span class="askline">How do you pay for electricity?</span>
+          <div class="seg pick two" id="tariffSeg" role="group" aria-label="How you pay for electricity">
+            <button type="button" data-tariff="flat" aria-pressed="false">Same price all day</button>
+            <button type="button" data-tariff="night" aria-pressed="false">Cheaper at night</button>
+            <button type="button" data-tariff="agile" aria-pressed="false">Agile</button>
+            <button type="button" data-tariff="unsure" aria-pressed="false">Not sure</button>
+          </div>
+        </section>
+        <section class="block" id="payResult" hidden>
+          <h3 id="payHead"></h3>
+          <p class="lead" id="payBody"></p>
+          <p class="lead" id="payCatch"></p>
+          <div id="payLink" class="paylink">
+            <button class="primary fit" id="payGo" type="button">Compare overnight tariffs</button>
+            <p class="note" id="payNote">If you switch through this link we may earn a fee. We only show it when the sums point that way.</p>
+          </div>
+        </section>
       </article>
     </div>
 
@@ -335,18 +437,22 @@
       <button class="next" id="next" type="button"></button>
     </div>
     <p class="stamp" id="stamp"></p>
+    <div class="support"><span id="supportText">This site is free. If it's useful, you can help keep it running.</span><button class="next" id="donate" type="button">Buy me a coffee</button></div>
   </section>
   <footer class="foot">
+    <p class="contact">Got an idea, or spotted something wrong? Email <a href="mailto:hello@wheresmyenergyfrom.co.uk">hello@wheresmyenergyfrom.co.uk</a></p>
     <details>
       <summary>How this works</summary>
       <p>The fuel mix and carbon forecast for your area come from the Carbon Intensity API, which covers 14 regions of Great Britain. The stations on your map are the ones running right now, matched to the real high-voltage lines. Each fuel's share of your area is split between its stations, and bigger, closer ones count for more.</p>
       <p>Electricity mixes on the grid, so nobody can say which station reached a particular home. Treat the stations, routes and percentages as a reasonable estimate. The map uses the middle of your postcode district.</p>
       <p>Your address stays in your browser. Only the first half of your postcode is sent, to fetch the forecast.</p>
+      <p>Tariff figures use Octopus Energy's published prices for your region and Ofgem's price cap. A car charge counts as 30 units and a typical home as 3,100 units a year.</p>
     </details>
     <details>
       <summary>Data sources</summary>
       <ul>
         <li>Carbon intensity and regional mix: <a href="https://carbonintensity.org.uk/">Carbon Intensity API</a> (NESO, University of Oxford and partners), CC BY 4.0</li>
+        <li>Gas flows at each terminal: <a href="https://data.nationalgas.com/">National Gas</a>. Tanker gas by country: UK government Energy Trends, as published by <a href="https://www.sunsave.energy/blog/uk-gas-sources">Sunsave</a></li>
         <li>Station output and prices: contains BMRS data &copy; Elexon Limited copyright and database right</li>
         <li>High-voltage lines: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a></li>
         <li>Region boundaries: supported by <a href="https://www.neso.energy/data-portal">National Energy System Operator open data</a></li>
@@ -363,6 +469,7 @@
   const SNAPSHOT = /*SNAPSHOT*/null/*END*/;
   const LOOKUP = /*LOOKUP*/null/*END*/;
   const GEO = /*GEO*/null/*END*/;
+  const GAS = /*GAS*/null/*END*/;
   const NAMES = {1:'North Scotland',2:'South Scotland',3:'North West England',4:'North East England',5:'Yorkshire',6:'North Wales & Merseyside',7:'South Wales',8:'West Midlands',9:'East Midlands',10:'East of England',11:'South West England',12:'South England',13:'London',14:'South East England'};
   const FUEL_WORD = { gas: 'gas', wind: 'wind', nuclear: 'nuclear', imports: 'imports', biomass: 'biomass', solar: 'solar', hydro: 'hydro', coal: 'coal', other: 'other sources' };
   const FUEL_NAME = { gas: 'Gas', wind: 'Wind', nuclear: 'Nuclear', imports: 'Imports', biomass: 'Biomass', solar: 'Solar', hydro: 'Hydro', coal: 'Coal', other: 'Other' };
@@ -458,13 +565,6 @@
   }
   const point = (ms) => `${clock.format(new Date(ms))} ${dayWord(ms).label}`;
 
-  function fill(prefix, w) {
-    if (!w) { $(prefix + 'When').textContent = 'No forecast left'; $(prefix + 'Gain').textContent = ''; return; }
-    $(prefix + 'When').textContent = say(w.from, w.to);
-    const pct = w.nowAvg > 0 ? Math.round((1 - w.avg / w.nowAvg) * 100) : 0;
-    $(prefix + 'Gain').textContent = w.isNow ? 'Now is the greenest time in the next 24 hours.' : pct >= 3 ? `About ${pct}% cleaner than starting now.` : 'About the same as starting now, so run it whenever suits.';
-  }
-
   /* slots: [{v, cls, title}] covering whole days, marker: index of "now" */
   function drawBars(barsEl, ticksEl, slots, times, marker, markerLabel) {
     const max = Math.max(...slots.map((s) => s.v || 0), 1);
@@ -510,7 +610,7 @@
       [strip, legend, keyEl].forEach((el) => el.classList.toggle('focus', !!picked));
       keyEl.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.f === picked));
       if (views) {
-        const view = fuelViews.find((v) => v.dataset.fuel === picked);
+        const view = (m[picked] || 0) >= 1 ? fuelViews.find((v) => v.dataset.fuel === picked) : undefined;
         fuelViews.forEach((v) => v.toggleAttribute('hidden', v !== view));
         mapEl.toggleAttribute('hidden', !!view);
         if (view) {
@@ -587,13 +687,13 @@
     return { rows, route, p };
   }
 
-  function viewFit(pts, padX, padY, addX, addY) {
+  function viewFit(pts, padX, padY, addX, addY, W = VIEW_W, H = VIEW_H) {
     let x0 = Math.min(...pts.map((q) => q[0])), x1 = Math.max(...pts.map((q) => q[0])), y0 = Math.min(...pts.map((q) => q[1])), y1 = Math.max(...pts.map((q) => q[1]));
     const px = (x1 - x0) * padX + addX, py = (y1 - y0) * padY + addY;
     x0 -= px; x1 += px; y0 -= py; y1 += py;
-    if ((x1 - x0) / (y1 - y0) < VIEW_W / VIEW_H) { const e = ((y1 - y0) * VIEW_W / VIEW_H - (x1 - x0)) / 2; x0 -= e; x1 += e; }
-    else { const e = ((x1 - x0) * VIEW_H / VIEW_W - (y1 - y0)) / 2; y0 -= e; y1 += e; }
-    const k = VIEW_W / (x1 - x0);
+    if ((x1 - x0) / (y1 - y0) < W / H) { const e = ((y1 - y0) * W / H - (x1 - x0)) / 2; x0 -= e; x1 += e; }
+    else { const e = ((x1 - x0) * H / W - (y1 - y0)) / 2; y0 -= e; y1 += e; }
+    const k = W / (x1 - x0);
     return { k, x0, y1, P: (q) => [+((q[0] - x0) * k).toFixed(1), +((y1 - q[1]) * k).toFixed(1)], inview: (q) => q[0] > x0 - 5 && q[0] < x1 + 5 && q[1] > y0 - 5 && q[1] < y1 + 5 };
   }
   const pathOf = (P, pts) => 'M' + pts.map(P).map((q) => q.join(',')).join('L');
@@ -634,6 +734,94 @@
     return out.join('');
   }
 
+  /* where gas landing in Britain right now is likely to have come from, weighted gently towards the nearest terminals */
+  const GAS_NAME = { uk: 'UK North Sea', norway: 'Norway', lng: 'LNG tankers', europe: 'Europe by pipeline' };
+  function gasOrigin(p) {
+    if (!GAS || !GAS.terminals.length) return null;
+    const rows = GAS.terminals.map((t) => ({ ...t, km: distKm(p, t.xy), score: t.flow / Math.max(distKm(p, t.xy), 50) }));
+    const sum = rows.reduce((a, t) => a + t.score, 0);
+    rows.forEach((t) => { t.share = t.score / sum; });
+    const totals = {};
+    rows.forEach((t) => Object.entries(t.mix).forEach(([src, flow]) => { const part = t.share * flow / t.flow; (totals[src] = totals[src] || { key: src, share: 0, via: [] }).share += part; totals[src].via.push([t.name, part]); }));
+    const sources = Object.values(totals).filter((s) => s.share >= .01).sort((a, b) => b.share - a.share);
+    sources.forEach((s) => { s.via = s.via.sort((a, b) => b[1] - a[1]).filter((v) => v[1] >= s.share * .15).slice(0, 2).map((v) => v[0]); });
+    return { sources, terminals: rows.sort((a, b) => b.share - a.share) };
+  }
+  const andList = (a) => a.length > 1 ? `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}` : a[0];
+
+  /* the story of your gas, one numbered journey at a time */
+  const GAS_PLACE = { 'St Fergus': 'On the north-east coast of Scotland', Easington: 'On the East Yorkshire coast', Bacton: 'On the Norfolk coast', Teesside: 'In the North East of England', 'Milford Haven': 'In Pembrokeshire, where tankers unload', 'Isle of Grain': 'In Kent, where tankers unload' };
+  const GAS_TAB = { uk: 'UK North Sea', norway: 'Norway', lng: 'Tankers', europe: 'Europe' };
+  const gasStart = (key) => ({
+    norway: ['Started under the sea off Norway', 'Piped across the North Sea to Britain.'],
+    uk: ['Started under the UK North Sea', "From gas fields off Britain's coast."],
+    lng: [`Arrived by tanker, most likely from the ${GAS.lngTop[0]}`, 'Chilled to a liquid and shipped across the ocean.'],
+    europe: ['Came from Europe', 'Piped under the North Sea from the continent.'],
+  }[key]);
+  let gasCtx = null;
+  function drawGasStory(model, pct) {
+    const o = gasOrigin(model.p);
+    const stations = model.rows.filter((s) => s.f === 'gas').slice(0, 3);
+    const on = !!(o && o.sources.length && stations.length && (pct || 0) >= 1);
+    $('gasCard').hidden = !on;
+    setCards();
+    gasCtx = on ? { model, pct, o, stations, sel: o.sources[0].key } : null;
+    if (on) renderGas();
+  }
+  /* keep the numbered stops from sitting on top of each other at national scale */
+  function spread(pts, gap) {
+    const out = [pts[0]];
+    pts.slice(1).forEach((q) => {
+      let [x, y] = q;
+      const prev = out[out.length - 1];
+      let a = Math.atan2(y - prev[1], x - prev[0]) || 0;
+      for (let tries = 0; tries < 8 && out.some((b) => Math.hypot(x - b[0], y - b[1]) < gap); tries++) {
+        x = prev[0] + Math.cos(a) * gap; y = prev[1] + Math.sin(a) * gap; a += Math.PI / 4;
+      }
+      out.push([+x.toFixed(1), +y.toFixed(1)]);
+    });
+    return out;
+  }
+  function gasSvg(from, term, st, you) {
+    const W = 700, H = 540;
+    const v = viewFit([from.xy, term.xy, st.xy, you], .12, .14, 40, 75, W, H);
+    const pts = spread([from.xy, term.xy, st.xy, you].map(v.P), 56);
+    const line = (a, b, colour) => `<path class="route" style="stroke:${colour};stroke-width:4" d="M${a.join(',')}L${b.join(',')}"/>`;
+    const out = [`<svg class="map" viewBox="0 0 ${W} ${H}" role="img" aria-label="Map of the journey from ${esc(from.label)} to ${esc(term.name)}, then ${esc(st.short)}, then you">`, baseUse(v)];
+    out.push(line(pts[0], pts[1], 'var(--gas)'), line(pts[1], pts[2], 'var(--gas)'), line(pts[2], pts[3], 'var(--go)'));
+    const label = labeller();
+    const labels = [];
+    [from.label, term.name, st.short, 'You'].forEach((name, i) => {
+      const [x, y] = pts[i];
+      out.push(`<circle class="stop${i === 3 ? ' end' : ''}" cx="${x}" cy="${y}" r="23"/><text class="stopn${i === 3 ? ' end' : ''}" x="${x}" y="${y + 10}" text-anchor="middle">${i + 1}</text>`);
+      labels.push(label(x + (x > W * .72 ? -18 : 18), y, name, i === 3 ? 'lab you' : 'lab'));
+    });
+    return out.concat(labels, '</svg>').join('');
+  }
+  function renderGas() {
+    if (!gasCtx) return;
+    const { model, pct, o, stations, sel } = gasCtx;
+    const src = o.sources.find((s) => s.key === sel);
+    const term = o.terminals.find((x) => x.name === src.via[0]);
+    const from = term.from[sel];
+    const st = stations[0];
+    $('gasHead').innerHTML = `Right now <em>${Math.round(pct)}%</em> of your power is made from gas. Here's where it's been.`;
+    const tabs = $('gasTabs');
+    tabs.style.gridTemplateColumns = `repeat(${o.sources.length}, minmax(0, 1fr))`;
+    tabs.replaceChildren(...o.sources.map((s) => { const b = make('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(s.key === sel)); b.append(make('strong', '', `${Math.round(s.share * 100)}%`), make('span', '', GAS_TAB[s.key])); b.addEventListener('click', () => { gasCtx.sel = s.key; renderGas(); fit(); }); return b; }));
+    $('gasMap').innerHTML = gasSvg(from, term, st, model.p);
+    const miles = (km) => Math.max(1, Math.round(km * .621));
+    const others = stations.slice(1).map((s) => s.short);
+    const [a, b] = gasStart(sel);
+    const steps = [
+      [a, b],
+      [`Came ashore at ${term.name}`, `${GAS_PLACE[term.name]}${sel === 'norway' && term.name === 'Easington' ? ', through the Langeled pipeline' : ''}.`],
+      [`Burned at ${st.short}`, `Roughly ${miles(distKm(term.xy, st.xy))} miles through the gas network.${others.length ? ` Also likely ${andList(others)}.` : ''}`],
+      ['Reached you as electricity', `About ${miles(st.km)} miles along the power lines.`],
+    ];
+    $('gasSteps').replaceChildren(...steps.map(([h, p], i) => { const li = make('li', i === 3 ? 'end' : ''); const n = make('span', 'num', String(i + 1)); const box = make('div'); box.append(make('b', '', h), make('span', '', p)); li.append(n, box); return li; }));
+  }
+
   function fuelSvg(model, fuel, pct) {
     const n = Math.min(4, Math.max(1, Math.round((pct || 0) / 15)));
     const picks = model.rows.filter((s) => s.f === fuel).slice(0, n);
@@ -657,12 +845,13 @@
     const holder = $('mapHolder');
     const p = locate(outward);
     const allYou = $('allYou');
-    if (!p) { holder.innerHTML = '<svg class="map"></svg>'; allYou.replaceChildren(); return false; }
+    if (!p) { holder.innerHTML = '<svg class="map"></svg>'; allYou.replaceChildren(); $('gasCard').hidden = true; setCards(); return false; }
     const model = modelFor(p, mix);
     // the first map stays local: the four likeliest sources within about 125 miles along the lines
     const within = model.rows.filter((s) => s.km <= 200 && s.share > 0);
     const picks = (within.length >= 2 ? within : model.rows).slice(0, 4);
     holder.innerHTML = nearSvg(model, picks) + ['gas', 'nuclear', 'imports', 'coal'].map((f) => fuelSvg(model, f, mix[f])).join('');
+    drawGasStory(model, mix.gas);
     const names = picks.slice(0, 3).map((s) => `<em>${esc(s.short)}</em>`);
     $('likelyNames').innerHTML = `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
     $('likelyRows').innerHTML = picks.map((s) => `<div class="row"><span class="name">${esc(s.name)}<small>${esc(s.fuel)}, ${Math.round(s.km * .621)} miles along the lines</small></span><span class="mw">${Math.round(s.share * 100)}%</span><div class="track"><i style="width:${Math.round(s.share / picks[0].share * 100)}%;background:var(--${s.f})"></i></div></div>`).join('');
@@ -773,14 +962,10 @@
     $('mapOn').hidden = !mapped; $('mapOff').hidden = mapped; $('hint').hidden = !mapped;
     $('forArea').textContent = ` (${f.area} area)`;
     const flat = w.dish && w.avoid && w.avoid.avg - w.dish.avg < Math.max(5, w.avoid.avg * 0.05);
-    if (flat) {
-      ['dish', 'ev'].forEach((p) => { $(p + 'When').textContent = 'Any time'; $(p + 'Gain').textContent = 'Power in your area stays about as clean all day, so run it whenever suits.'; });
-    } else { fill('dish', w.dish); fill('ev', w.ev); }
-    $('avoidLine').hidden = !!flat || !w.avoid;
-    if (w.avoid) $('avoidWhen').textContent = say(w.avoid.from, w.avoid.to);
     drawMix(f, w.skip);
     if (w.dish) drawDay(f, w, flat);
     region.mine = f.id; region.focus = f.id; drawRegions();
+    lastF = f; renderMember();
     $('stamp').textContent = `Forecast updated ${dayKey.format(new Date(f.updated)) === dayKey.format(new Date()) ? 'today' : weekday.format(new Date(f.updated))} at ${clock.format(new Date(f.updated))}.`;
   }
 
@@ -797,10 +982,13 @@
 
   /* cards */
   const deck = $('deck');
-  const cards = [...deck.children];
+  let cards = [];
   let current = 0;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  $('dots').append(...cards.map((c, i) => { const b = make('button', 'dot'); b.type = 'button'; b.setAttribute('aria-label', c.dataset.name); b.addEventListener('click', () => go(i)); return b; }));
+  function setCards() {
+    cards = [...deck.children].filter((c) => !c.hidden);
+    $('dots').replaceChildren(...cards.map((c, i) => { const b = make('button', 'dot'); b.type = 'button'; b.setAttribute('aria-label', c.dataset.name); b.addEventListener('click', () => go(i)); return b; }));
+  }
   let moving = null;
   function go(i, instant) {
     current = i; sync();
@@ -841,6 +1029,125 @@
     const box = $('answer'); box.classList.remove('fresh'); void box.offsetWidth; box.classList.add('fresh');
   });
 
+  /* v2: free and member views. The plan switch stands in for a real sign-in. */
+  const MEMBER = /*MEMBER*/null/*END*/;
+  const KWH = { wash: 1, car: 30 }, CAP = 26.32, HOME_MONTH = 3100 / 12;
+  const S = (() => { const d = { tariff: null, car: null, alerts: { morning: true, evening: true, plunge: true } }; try { return { ...d, ...JSON.parse(localStorage.getItem('wme3') || '{}') }; } catch (e) { return d; } })();
+  const save = () => { try { localStorage.setItem('wme3', JSON.stringify(S)); } catch (e) {} };
+  let lastF = null;
+  const money = (pence) => Math.abs(pence) >= 100 ? `£${(pence / 100).toFixed(2)}` : `${Math.round(pence)}p`;
+  const shortDate = (d) => new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${d}T12:00:00Z`));
+  const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+  function priceAt(id, t) { const a = MEMBER.agile[id]; if (!a) return null; const v = a.v[Math.round((t - Date.parse(a.start)) / SLOT)]; return v == null ? null : v; }
+  const WASH_HOURS = (h) => h >= 7 && h < 22, CAR_HOURS = (h) => h >= 19 || h < 7;
+
+  /* the best n slots in the next stretch of sensible hours */
+  function nextWindow(f, allowed, n) {
+    const base = Math.floor(Date.now() / SLOT) * SLOT;
+    const all = Array.from({ length: 48 }, (_, i) => { const t = base + i * SLOT; const c = f.values[Math.round((t - f.start) / SLOT)]; return { t, c: c == null ? null : c, p: priceAt(f.id, t), ok: allowed(Number(hourOf.format(new Date(t))) % 24) && c != null }; });
+    let run = [];
+    for (const s of all) { if (s.ok) run.push(s); else if (run.length >= n) break; else run = []; }
+    if (run.length < n) return null;
+    const priced = S.tariff === 'agile' && run.every((s) => s.p != null);
+    const key = (s) => priced ? s.p : s.c;
+    let at = 0, low = Infinity;
+    for (let i = 0; i + n <= run.length; i++) { const v = mean(run.slice(i, i + n).map(key)); if (v < low) { low = v; at = i; } }
+    const win = run.slice(at, at + n);
+    const prices = all.map((s) => s.p).filter((p) => p != null), carbons = all.map((s) => s.c).filter((c) => c != null);
+    return { from: win[0].t, to: win[n - 1].t + SLOT, priced, p: priced ? mean(win.map((s) => s.p)) : null, c: mean(win.map((s) => s.c)), baseP: prices.length ? mean(prices) : null, baseC: mean(carbons) };
+  }
+  function gainText(w, kwh) {
+    if (w.priced) { const d = (w.baseP - w.p) * kwh; return d >= 1 ? `About ${money(d)} cheaper than the average price over the next 24 hours.` : 'About the same price as the next 24 hours on average.'; }
+    const pct = Math.round((1 - w.c / w.baseC) * 100);
+    return pct >= 3 ? `About ${pct}% cleaner than the average over the next 24 hours.` : 'About the same as the rest of the next 24 hours.';
+  }
+  const pressed = (root, attr, value) => root.querySelectorAll(`button[${attr}]`).forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute(attr) === value)));
+
+  function drawMyDay(f, w) {
+    $('dayBasis').textContent = S.tariff === 'agile' ? 'Your cheapest times' : 'Your cleanest times';
+    const wash = nextWindow(f, WASH_HOURS, 5), car = nextWindow(f, CAR_HOURS, 12);
+    $('myWashWhen').textContent = wash ? say(wash.from, wash.to) : 'No forecast yet';
+    $('myWashGain').textContent = wash ? gainText(wash, KWH.wash) : '';
+    $('myCarWhen').textContent = car ? say(car.from, car.to) : 'No forecast yet';
+    $('myCarGain').textContent = car ? gainText(car, KWH.car) : '';
+    $('priceNote').hidden = !(S.tariff === 'agile' && car && !car.priced);
+    $('avoidLine').hidden = !w.avoid;
+    if (w.avoid) $('avoidWhen').textContent = say(w.avoid.from, w.avoid.to);
+    $('alertMorningText').textContent = wash ? `Washing: ${say(wash.from, wash.to)}.` : 'Your washing time will appear here.';
+    $('alertEveningText').textContent = car ? `Car: ${say(car.from, car.to)}.` : 'Your charging time will appear here.';
+    ['morning', 'evening', 'plunge'].forEach((k) => { $(`al-${k}`).checked = S.alerts[k]; });
+  }
+
+  function drawPay(f) {
+    pressed($('tariffSeg'), 'data-tariff', S.tariff);
+    pressed($('carSeg'), 'data-car', S.car);
+    const answered = S.car && S.tariff;
+    $('payResult').hidden = !answered;
+    if (!answered) return;
+    const go = MEMBER.go[f.id], rows = MEMBER.regions[f.id].filter(Boolean);
+    const agile = mean(rows.map((r) => r.pd)), agileNight = mean(rows.map((r) => r.pc));
+    const p1 = (v) => `${v.toFixed(1)}p`;
+    const charge = (CAP - go.night) * KWH.car;
+    const times = Math.max(1, Math.round(HOME_MONTH * (go.day - CAP) / charge));
+    let head, body, catchLine = '', link = false;
+    if (S.car === 'yes' && (S.tariff === 'flat' || S.tariff === 'unsure')) {
+      head = 'An overnight tariff could cut what you pay to charge.';
+      body = `On Octopus Go in your area, power costs ${p1(go.night)} a unit from 00:30 to 05:30, against about 26p on the price cap. That's about ${money(charge)} off a typical charge.`;
+      catchLine = `The catch is that everything else costs ${p1(go.day)} a unit. It tends to pay off if you charge at home more than about ${times} ${times === 1 ? 'time' : 'times'} a month. You'll need a smart meter.${S.tariff === 'unsure' ? ' Check your bill first, in case you already pay less at night.' : ''}`;
+      link = true;
+    } else if (S.car === 'yes' && S.tariff === 'night') {
+      head = "You're already on the right kind of tariff.";
+      body = 'Keep charging in your cheap hours. There is nothing to change.';
+    } else if (S.car === 'yes') {
+      head = 'A fixed overnight rate could beat Agile for charging.';
+      body = `Agile's cheapest overnight hours averaged ${p1(agileNight)} a unit in your area over the last 30 days. Octopus Go is ${p1(go.night)} from 00:30 to 05:30.`;
+      catchLine = `The rest of the day is ${p1(go.day)} on Go, and Agile averaged ${p1(agile)}. You'll need a smart meter.`;
+      link = true;
+    } else if (S.tariff === 'night') {
+      head = "Check you're using those cheap hours.";
+      body = "Night-rate tariffs usually cost more during the day. If you don't use much power overnight, a single price may suit you better.";
+    } else if (S.tariff === 'agile') {
+      head = 'Keep an eye on what Agile is costing you.';
+      body = `Agile averaged ${p1(agile)} a unit in your area over the last 30 days, against about 26p on the price cap. It suits homes that can move a lot of their use to cheap hours.`;
+    } else {
+      head = "There's probably no reason to switch.";
+      body = `Without a car to charge, there's usually little to gain. Agile averaged ${p1(agile)} a unit in your area over the last 30 days, against about 26p on the price cap.`;
+    }
+    $('payHead').textContent = head; $('payBody').textContent = body;
+    $('payCatch').textContent = catchLine; $('payCatch').hidden = !catchLine;
+    $('payLink').hidden = !link;
+  }
+
+  function drawYear(f) {
+    const mine = SNAPSHOT.year.regions[f.id], gb = SNAPSHOT.year.regions[GB];
+    $('yearName').textContent = f.area;
+    const shown = SNAPSHOT.fuels.map((k, i) => ({ k, a: mine[i], b: gb[i] })).filter((x) => x.a >= 1 || x.b >= 1).sort((x, y) => y.a - x.a);
+    const top = Math.max(...shown.map((x) => Math.max(x.a, x.b)));
+    const cell = (v, k) => { const c = make('div', 'cc'), track = make('div', 'ct'), bar = make('i'); bar.style.width = `${v / top * 100}%`; bar.style.background = `var(--${k})`; track.append(bar); c.append(track, make('span', '', `${Math.round(v)}%`)); return c; };
+    $('yearCompare').replaceChildren(make('span'), make('b', '', f.area), make('b', '', 'Great Britain'), ...shown.flatMap((x) => [make('span', '', FUEL_NAME[x.k]), cell(x.a, x.k), cell(x.b, x.k)]));
+    const rows = MEMBER.regions[f.id].map((r, i) => r && { r, d: MEMBER.days[i] }).filter(Boolean);
+    const lo = rows.reduce((a, b) => b.r.cd < a.r.cd ? b : a), hi = rows.reduce((a, b) => b.r.cd > a.r.cd ? b : a), max = hi.r.cd;
+    $('monthLine').textContent = `Your cleanest day in the last 30 was ${shortDate(lo.d)}.`;
+    $('monthBars').replaceChildren(...MEMBER.days.map((d, i) => { const r = MEMBER.regions[f.id][i], b = make('div', !r ? 'dim' : d === lo.d ? 'hi' : d === hi.d ? 'bad' : ''); b.style.height = r ? `${r.cd / max * 100}%` : '2px'; if (r) b.title = `${shortDate(d)}: ${Math.round(r.cd)} g per kWh`; return b; }));
+    const a = make('span', 'first', shortDate(MEMBER.days[0])), z = make('span', 'last', shortDate(MEMBER.days[MEMBER.days.length - 1]));
+    a.style.left = '0'; z.style.left = '100%';
+    $('monthTicks').replaceChildren(a, z);
+    $('monthNote').textContent = `Average ${Math.round(mean(rows.map((x) => x.r.cd)))} g of CO₂ per unit. Agile averaged ${mean(rows.map((x) => x.r.pd)).toFixed(1)}p per unit here, and its cheapest 2.5 daytime hours averaged ${mean(rows.map((x) => x.r.pw)).toFixed(1)}p.`;
+  }
+
+  function renderMember() { if (!lastF) return; drawMyDay(lastF, windows(lastF)); drawPay(lastF); drawYear(lastF); fit(); }
+  $('tariffSeg').addEventListener('click', (e) => { const b = e.target.closest('button[data-tariff]'); if (b) { S.tariff = b.dataset.tariff; save(); renderMember(); } });
+  $('carSeg').addEventListener('click', (e) => { const b = e.target.closest('button[data-car]'); if (b) { S.car = b.dataset.car; save(); renderMember(); } });
+  ['morning', 'evening', 'plunge'].forEach((k) => $(`al-${k}`).addEventListener('change', (e) => { S.alerts[k] = e.target.checked; save(); }));
+  $('alertForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const ok = /\S+@\S+\.\S+/.test($('alertEmail').value.trim());
+    $('alertMsg').textContent = ok ? "This is a prototype, so nothing was saved or sent." : "Add your email, like you@example.com.";
+    fit();
+  });
+  $('payGo').addEventListener('click', () => { $('payNote').textContent = 'This is a prototype. The link goes here once we choose a partner. If you switch through it we may earn a fee.'; fit(); });
+  $('donate').addEventListener('click', () => { $('supportText').textContent = 'This is a prototype. Your donation link goes here.'; });
+  setCards();
   drawGrid();
   drawCountry();
   $('exampleBtn').addEventListener('click', () => openResults(() => show(storedForecast('SW9'), 'Brixton, SW9', true, 'SW9')));

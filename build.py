@@ -68,6 +68,8 @@ lookup['areas'].update({'EC': 13, 'WC': 13})  # central London; the API only acc
 subprocess.run([sys.executable, '-I', str(HERE / 'model.py')], check=True, stdout=subprocess.DEVNULL)
 subprocess.run([sys.executable, '-I', str(HERE / 'regions.py')], check=True, stdout=subprocess.DEVNULL)
 m = json.loads((HERE / 'map.json').read_text(encoding='utf8'))
+subprocess.run([sys.executable, '-I', str(HERE / 'member_data.py')], check=True, stdout=subprocess.DEVNULL)
+subprocess.run([sys.executable, '-I', str(HERE / 'gas_data.py')], check=True, stdout=subprocess.DEVNULL)
 
 page = (HERE / 'template.html').read_text(encoding='utf8')
 for key in ('fuels', 'all'):
@@ -76,10 +78,12 @@ page = page.replace('<!--REGIONS_SVG-->', (HERE / 'regions.svg').read_text(encod
 page = page.replace('/*GEO*/null/*END*/', json.dumps(m['geo'], separators=(',', ':')))
 page = page.replace('/*SNAPSHOT*/null/*END*/', json.dumps(snapshot, separators=(',', ':')))
 page = page.replace('/*LOOKUP*/null/*END*/', json.dumps(lookup, separators=(',', ':')))
+page = page.replace('/*MEMBER*/null/*END*/', (HERE / 'member.json').read_text(encoding='utf8'))
+page = page.replace('/*GAS*/null/*END*/', (HERE / 'gas.json').read_text(encoding='utf8'))
 (HERE / 'index.html').write_text(page, encoding='utf8')
 
 # the public website: a complete document (index.html above is the same page without its <head>)
-TITLE = "Where's My Energy From?"
+TITLE = "Where's My Energy From? v2"
 DESCRIPTION = "Type your address to see where your electricity is likely coming from right now, and the greenest hours to use it."
 ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%2306704b'/%3E%3Cpath d='M18 5 9 18h6l-1 9 9-13h-6z' fill='%23f2fbf7'/%3E%3C/svg%3E"
 split = page.index('</style>') + len('</style>')

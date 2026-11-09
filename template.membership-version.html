@@ -1,0 +1,1100 @@
+<title>Where's My Energy From? v2</title>
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+  /* Layout: one left-aligned column, read like the delay-start display on an appliance. One answer first, then a few swipeable cards that explain it, one idea each. */
+  :root {
+    --bg: #dfeae6;
+    --panel: #f4f8f6;
+    --ink: #10302a;
+    --muted: #4c6a62;
+    --line: #bfd2cb;
+    --go: #06704b;
+    --go-ink: #f2fbf7;
+    --stop: #a8481a;
+    --bar: #a9c0b8;
+    --gas: #c8553d; --wind: #2f7fb5; --nuclear: #6a4fa3; --imports: #b0719a; --biomass: #6f8f3a; --solar: #d9a21b; --hydro: #2aa198; --coal: #55524d; --other: #8d8577;
+    --display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+    --body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #0f211d; --panel: #18302a; --ink: #e6f2ee; --muted: #9db8b0; --line: #2d4a42; --go: #4fd6a2; --go-ink: #08261d; --stop: #f0a077; --bar: #3f5f56; --gas: #e0735c; --wind: #58a6da; --nuclear: #9a82d6; --imports: #cf93b9; --biomass: #9dbb5f; --solar: #e8bb49; --hydro: #4cc4ba; --coal: #8f8b84; --other: #aaa294; color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --bg: #0f211d; --panel: #18302a; --ink: #e6f2ee; --muted: #9db8b0; --line: #2d4a42; --go: #4fd6a2; --go-ink: #08261d; --stop: #f0a077; --bar: #3f5f56; --gas: #e0735c; --wind: #58a6da; --nuclear: #9a82d6; --imports: #cf93b9; --biomass: #9dbb5f; --solar: #e8bb49; --hydro: #4cc4ba; --coal: #8f8b84; --other: #aaa294; color-scheme: dark; }
+
+  [hidden] { display: none !important; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.5; }
+  .page { max-width: 44rem; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: clamp(1rem, 3vh, 2rem) 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+
+  h1 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(2.8rem, 9vw, 5rem); line-height: 1; letter-spacing: -.02em; text-wrap: balance; }
+  .intro { margin: .9rem 0 0; font-size: 1.15rem; color: var(--muted); max-width: 34rem; }
+
+  .home { display: flex; flex-direction: column; gap: 1.75rem; padding-block: clamp(2rem, 16vh, 9rem) 2rem; }
+  .example { align-self: flex-start; font: inherit; color: var(--go); font-weight: 500; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .back { font: inherit; font-size: .95rem; font-weight: 600; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .4rem .9rem; cursor: pointer; }
+  .brand { font-family: var(--display); font-weight: 700; font-size: 1.05rem; }
+  form { display: flex; flex-direction: column; gap: .5rem; }
+  label { font-weight: 600; font-size: .95rem; }
+  .field { display: flex; gap: .5rem; flex-wrap: wrap; }
+  input { flex: 1 1 16rem; min-width: 0; font: inherit; font-size: 1.1rem; color: var(--ink); background: var(--panel); border: 2px solid var(--line); border-radius: 10px; padding: .85rem 1rem; }
+  input::placeholder { color: var(--muted); }
+  .primary { flex: 0 0 auto; font: inherit; font-weight: 600; font-size: 1.1rem; color: var(--go-ink); background: var(--go); border: 2px solid var(--go); border-radius: 10px; padding: .85rem 1.3rem; cursor: pointer; }
+  .primary:hover { filter: brightness(1.1); }
+  input:focus-visible, button:focus-visible, .deck:focus-visible { outline: 3px solid var(--go); outline-offset: 2px; }
+  .error { margin: 0; color: var(--stop); font-weight: 500; }
+
+  .answer { display: flex; flex-direction: column; gap: .75rem; }
+  .for { margin: 0; font-size: 1.05rem; color: var(--muted); overflow-wrap: anywhere; }
+  .for strong { color: var(--ink); font-weight: 600; }
+  .tag { display: inline-block; margin-right: .5rem; padding: 0 .55rem; border: 1px solid var(--muted); border-radius: 5px; font-size: .78rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+
+  /* the swipeable cards: native scroll-snap, so touch and trackpad swipes just work */
+  .deck { display: flex; overflow-x: auto; overflow-y: hidden; align-items: flex-start; transition: height .25s; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+  .deck::-webkit-scrollbar { display: none; }
+  .card { flex: 0 0 100%; min-width: 0; box-sizing: border-box; scroll-snap-align: start; padding: 1.1rem 1.2rem; display: flex; flex-direction: column; gap: .65rem; }
+  .eyebrow { margin: 0; font-size: .78rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h2 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(1.5rem, 4.6vw, 2.2rem); line-height: 1.15; letter-spacing: -.01em; text-wrap: balance; }
+  h2 em { font-style: normal; color: var(--go); }
+
+  .slot { display: flex; flex-direction: column; gap: .1rem; }
+  .slot + .slot { border-top: 1px solid var(--line); padding-top: .65rem; }
+  .what { font-weight: 600; font-size: 1rem; }
+  .what span { font-weight: 400; color: var(--muted); }
+  .when { font-family: var(--display); font-weight: 700; font-size: clamp(1.8rem, 6vw, 2.8rem); line-height: 1.1; color: var(--go); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .gain { color: var(--muted); }
+  .avoid { font-size: 1.05rem; margin: 0; border-top: 1px solid var(--line); padding-top: .65rem; }
+  .avoid b { color: var(--stop); font-weight: 600; }
+  .small { margin: 0; font-size: .88rem; color: var(--muted); margin-top: auto; }
+  .lead { margin: 0; color: var(--muted); }
+  .lead b { color: var(--ink); font-weight: 600; }
+
+  .strip { display: flex; gap: 2px; height: 5.5rem; border-radius: 8px; overflow: hidden; }
+  .strip > * { min-width: 2px; }
+  .strip button { padding: 0; border: 0; cursor: pointer; transition: opacity .2s; }
+  .strip.focus button:not(.on) { opacity: .3; }
+  .legbtn { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; display: inline-flex; align-items: center; gap: .4rem; font-variant-numeric: tabular-nums; }
+  .legend.focus .legbtn:not(.on) { opacity: .4; }
+  .legbtn.on { font-weight: 600; }
+  .base-land { fill: var(--bg); stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .base-net { fill: none; stroke: var(--bar); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .map [data-f] { transition: opacity .2s; }
+  .map.focus [data-f]:not(.on) { opacity: .08; }
+  .map.focus .site.on { opacity: 1; }
+  .map.focus .run.on, .map.focus .src.on { stroke: var(--ink); }
+  .map.tall { width: 100%; }
+  .map .lab.big { font-size: 22px; }
+  .mapside { display: grid; grid-template-columns: minmax(0, 19rem) minmax(0, 1fr); gap: 1rem; align-items: start; }
+  @media (max-width: 560px) { .mapside { grid-template-columns: minmax(0, 1fr); } }
+  .strip.thin { height: 2.6rem; }
+  h3 { margin: 0; font-family: var(--display); font-weight: 700; font-size: clamp(1.15rem, 3.4vw, 1.45rem); line-height: 1.2; text-wrap: balance; }
+  h3 em { font-style: normal; color: var(--go); }
+  .block { display: flex; flex-direction: column; gap: .5rem; border-top: 1px solid var(--line); padding-top: .7rem; }
+  .block.first { border-top: 0; padding-top: 0; }
+  .note { margin: 0; font-size: .88rem; color: var(--muted); }
+  .pair .bars { height: 7.5rem; }
+  .legend { display: flex; flex-wrap: wrap; gap: .3rem 1.1rem; font-size: .95rem; list-style: none; margin: 0; padding: 0; }
+  .legend li { display: inline-flex; align-items: center; gap: .4rem; font-variant-numeric: tabular-nums; }
+  .legend i { width: .75rem; height: .75rem; border-radius: 3px; display: inline-block; }
+
+  .bars { position: relative; display: flex; align-items: flex-end; gap: 1px; height: 9.5rem; margin-top: 1.1rem; }
+  .bars > div { flex: 1 1 0; min-width: 0; min-height: 2px; background: var(--bar); border-radius: 1px 1px 0 0; }
+  .bars .dim { background: color-mix(in srgb, var(--bar) 38%, transparent); }
+  .bars .hi { background: var(--go); }
+  .bars .bad { background: var(--stop); }
+  .bars .nowmark { position: absolute; top: 0; bottom: 0; width: 2px; min-height: 0; flex: none; background: var(--ink); border-radius: 0; }
+  .bars .nowmark span { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); font-size: .8rem; font-weight: 600; white-space: nowrap; }
+  .ticks { position: relative; height: 1.3em; font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: -.6rem; }
+  .ticks span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+  .ticks span.first { transform: none; }
+  .ticks span.last { transform: translateX(-100%); }
+  .key { display: flex; flex-wrap: wrap; gap: .3rem 1.1rem; font-size: .9rem; color: var(--muted); }
+  .key span { display: inline-flex; align-items: center; gap: .4rem; }
+  .key i { width: .75rem; height: .75rem; border-radius: 3px; display: inline-block; }
+
+  .rows { display: flex; flex-direction: column; gap: .5rem; }
+  .row { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: .15rem .75rem; align-items: baseline; }
+  .row .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .name small { font-weight: 400; color: var(--muted); font-size: .85em; margin-left: .35rem; }
+  .row .mw { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .row .track { grid-column: 1 / -1; height: .55rem; border-radius: 3px; background: color-mix(in srgb, var(--bar) 35%, transparent); overflow: hidden; }
+  .row .track i { display: block; height: 100%; border-radius: 3px; }
+
+  .mapOn, .mapOff { display: flex; flex-direction: column; gap: .6rem; flex: 1; }
+  .map { width: 100%; height: auto; border-radius: 10px; background: color-mix(in srgb, var(--wind) 10%, var(--panel)); display: block; }
+  .map .land { fill: var(--bg); stroke: var(--line); stroke-width: 1; }
+  .map .net { fill: none; stroke: var(--bar); stroke-width: 1.2; }
+  .map .route { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 9 7; }
+  .map .site { fill: none; stroke-linecap: round; opacity: .85; }
+  .map .run { stroke: var(--panel); stroke-width: 1; }
+  .mapkey { font-size: .8rem; gap: .1rem .75rem; }
+  .side .mapkey { flex-direction: column; font-size: .9rem; gap: .25rem; }
+  .map .src { stroke: var(--panel); stroke-width: 2; }
+  .map .ring { fill: none; stroke: var(--go); stroke-width: 2.5; }
+  .map .you { fill: var(--go); }
+  .map .lab { font-family: var(--body); font-size: 16px; font-weight: 600; fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; }
+  .map .lab.you { fill: var(--go); }
+  .row .name small { display: block; margin-left: 0; }
+  .mapOn .rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: .45rem 1.5rem; }
+  @media (prefers-reduced-motion: no-preference) { .map .route { animation: flow 1.6s linear infinite; } @keyframes flow { to { stroke-dashoffset: 16; } } }
+
+  .regionwrap { display: grid; grid-template-columns: minmax(0, 19rem) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+  .regions { width: 100%; height: auto; max-height: 30rem; display: block; }
+  .regions .reg { stroke: var(--panel); stroke-width: 1; transition: fill .3s; }
+  .regions .reg.mine { stroke: var(--ink); stroke-width: 2.4; }
+  .regions .regval { font-family: var(--body); font-size: 15px; font-weight: 600; fill: var(--ink); paint-order: stroke; stroke: var(--panel); stroke-width: 3.5px; stroke-linejoin: round; }
+  .regions .regname { font-family: var(--body); font-size: 12px; fill: var(--muted); }
+  .regions .lead { stroke: var(--muted); stroke-width: 1; fill: none; }
+  .regions .reg { cursor: pointer; }
+  .regions .regval, .regions .regname, .regions .lead { pointer-events: none; }
+  .regions .reg.sel { stroke: var(--go); stroke-width: 2.4; }
+  .detail { display: flex; flex-direction: column; gap: .4rem; border-top: 1px solid var(--line); padding-top: .6rem; }
+  .seg.wide { display: grid; grid-template-columns: 1fr 1fr; align-self: stretch; }
+  .seg.wide button { text-align: center; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; }
+  .stats button { font: inherit; display: flex; flex-direction: column; align-items: center; gap: .1rem; padding: .5rem .15rem; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; min-width: 0; }
+  .stats span { font-size: .74rem; color: var(--muted); }
+  .stats strong { font-family: var(--display); font-weight: 700; font-size: 1.3rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stats button[aria-pressed="true"] { background: var(--go); border-color: var(--go); color: var(--go-ink); }
+  .stats button[aria-pressed="true"] span { color: var(--go-ink); }
+  .side { display: flex; flex-direction: column; gap: .8rem; min-width: 0; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; align-self: flex-start; }
+  .seg button { font: inherit; font-size: .92rem; font-weight: 500; padding: .35rem .8rem; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--go); color: var(--go-ink); }
+  .scale { display: flex; align-items: center; gap: .5rem; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .scale i { flex: 1; max-width: 9rem; height: .6rem; border-radius: 3px; }
+  @media (max-width: 560px) { .regionwrap { grid-template-columns: minmax(0, 1fr); } .regions { max-height: 24rem; } }
+
+  .foot { display: flex; flex-direction: column; gap: .35rem; font-size: .85rem; color: var(--muted); }
+  .foot summary { cursor: pointer; font-weight: 500; }
+  .foot p { margin: .4rem 0 0; max-width: 40rem; }
+  .foot ul { margin: .4rem 0 0; padding-left: 1.1rem; }
+  .foot a { color: inherit; }
+  @media (max-width: 560px) {
+    .map:not(.tall) .lab { font-size: 27px; stroke-width: 6px; }
+    .home { padding-block-start: 2rem; }
+  }
+
+  .nav { display: flex; align-items: center; gap: .75rem; }
+  .arrow { flex: none; width: 2.6rem; height: 2.6rem; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-size: 1.1rem; cursor: pointer; }
+  .dots { display: flex; gap: .4rem; flex: 1; }
+  .dot { width: .6rem; height: .6rem; padding: 0; border: 0; border-radius: .3rem; background: var(--bar); cursor: pointer; transition: width .25s; }
+  .dot[aria-current="true"] { width: 1.6rem; background: var(--go); }
+  .next { flex: none; font: inherit; font-weight: 600; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .55rem 1.1rem; cursor: pointer; }
+  .stamp { margin: 0; font-size: .85rem; color: var(--muted); }
+
+  @media (prefers-reduced-motion: no-preference) { .answer.fresh { animation: rise .35s ease-out; } @keyframes rise { from { opacity: .3; transform: translateY(8px); } to { opacity: 1; transform: none; } } }
+
+  /* v2 */
+  .proto { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; font-size: .88rem; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: .6rem; }
+  .proto b { color: var(--ink); font-weight: 600; }
+  .memtag { display: inline-block; margin-left: .35rem; padding: 0 .35rem; border-radius: 4px; font-size: .68rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--go-ink); background: var(--go); vertical-align: .08em; }
+  .blurred { filter: blur(7px); user-select: none; color: var(--muted); }
+  .locked { display: flex; flex-direction: column; gap: .65rem; border-top: 1px solid var(--line); padding-top: .65rem; }
+  .benefits { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .75rem; }
+  .benefits b { display: block; font-weight: 600; }
+  .benefits span { color: var(--muted); }
+  .price { margin: 0; font-family: var(--display); font-weight: 700; font-size: 2rem; line-height: 1; }
+  .price small { font-family: var(--body); font-weight: 400; font-size: 1rem; color: var(--muted); }
+  .primary.fit { align-self: flex-start; }
+  .check { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .75rem; align-items: center; }
+  .yn { display: inline-flex; gap: .35rem; }
+  .yn button { font: inherit; font-weight: 600; min-width: 3.1rem; padding: .35rem .6rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+  .check .good { color: var(--go); font-weight: 600; }
+  .check b { font-weight: 500; white-space: nowrap; }
+  .askline { font-weight: 600; }
+  .toggles { display: flex; flex-direction: column; gap: .55rem; }
+  .toggles label { display: flex; align-items: flex-start; gap: .55rem; font-weight: 500; font-size: .98rem; cursor: pointer; }
+  .toggles input { flex: none; width: 1.1rem; height: 1.1rem; margin: .2rem 0 0; accent-color: var(--go); }
+  .toggles small { display: block; font-weight: 400; font-size: .88rem; color: var(--muted); }
+  .big { font-family: var(--display); font-weight: 700; font-size: clamp(3rem, 12vw, 4.6rem); line-height: 1; letter-spacing: -.02em; color: var(--go); font-variant-numeric: tabular-nums; }
+  .sidelabel { font-size: 1.05rem; font-weight: 600; }
+  .feeline { margin: 0; font-weight: 600; }
+  .compare { display: grid; grid-template-columns: max-content minmax(0, 1fr) minmax(0, 1fr); gap: .45rem .75rem; align-items: center; font-size: .92rem; }
+  .compare b { font-weight: 600; font-size: .85rem; overflow-wrap: anywhere; }
+  .cc { display: grid; grid-template-columns: minmax(0, 1fr) 2.6em; gap: .4rem; align-items: center; }
+  .cc span { text-align: right; font-variant-numeric: tabular-nums; }
+  .ct { height: .7rem; border-radius: 3px; background: color-mix(in srgb, var(--bar) 30%, transparent); overflow: hidden; }
+  .ct i { display: block; height: 100%; border-radius: 3px; }
+  .card .seg.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-self: stretch; }
+</style>
+
+<main class="page">
+  <div class="proto"><span><b>Prototype.</b> Payments and real alerts aren't connected.</span><div class="seg" id="planSeg" role="group" aria-label="View the site as"><button type="button" data-plan="free" aria-pressed="true">Free</button><button type="button" data-plan="member" aria-pressed="false">Member</button></div></div>
+  <!--MAP_FUELS-->
+  <div class="home" id="home">
+  <header>
+    <h1>Where's my energy from?</h1>
+    <p class="intro">Type your address to see where your power is likely coming from right now, and the greenest hours to charge your car or put the washing on.</p>
+  </header>
+
+  <form id="lookup" novalidate>
+    <label for="address">Your address, with postcode</label>
+    <div class="field">
+      <input id="address" name="address" type="text" autocomplete="street-address" placeholder="10 High Street, Leeds LS1 4AP">
+      <button class="primary" type="submit">Show me</button>
+    </div>
+    <p class="error" id="error" role="alert" hidden></p>
+  </form>
+  <button class="example" id="exampleBtn" type="button">See an example for Brixton, SW9</button>
+  </div>
+
+  <section class="answer" id="answer" aria-live="polite" hidden>
+    <div class="topbar">
+      <button class="back" id="change" type="button">&#8592; Change address</button>
+      <span class="brand">Where's my energy from?</span>
+    </div>
+    <p class="for"><span class="tag" id="exampleTag">Example</span>For <strong id="forWhere"></strong><span id="forArea"></span></p>
+
+    <div class="deck" id="deck" tabindex="0" aria-label="Your results, swipe for more">
+      <article class="card" data-name="Where it's from">
+        <section class="block first">
+          <p class="eyebrow">What your power is made of</p>
+          <h3>Right now your area's biggest source is <em id="topFuel"></em>.</h3>
+          <div class="strip thin" id="strip"></div>
+          <ul class="legend" id="legend"></ul>
+          <p class="note"><span id="hint"></span> An estimate for your whole region.</p>
+        </section>
+        <section class="block">
+          <p class="eyebrow">Likely coming from</p>
+          <div class="mapOn" id="mapOn">
+            <h2>Right now your power is likely coming from <span id="likelyNames"></span>.</h2>
+            <div id="mapHolder"></div>
+            <ul class="legend mapkey">
+            <li><button class="legbtn" type="button" data-f="gas"><i style="background:var(--gas)"></i>Gas</button></li>
+            <li><button class="legbtn" type="button" data-f="nuclear"><i style="background:var(--nuclear)"></i>Nuclear</button></li>
+            <li><button class="legbtn" type="button" data-f="wind"><i style="background:var(--wind)"></i>Wind</button></li>
+            <li><button class="legbtn" type="button" data-f="solar"><i style="background:var(--solar)"></i>Solar</button></li>
+            <li><button class="legbtn" type="button" data-f="hydro"><i style="background:var(--hydro)"></i>Hydro</button></li>
+            <li><button class="legbtn" type="button" data-f="biomass"><i style="background:var(--biomass)"></i>Biomass and waste</button></li>
+            <li><button class="legbtn" type="button" data-f="imports"><i style="background:var(--imports)"></i>Imports</button></li>
+            <li><button class="legbtn" type="button" data-f="other"><i style="background:var(--other)"></i>Battery and other</button></li>
+          </ul>
+            <div class="rows" id="likelyRows"></div>
+            <p class="note">The other <span id="likelyRest"></span> comes from stations further away, shown on the next page. The percentages are an estimate: each fuel's share of your area is split between its stations, and bigger, closer ones count for more.</p>
+          </div>
+          <div class="mapOff" id="mapOff" hidden>
+            <h2>We couldn't place that postcode on the map.</h2>
+            <p class="lead">Check the postcode and try again.</p>
+          </div>
+        </section>
+      </article>
+
+      <article class="card" data-plan="member" data-name="Your day">
+        <p class="eyebrow" id="dayBasis"></p>
+        <div class="slot"><span class="what">Washing <span>2.5 hour cycle</span></span><span class="when" id="myWashWhen"></span><span class="gain" id="myWashGain"></span></div>
+        <div class="slot" id="myCarSlot"><span class="what">Electric car <span>6 hour charge</span></span><span class="when" id="myCarWhen"></span><span class="gain" id="myCarGain"></span></div>
+        <p class="note" id="priceNote" hidden>Tonight's exact prices arrive about 4pm. Until then this is our best guess.</p>
+      </article>
+
+      <article class="card" data-plan="member" data-name="Your savings">
+        <p class="eyebrow">Your savings, last 30 days <span class="tag" style="margin:0 0 0 .4rem">Example</span></p>
+        <div><div class="big" id="saveBig"></div><div class="sidelabel" id="saveLabel"></div></div>
+        <p class="lead" id="saveSub"></p>
+        <p class="feeline" id="saveFee"></p>
+        <div class="bars" id="saveBars" aria-hidden="true"></div>
+        <div class="ticks" id="saveTicks" aria-hidden="true"></div>
+        <p class="note">Example using real prices for your area, with three washes and two car charges a week. Your own total starts at zero.</p>
+      </article>
+
+      <article class="card" data-name="The whole country">
+        <p class="eyebrow">The whole country</p>
+        <h2>Across Great Britain, the biggest source right now is <em id="gbFuel"></em>.</h2>
+        <div class="strip thin" id="gbStrip"></div>
+        <ul class="legend" id="gbLegend"></ul>
+        <p class="note" id="gbHint"></p>
+        <div class="mapside">
+          <!--MAP_ALL-->
+          <div class="side">
+            <ul class="legend mapkey">
+            <li><button class="legbtn" type="button" data-f="gas"><i style="background:var(--gas)"></i>Gas</button></li>
+            <li><button class="legbtn" type="button" data-f="nuclear"><i style="background:var(--nuclear)"></i>Nuclear</button></li>
+            <li><button class="legbtn" type="button" data-f="wind"><i style="background:var(--wind)"></i>Wind</button></li>
+            <li><button class="legbtn" type="button" data-f="solar"><i style="background:var(--solar)"></i>Solar</button></li>
+            <li><button class="legbtn" type="button" data-f="hydro"><i style="background:var(--hydro)"></i>Hydro</button></li>
+            <li><button class="legbtn" type="button" data-f="biomass"><i style="background:var(--biomass)"></i>Biomass and waste</button></li>
+            <li><button class="legbtn" type="button" data-f="imports"><i style="background:var(--imports)"></i>Imports</button></li>
+            <li><button class="legbtn" type="button" data-f="other"><i style="background:var(--other)"></i>Battery and other</button></li>
+          </ul>
+            <p class="note"><span id="importLine"></span></p>
+            <p class="note">Bigger dots are stations running now. The smallest dots are every renewable site over 1 MW on the government's register. They show where sites are, not what they're generating right now.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="card" data-name="Across Britain">
+        <p class="eyebrow">Across Britain</p>
+        <div class="regionwrap">
+          <!--REGIONS_SVG-->
+          <div class="side">
+            <h2 id="regionLine"></h2>
+            <div class="seg wide" role="group" aria-label="Time period">
+              <button type="button" data-period="now" aria-pressed="true">Right now</button>
+              <button type="button" data-period="year" aria-pressed="false">Last 12 months<span class="memtag" id="yearTag">Member</span></button>
+            </div>
+            <div class="stats" role="group" aria-label="Show on the map">
+              <button type="button" data-metric="renew" aria-pressed="true"><span>Renewable</span><strong id="stat-renew"></strong></button>
+              <button type="button" data-metric="fossil" aria-pressed="false"><span>Fossil</span><strong id="stat-fossil"></strong></button>
+              <button type="button" data-metric="nuclear" aria-pressed="false"><span>Nuclear</span><strong id="stat-nuclear"></strong></button>
+              <button type="button" data-metric="imports" aria-pressed="false"><span>Imports</span><strong id="stat-imports"></strong></button>
+            </div>
+            <p class="note">Tap a region to see its split, or tap away from it for Great Britain. Tap a box to colour the map by it. Renewable includes biomass. Estimates only, and Northern Ireland isn't covered.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="card pair" data-plan="member" data-name="Cost and next 24 hours">
+        <section class="block first">
+          <p class="eyebrow">What it costs</p>
+          <h3>Wholesale power was cheapest at <em id="cheapAt"></em> and dearest at <em id="dearAt"></em>.</h3>
+          <div class="bars" id="priceBars" aria-hidden="true"></div>
+          <div class="ticks" id="priceTicks" aria-hidden="true"></div>
+          <p class="note"><span id="priceLine"></span> Most fixed tariffs don't follow these prices hour by hour.</p>
+        </section>
+        <section class="block">
+          <p class="eyebrow">The next 24 hours</p>
+          <h3 id="dayLine"></h3>
+          <div class="bars" id="dayBars" aria-hidden="true"></div>
+          <div class="ticks" id="dayTicks" aria-hidden="true"></div>
+          <div class="key" id="dayKey"><span><i style="background:var(--go)"></i>Best for the washing</span><span><i style="background:var(--stop)"></i>Try to avoid</span><span><i style="background:color-mix(in srgb, var(--bar) 38%, transparent)"></i>Outside the next 24 hours</span></div>
+          <p class="note">Taller bars mean more CO<sub>2</sub> for each unit of electricity. It doesn't change your bill unless your tariff varies by the hour.</p>
+        </section>
+      </article>
+
+      <article class="card" data-plan="member" data-name="Your area's history">
+        <section class="block first">
+          <p class="eyebrow">Your area, last 12 months</p>
+          <h3><span id="yearName"></span> against Great Britain</h3>
+          <div class="compare" id="yearCompare"></div>
+        </section>
+        <section class="block">
+          <p class="eyebrow">Last 30 days</p>
+          <h3 id="monthLine"></h3>
+          <div class="bars" id="monthBars" aria-hidden="true"></div>
+          <div class="ticks" id="monthTicks" aria-hidden="true"></div>
+          <p class="note" id="monthNote"></p>
+        </section>
+      </article>
+
+      <article class="card" data-plan="member" data-name="Your details">
+        <section class="block first" id="checks">
+          <p class="eyebrow">Did you do it?</p>
+          <div class="rows" id="checkRows"></div>
+        </section>
+        <section class="block">
+          <p class="eyebrow">Your home</p>
+          <span class="askline">How do you pay for electricity?</span>
+          <div class="seg three" id="tariffSeg" role="group" aria-label="Your tariff">
+            <button type="button" data-tariff="flat">Same price all day</button>
+            <button type="button" data-tariff="agile">Agile</button>
+            <button type="button" data-tariff="unsure">Not sure</button>
+          </div>
+          <p class="note" id="tariffNote"></p>
+          <div class="toggles"><label><input type="checkbox" id="carCheck"> I have an electric car</label></div>
+        </section>
+        <section class="block">
+          <p class="eyebrow">Your alerts</p>
+          <div class="toggles">
+            <label><input type="checkbox" id="al-morning"><span>Morning, 07:30<small id="alertMorningText"></small></span></label>
+            <label id="rowEvening"><input type="checkbox" id="al-evening"><span>Evening, 17:00<small id="alertEveningText"></small></span></label>
+            <label><input type="checkbox" id="al-plunge"><span>Unusually cheap power<small>Only when prices drop well below normal.</small></span></label>
+          </div>
+        </section>
+      </article>
+
+      <article class="card" data-plan="free" data-name="Best time">
+        <p class="eyebrow">Your best time</p>
+        <div class="slot">
+          <span class="what">Washing <span>2.5 hour cycle</span></span>
+          <span class="when" id="dishWhen"></span>
+          <span class="gain" id="dishGain"></span>
+        </div>
+        <div class="locked">
+          <div class="slot"><span class="what">Electric car<span class="memtag">Member</span></span><span class="when blurred" aria-hidden="true">Tonight 00:00 to 06:00</span></div>
+          <div class="slot"><span class="what">Times to avoid<span class="memtag">Member</span></span><span class="when blurred" aria-hidden="true">Today 17:00 to 19:30</span></div>
+          <button class="primary fit" id="seeMember" type="button">See what members get</button>
+        </div>
+      </article>
+
+      <article class="card" id="joinCard" data-plan="free" data-name="Membership">
+        <p class="eyebrow">Membership</p>
+        <h2>Stop checking the grid. <em>We'll tell you when.</em></h2>
+        <ul class="benefits">
+          <li><b>A morning alert</b><span>When to put the washing on, sent to your phone.</span></li>
+          <li><b>An evening alert for the car</b><span>Tonight's best charging hours, once prices are out.</span></li>
+          <li><b>A running total</b><span>One tap to confirm, and we count the money and CO₂ you've saved.</span></li>
+          <li><b>More about your area</b><span>12 months of history, price charts and the full 24-hour view.</span></li>
+        </ul>
+        <p class="price">£2.50 <small>a month, price to be tested</small></p>
+        <button class="primary fit" id="tryMember" type="button">Preview the member view</button>
+      </article>
+    </div>
+
+    <div class="nav">
+      <button class="arrow" id="prev" type="button" aria-label="Previous card">&#8592;</button>
+      <div class="dots" id="dots"></div>
+      <button class="next" id="next" type="button"></button>
+    </div>
+    <p class="stamp" id="stamp"></p>
+  </section>
+  <footer class="foot">
+    <details>
+      <summary>How this works</summary>
+      <p>The fuel mix and carbon forecast for your area come from the Carbon Intensity API, which covers 14 regions of Great Britain. The stations on your map are the ones running right now, matched to the real high-voltage lines. Each fuel's share of your area is split between its stations, and bigger, closer ones count for more.</p>
+      <p>Electricity mixes on the grid, so nobody can say which station reached a particular home. Treat the stations, routes and percentages as a reasonable estimate. The map uses the middle of your postcode district.</p>
+      <p>Your address stays in your browser. Only the first half of your postcode is sent, to fetch the forecast.</p>
+      <p>Savings compare the hours you used with that day's average price, using a wash of 1 unit and a car charge of 30 units. Agile prices come from Octopus Energy for your region.</p>
+    </details>
+    <details>
+      <summary>Data sources</summary>
+      <ul>
+        <li>Carbon intensity and regional mix: <a href="https://carbonintensity.org.uk/">Carbon Intensity API</a> (NESO, University of Oxford and partners), CC BY 4.0</li>
+        <li>Station output and prices: contains BMRS data &copy; Elexon Limited copyright and database right</li>
+        <li>High-voltage lines: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a></li>
+        <li>Region boundaries: supported by <a href="https://www.neso.energy/data-portal">National Energy System Operator open data</a></li>
+        <li>Renewable sites: <a href="https://www.gov.uk/government/publications/renewable-energy-planning-database-quarterly-extract">Renewable Energy Planning Database</a>, Open Government Licence v3.0</li>
+        <li>Station locations: <a href="https://github.com/OSUKED/Power-Station-Dictionary">Power Station Dictionary</a></li>
+        <li>Postcode locations: <a href="https://postcodes.io/">postcodes.io</a>, contains OS and ONS data &copy; Crown copyright and database right, and Royal Mail data &copy; Royal Mail copyright and database right</li>
+        <li>Coastlines: <a href="https://www.naturalearthdata.com/">Natural Earth</a></li>
+      </ul>
+    </details>
+  </footer>
+</main>
+
+<script>
+  const SNAPSHOT = /*SNAPSHOT*/null/*END*/;
+  const LOOKUP = /*LOOKUP*/null/*END*/;
+  const GEO = /*GEO*/null/*END*/;
+  const NAMES = {1:'North Scotland',2:'South Scotland',3:'North West England',4:'North East England',5:'Yorkshire',6:'North Wales & Merseyside',7:'South Wales',8:'West Midlands',9:'East Midlands',10:'East of England',11:'South West England',12:'South England',13:'London',14:'South East England'};
+  const FUEL_WORD = { gas: 'gas', wind: 'wind', nuclear: 'nuclear', imports: 'imports', biomass: 'biomass', solar: 'solar', hydro: 'hydro', coal: 'coal', other: 'other sources' };
+  const FUEL_NAME = { gas: 'Gas', wind: 'Wind', nuclear: 'Nuclear', imports: 'Imports', biomass: 'Biomass', solar: 'Solar', hydro: 'Hydro', coal: 'Coal', other: 'Other' };
+  const SLOT = 30 * 60 * 1000;
+  const TZ = 'Europe/London';
+  const clock = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: TZ });
+  const dayKey = new Intl.DateTimeFormat('en-CA', { timeZone: TZ });
+  const weekday = new Intl.DateTimeFormat('en-GB', { weekday: 'long', timeZone: TZ });
+  const hourOf = new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hour12: false, timeZone: TZ });
+  const $ = (id) => document.getElementById(id);
+  const make = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+  function parseAddress(raw) {
+    const text = raw.toUpperCase();
+    const full = [...text.matchAll(/\b([A-Z]{1,2}\d[A-Z\d]?)\s*(\d[A-Z]{2})\b/g)].pop();
+    let outward = full ? full[1] : null, cut = full ? full.index : -1;
+    if (!outward) {
+      const tokens = [...text.matchAll(/\b[A-Z]{1,2}\d[A-Z\d]?\b/g)];
+      if (tokens.length) { const t = tokens[tokens.length - 1]; outward = t[0]; cut = t.index; }
+    }
+    if (!outward) return null;
+    const before = raw.slice(0, cut).split(',')[0].trim();
+    return { outward, label: before.length > 2 ? before : outward };
+  }
+
+  function regionFor(outward) {
+    const area = outward.match(/^[A-Z]+/)[0];
+    const district = outward.match(/^[A-Z]+\d+/)[0];
+    return LOOKUP.exceptions[outward] || LOOKUP.exceptions[district] || LOOKUP.areas[area] || null;
+  }
+
+  function ukMidnight(ms) {
+    const day = dayKey.format(new Date(ms));
+    let t = Math.floor(ms / SLOT) * SLOT;
+    while (dayKey.format(new Date(t - SLOT)) === day) t -= SLOT;
+    return t;
+  }
+
+  async function liveForecast(outward) {
+    const midnight = ukMidnight(Date.now());
+    const start = new Date(midnight).toISOString().slice(0, 16) + 'Z';
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 4000);
+    try {
+      const r = await fetch(`https://api.carbonintensity.org.uk/regional/intensity/${start}/fw48h/postcode/${outward}`, { signal: ctl.signal, headers: { Accept: 'application/json' } });
+      if (!r.ok) return null;
+      const d = (await r.json()).data;
+      const rows = d.data.filter((x) => Date.parse(x.from) >= midnight);
+      return {
+        start: Date.parse(rows[0].from), values: rows.map((x) => x.intensity.forecast), area: d.shortname, id: d.regionid, updated: Date.now(),
+        mix: rows.map((x) => Object.fromEntries(x.generationmix.map((m) => [m.fuel, m.perc]))),
+      };
+    } catch (e) { return null; } finally { clearTimeout(t); }
+  }
+
+  function storedForecast(outward) {
+    const id = regionFor(outward);
+    if (!id) return 'unknown';
+    return {
+      start: Date.parse(SNAPSHOT.start), values: SNAPSHOT.regions[id], area: NAMES[id], id, updated: Date.parse(SNAPSHOT.taken),
+      mix: SNAPSHOT.mix[id].map((row) => Object.fromEntries(row.map((p, i) => [SNAPSHOT.fuels[i], p]))),
+    };
+  }
+
+  function windows(f) {
+    const now = Math.floor(Date.now() / SLOT) * SLOT;
+    const skip = Math.max(0, Math.round((now - f.start) / SLOT));
+    const v = f.values.slice(skip, skip + 48);
+    const t = v.map((_, i) => now + i * SLOT);
+    const pick = (n, better) => {
+      if (v.length < n) return null;
+      let at = 0, sumAt = null;
+      for (let i = 0; i + n <= v.length; i++) {
+        const s = v.slice(i, i + n).reduce((a, b) => a + b, 0);
+        if (sumAt === null || better(s, sumAt)) { sumAt = s; at = i; }
+      }
+      return { at, n, from: t[at], to: t[at] + n * SLOT, avg: sumAt / n, nowAvg: v.slice(0, n).reduce((a, b) => a + b, 0) / n, isNow: at === 0 };
+    };
+    const low = (a, b) => a < b, high = (a, b) => a > b;
+    return { v, t, skip, dish: pick(5, low), ev: pick(12, low), avoid: pick(5, high) };
+  }
+
+  function dayWord(ms) {
+    const today = dayKey.format(new Date()), d = dayKey.format(new Date(ms));
+    const diff = Math.round((Date.parse(d) - Date.parse(today)) / 864e5);
+    return { diff, label: diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : diff === -1 ? 'yesterday' : weekday.format(new Date(ms)) };
+  }
+  function say(from, to) {
+    const { diff, label } = dayWord(from);
+    const hour = Number(hourOf.format(new Date(from)));
+    const day = diff === 0 && hour >= 18 ? 'Tonight' : label[0].toUpperCase() + label.slice(1);
+    return `${day} ${clock.format(new Date(from))} to ${clock.format(new Date(to))}`;
+  }
+  const point = (ms) => `${clock.format(new Date(ms))} ${dayWord(ms).label}`;
+
+  function fill(prefix, w) {
+    if (!w) { $(prefix + 'When').textContent = 'No forecast left'; $(prefix + 'Gain').textContent = ''; return; }
+    $(prefix + 'When').textContent = say(w.from, w.to);
+    const pct = w.nowAvg > 0 ? Math.round((1 - w.avg / w.nowAvg) * 100) : 0;
+    $(prefix + 'Gain').textContent = w.isNow ? 'Now is the greenest time in the next 24 hours.' : pct >= 3 ? `About ${pct}% cleaner than starting now.` : 'About the same as starting now, so run it whenever suits.';
+  }
+
+  /* slots: [{v, cls, title}] covering whole days, marker: index of "now" */
+  function drawBars(barsEl, ticksEl, slots, times, marker, markerLabel) {
+    const max = Math.max(...slots.map((s) => s.v || 0), 1);
+    const bars = slots.map((s) => {
+      const b = make('div', s.cls);
+      b.style.height = s.v == null ? '2px' : `${Math.max(0, s.v) / max * 100}%`;
+      if (s.title) b.title = s.title;
+      return b;
+    });
+    if (marker >= 0 && marker <= slots.length) {
+      const m = make('div', 'nowmark'); m.style.left = `${marker / slots.length * 100}%`;
+      m.append(make('span', '', markerLabel));
+      bars.push(m);
+    }
+    barsEl.replaceChildren(...bars);
+    const shortDay = new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: TZ });
+    const labels = [];
+    const end = times[times.length - 1] + SLOT;
+    [...times, end].forEach((t, i) => {
+      const c = clock.format(new Date(t));
+      if (c !== '00:00' && c !== '12:00') return;
+      const atEnd = i === times.length;
+      const s = make('span', i === 0 ? 'first' : atEnd ? 'last' : '', c === '00:00' ? `${shortDay.format(new Date(t))} 00:00` : '12:00');
+      s.style.left = `${i / times.length * 100}%`;
+      labels.push(s);
+    });
+    ticksEl.replaceChildren(...labels);
+  }
+
+  const FUEL_COUNT = { imports: ['import cable', 'import cables'], other: ['battery or other site', 'battery or other sites'] };
+  const HINT = 'Tap a colour to find it on the map.';
+  function renderMix(m, stripId, legendId, mapEl, hintEl, views, keyEl) {
+    const rows = Object.entries(m).filter(([, p]) => p >= 1).sort((a, b) => b[1] - a[1]);
+    const strip = $(stripId), legend = $(legendId);
+    hintEl.textContent = HINT;
+    strip.classList.remove('focus'); legend.classList.remove('focus'); keyEl.classList.remove('focus'); keyEl.querySelectorAll('.on').forEach((x) => x.classList.remove('on'));
+    mapEl.classList.remove('focus'); mapEl.querySelectorAll('.on').forEach((x) => x.classList.remove('on'));
+    const fuelViews = views ? [...views.querySelectorAll('.fuelview')] : [];
+    mapEl.removeAttribute('hidden'); fuelViews.forEach((v) => v.setAttribute('hidden', ''));
+    let picked = null;
+    const pick = (fuel) => {
+      picked = picked === fuel ? null : fuel;
+      [strip, legend, keyEl].forEach((el) => el.classList.toggle('focus', !!picked));
+      keyEl.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.f === picked));
+      if (views) {
+        const view = fuelViews.find((v) => v.dataset.fuel === picked);
+        fuelViews.forEach((v) => v.toggleAttribute('hidden', v !== view));
+        mapEl.toggleAttribute('hidden', !!view);
+        if (view) {
+          mapEl.classList.remove('focus');
+          strip.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.f === picked));
+          legend.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.f === picked));
+          const names = view.dataset.names.split('|');
+          const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0];
+          hintEl.textContent = `Your ${Math.round(m[picked] || 0)}% ${FUEL_WORD[picked]} ${picked === 'imports' ? 'are' : 'is'} most likely from ${list}. Tap again to go back.`;
+          return;
+        }
+      }
+      mapEl.classList.toggle('focus', !!picked);
+      strip.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.f === picked));
+      legend.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.f === picked));
+      let n = 0;
+      mapEl.querySelectorAll('[data-f]').forEach((x) => { const on = x.dataset.f === picked; x.classList.toggle('on', on); if (on && x.dataset.n) n += Number(x.dataset.n); });
+      if (!picked) { hintEl.textContent = HINT; return; }
+      const w = FUEL_COUNT[picked] || [`${FUEL_WORD[picked]} site`, `${FUEL_WORD[picked]} sites`];
+      hintEl.textContent = n ? `${n.toLocaleString('en-GB')} ${n === 1 ? w[0] : w[1]} on this map. Tap again to clear.` : `No ${w[1]} on this map. Tap again to clear.`;
+    };
+    keyEl.onclick = (e) => { const b = e.target.closest('button[data-f]'); if (b) pick(b.dataset.f); };
+    strip.replaceChildren(...rows.map(([k, p]) => { const b = make('button'); b.type = 'button'; b.dataset.f = k; b.style.flex = `${p} 1 0`; b.style.background = `var(--${k})`; b.title = `${FUEL_NAME[k]} ${p}%`; b.setAttribute('aria-label', `Show ${FUEL_NAME[k]} on the map`); b.addEventListener('click', () => pick(k)); return b; }));
+    legend.replaceChildren(...rows.map(([k, p]) => { const li = make('li'); const b = make('button', 'legbtn'); b.type = 'button'; b.dataset.f = k; const i = make('i'); i.style.background = `var(--${k})`; b.append(i, document.createTextNode(`${FUEL_NAME[k]} ${Math.round(p)}%`)); b.addEventListener('click', () => pick(k)); li.append(b); return li; }));
+    return rows.length ? FUEL_WORD[rows[0][0]] || rows[0][0] : 'unknown';
+  }
+  /* the likely-sources model and maps, for any postcode district */
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const pairs = (a) => { const o = []; for (let i = 0; i < a.length; i += 2) o.push([a[i], a[i + 1]]); return o; };
+  const NODES = pairs(GEO.nodes);
+  const ADJ = NODES.map(() => []);
+  GEO.edges.forEach(([a, b, L, w]) => { ADJ[a].push([b, L, w, 0]); ADJ[b].push([a, L, w, 1]); });
+  const distKm = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  const nearestNode = (p) => { let best = 0, d = Infinity; NODES.forEach((n, i) => { const x = distKm(p, n); if (x < d) { d = x; best = i; } }); return [best, d]; };
+  const STATIONS = GEO.stations.map(([name, short, f, fuel, mw, x, y]) => { const xy = [x, y]; const [node, gap] = nearestNode(xy); return { name, short, f, fuel, mw, xy, node, gap }; });
+  const SITES = Object.fromEntries(Object.entries(GEO.sites).map(([g, a]) => [g, pairs(a)]));
+  const VIEW_W = 700, VIEW_H = 340;
+
+  function locate(outward) {
+    if (GEO.out[outward]) return GEO.out[outward];
+    const district = outward.match(/^[A-Z]+\d+/)[0];
+    if (GEO.out[district]) return GEO.out[district];
+    const area = outward.match(/^[A-Z]+/)[0];
+    const near = Object.entries(GEO.out).filter(([c]) => c.match(/^[A-Z]+/)[0] === area && c.startsWith(district)).map(([, p]) => p);
+    const list = near.length ? near : Object.entries(GEO.out).filter(([c]) => c.match(/^[A-Z]+/)[0] === area).map(([, p]) => p);
+    if (!list.length) return null;
+    return [list.reduce((a, p) => a + p[0], 0) / list.length, list.reduce((a, p) => a + p[1], 0) / list.length];
+  }
+
+  function modelFor(p, mix) {
+    const [start, startGap] = nearestNode(p);
+    const dist = NODES.map(() => Infinity), prev = NODES.map(() => null), done = NODES.map(() => false);
+    dist[start] = 0;
+    for (;;) {
+      let u = -1, best = Infinity;
+      for (let i = 0; i < dist.length; i++) if (!done[i] && dist[i] < best) { best = dist[i]; u = i; }
+      if (u < 0) break;
+      done[u] = true;
+      ADJ[u].forEach(([v, L, w, rev]) => { if (dist[u] + L < dist[v]) { dist[v] = dist[u] + L; prev[v] = [u, w, rev]; } });
+    }
+    const rows = STATIONS.filter((s) => s.gap <= 150 && Number.isFinite(dist[s.node])).map((s) => { const km = dist[s.node] + s.gap + startGap; return { ...s, km, score: s.mw / Math.max(km, 15) ** 2 }; });
+    // each fuel's slice of your regional mix is shared between its stations: bigger and closer count for more
+    const fuelTotal = {};
+    rows.forEach((s) => { fuelTotal[s.f] = (fuelTotal[s.f] || 0) + s.score; });
+    rows.forEach((s) => { s.share = ((mix[s.f] || 0) / 100) * s.score / fuelTotal[s.f]; });
+    rows.sort((a, b) => b.share - a.share);
+    const route = (s) => {
+      const pts = [s.xy];
+      let n = s.node;
+      while (n !== start) { const [m, w, rev] = prev[n]; const g = pairs(GEO.ways[w]); pts.push(...(rev ? g : g.reverse())); n = m; }
+      pts.push(p);
+      return pts;
+    };
+    return { rows, route, p };
+  }
+
+  function viewFit(pts, padX, padY, addX, addY) {
+    let x0 = Math.min(...pts.map((q) => q[0])), x1 = Math.max(...pts.map((q) => q[0])), y0 = Math.min(...pts.map((q) => q[1])), y1 = Math.max(...pts.map((q) => q[1]));
+    const px = (x1 - x0) * padX + addX, py = (y1 - y0) * padY + addY;
+    x0 -= px; x1 += px; y0 -= py; y1 += py;
+    if ((x1 - x0) / (y1 - y0) < VIEW_W / VIEW_H) { const e = ((y1 - y0) * VIEW_W / VIEW_H - (x1 - x0)) / 2; x0 -= e; x1 += e; }
+    else { const e = ((x1 - x0) * VIEW_H / VIEW_W - (y1 - y0)) / 2; y0 -= e; y1 += e; }
+    const k = VIEW_W / (x1 - x0);
+    return { k, x0, y1, P: (q) => [+((q[0] - x0) * k).toFixed(1), +((y1 - q[1]) * k).toFixed(1)], inview: (q) => q[0] > x0 - 5 && q[0] < x1 + 5 && q[1] > y0 - 5 && q[1] < y1 + 5 };
+  }
+  const pathOf = (P, pts) => 'M' + pts.map(P).map((q) => q.join(',')).join('L');
+  const baseUse = (v) => `<use href="#gridbase" transform="scale(${v.k.toFixed(5)}) translate(${(-v.x0).toFixed(2)},${v.y1.toFixed(2)})"/>`;
+  function labeller() {
+    const placed = [];
+    return (x, y, text, cls) => {
+      const end = x > VIEW_W * .72, tx = end ? x - 13 : x + 13, w = text.length * 8.2, L = end ? tx - w : tx;
+      let ty = y + 5;
+      while (placed.some((b) => L < b[1] && L + w > b[0] && Math.abs(ty - b[2]) < 19)) ty += 19;
+      placed.push([L, L + w, ty]);
+      return `<text class="${cls}" x="${tx}" y="${ty}" text-anchor="${end ? 'end' : 'start'}">${esc(text)}</text>`;
+    };
+  }
+  const youMark = (x, y, r1, r2) => `<circle class="ring" cx="${x}" cy="${y}" r="${r1}"/><circle class="you" cx="${x}" cy="${y}" r="${r2}"/>`;
+
+  function nearSvg(model, picks) {
+    const v = viewFit([model.p, ...picks.map((s) => s.xy)], .16, .22, 8, 8);
+    const out = [`<svg class="map" viewBox="0 0 ${VIEW_W} ${VIEW_H}" role="img" aria-label="Map of the high-voltage lines around your area, with the likely power stations">`, baseUse(v)];
+    Object.entries(SITES).forEach(([g, pts]) => {
+      const seen = pts.filter(v.inview).map(v.P);
+      if (seen.length) out.push(`<path class="site" data-f="${g}" data-n="${seen.length}" style="stroke:var(--${g});stroke-width:5" d="${seen.map(([x, y]) => `M${x} ${y}h0`).join('')}"/>`);
+    });
+    model.rows.filter((s) => !picks.includes(s) && v.inview(s.xy)).forEach((s) => {
+      const [x, y] = v.P(s.xy);
+      out.push(`<circle class="run" data-f="${s.f}" data-n="1" cx="${x}" cy="${y}" r="${Math.max(2.2, Math.sqrt(s.mw) * .22).toFixed(1)}" style="fill:var(--${s.f})"><title>${esc(s.name)}, ${esc(s.fuel)}</title></circle>`);
+    });
+    [...picks].reverse().forEach((s) => out.push(`<path class="route" data-f="${s.f}" style="stroke:var(--${s.f});stroke-width:${(2 + s.share * 12).toFixed(1)}" d="${pathOf(v.P, model.route(s))}"/>`));
+    const label = labeller();
+    const [tx, ty] = v.P(model.p);
+    const labels = [label(tx, ty, 'You', 'lab you')];
+    picks.forEach((s) => {
+      const [x, y] = v.P(s.xy);
+      out.push(`<circle class="src" data-f="${s.f}" data-n="1" cx="${x}" cy="${y}" r="${(5 + s.share * 16).toFixed(1)}" style="fill:var(--${s.f})"><title>${esc(s.name)}, ${esc(s.fuel)}, ${Math.round(s.share * 100)}%</title></circle>`);
+      labels.push(label(x, y, s.short, 'lab'));
+    });
+    out.push(youMark(tx, ty, 13, 6), ...labels, '</svg>');
+    return out.join('');
+  }
+
+  function fuelSvg(model, fuel, pct) {
+    const n = Math.min(4, Math.max(1, Math.round((pct || 0) / 15)));
+    const picks = model.rows.filter((s) => s.f === fuel).slice(0, n);
+    if (!picks.length) return '';
+    const v = viewFit([model.p, ...picks.map((s) => s.xy)], .18, .24, 14, 14);
+    const out = [`<svg class="map fuelview" data-fuel="${fuel}" data-names="${esc(picks.map((s) => s.short).join('|'))}" viewBox="0 0 ${VIEW_W} ${VIEW_H}" hidden role="img" aria-label="Map of the likely ${fuel} sources for your area">`, baseUse(v)];
+    [...picks].reverse().forEach((s) => out.push(`<path class="route" style="stroke:var(--${fuel});stroke-width:3" d="${pathOf(v.P, model.route(s))}"/>`));
+    const label = labeller();
+    const [tx, ty] = v.P(model.p);
+    const labels = [label(tx, ty, 'You', 'lab you')];
+    picks.forEach((s) => {
+      const [x, y] = v.P(s.xy);
+      out.push(`<circle class="src" cx="${x}" cy="${y}" r="8" style="fill:var(--${fuel})"><title>${esc(s.short)}, ${s.mw.toLocaleString('en-GB')} MW, ${Math.round(s.km * .621)} miles along the lines</title></circle>`);
+      labels.push(label(x, y, s.short, 'lab'));
+    });
+    out.push(youMark(tx, ty, 13, 6), ...labels, '</svg>');
+    return out.join('');
+  }
+
+  function drawLocal(outward, mix) {
+    const holder = $('mapHolder');
+    const p = locate(outward);
+    const allYou = $('allYou');
+    if (!p) { holder.innerHTML = '<svg class="map"></svg>'; allYou.replaceChildren(); return false; }
+    const model = modelFor(p, mix);
+    // the first map stays local: the four likeliest sources within about 125 miles along the lines
+    const within = model.rows.filter((s) => s.km <= 200 && s.share > 0);
+    const picks = (within.length >= 2 ? within : model.rows).slice(0, 4);
+    holder.innerHTML = nearSvg(model, picks) + ['gas', 'nuclear', 'imports', 'coal'].map((f) => fuelSvg(model, f, mix[f])).join('');
+    const names = picks.slice(0, 3).map((s) => `<em>${esc(s.short)}</em>`);
+    $('likelyNames').innerHTML = `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+    $('likelyRows').innerHTML = picks.map((s) => `<div class="row"><span class="name">${esc(s.name)}<small>${esc(s.fuel)}, ${Math.round(s.km * .621)} miles along the lines</small></span><span class="mw">${Math.round(s.share * 100)}%</span><div class="track"><i style="width:${Math.round(s.share / picks[0].share * 100)}%;background:var(--${s.f})"></i></div></div>`).join('');
+    $('likelyRest').textContent = `${Math.round((1 - picks.reduce((a, s) => a + s.share, 0)) * 100)}%`;
+    const A = GEO.all, P = (q) => [+((q[0] - A.x0) * A.k).toFixed(1), +((A.y1 - q[1]) * A.k).toFixed(1)];
+    const [x, y] = P(p);
+    allYou.innerHTML = youMark(x, y, 17, 8) + `<text class="lab you big" x="${x + 22}" y="${y + 7}">You</text>`;
+    return true;
+  }
+
+  function drawMix(f, skip) {
+    $('topFuel').textContent = renderMix(f.mix[Math.min(skip, f.mix.length - 1)], 'strip', 'legend', document.querySelector('#mapOn .map:not(.fuelview)'), $('hint'), $('mapOn'), document.querySelector('#mapOn .mapkey'));
+  }
+  function drawCountry() {
+    const rows = SNAPSHOT.mix[18];
+    const i = Math.min(rows.length - 1, Math.max(0, Math.floor((Date.now() - Date.parse(SNAPSHOT.start)) / SLOT)));
+    const m = Object.fromEntries(rows[i].map((p, k) => [SNAPSHOT.fuels[k], p]));
+    $('gbFuel').textContent = renderMix(m, 'gbStrip', 'gbLegend', document.querySelector('.map.tall'), $('gbHint'), null, document.querySelector('.mapside .mapkey'));
+    $('importLine').textContent = SNAPSHOT.topImport ? `Most imported power is arriving from ${SNAPSHOT.topImport}.` : '';
+  }
+
+  function drawDay(f, w, flat) {
+    $('dayLine').textContent = flat ? 'Power in your area stays about as clean all day.' : `Your area is cleanest ${dayWord(w.dish.from).label} at ${clock.format(new Date(w.dish.from))}.`;
+    const now = Date.now();
+    const day0 = ukMidnight(now);
+    const base = Math.round((day0 - f.start) / SLOT);
+    const nowI = Math.floor((now - day0) / SLOT);
+    const inWin = (i, x) => x && i >= x.at + nowI && i < x.at + x.n + nowI;
+    const times = Array.from({ length: 96 }, (_, i) => day0 + i * SLOT);
+    const slots = times.map((t, i) => {
+      const v = f.values[base + i];
+      const outside = i < nowI || i >= nowI + 48;
+      const cls = outside ? 'dim' : flat ? '' : inWin(i, w.dish) ? 'hi' : inWin(i, w.avoid) ? 'bad' : '';
+      return { v: v == null ? null : v, cls: v == null ? 'dim' : cls, title: v == null ? '' : `${clock.format(new Date(t))}: ${v} g per kWh` };
+    });
+    drawBars($('dayBars'), $('dayTicks'), slots, times, nowI, 'Now');
+    $('dayKey').querySelectorAll('span').forEach((s, i) => { s.hidden = !!flat && i < 2; });
+  }
+
+  function drawGrid() {
+    const p = SNAPSHOT.prices;
+    const start = Date.parse(p[0].t);
+    const last24 = p.slice(-48);
+    const vals = last24.map((x) => x.p);
+    const lo = last24[vals.indexOf(Math.min(...vals))], hi = last24[vals.indexOf(Math.max(...vals))];
+    const gbp = (x) => '£' + Math.round(x);
+    $('cheapAt').textContent = `${point(Date.parse(lo.t))} (${gbp(lo.p)})`;
+    $('dearAt').textContent = `${point(Date.parse(hi.t))} (${gbp(hi.p)})`;
+    const times = Array.from({ length: 96 }, (_, i) => start + i * SLOT);
+    const byTime = new Map(p.map((x) => [Date.parse(x.t), x.p]));
+    const cut = Date.parse(last24[0].t);
+    const slots = times.map((t) => {
+      const v = byTime.has(t) ? byTime.get(t) : null;
+      return { v, cls: v == null || t < cut ? 'dim' : t === Date.parse(lo.t) ? 'hi' : t === Date.parse(hi.t) ? 'bad' : '', title: v == null ? '' : `${clock.format(new Date(t))}: £${Math.round(v)} per MWh` };
+    });
+    drawBars($('priceBars'), $('priceTicks'), slots, times, p.length, 'Latest');
+    $('priceLine').textContent = `Per megawatt hour. The grey bars are outside the last 24 hours. A battery buying at the low and selling at the high would have earned ${gbp(hi.p - lo.p)}, before losses.`;
+  }
+
+  /* regional map */
+  const RENEW = ['wind', 'solar', 'hydro', 'biomass'], FOSSIL = ['gas', 'coal'];
+  const METRICS = { renew: ['renewables', RENEW, 'var(--go)'], fossil: ['fossil fuels', FOSSIL, 'var(--gas)'], nuclear: ['nuclear', ['nuclear'], 'var(--nuclear)'], imports: ['imports', ['imports'], 'var(--imports)'] };
+  const GB = 18;
+  const region = { metric: 'renew', period: 'now', mine: 13, focus: 13 };
+  function regionMix(id) {
+    const rows = SNAPSHOT.mix[id];
+    const nowI = Math.min(rows.length - 1, Math.max(0, Math.floor((Date.now() - Date.parse(SNAPSHOT.start)) / SLOT)));
+    const row = region.period === 'now' ? rows[nowI] : SNAPSHOT.year.regions[id];
+    return Object.fromEntries(row.map((p, i) => [SNAPSHOT.fuels[i], p]));
+  }
+  function drawDetail() {
+    const id = region.focus;
+    const mix = regionMix(id);
+    $('regionLine').textContent = id === GB ? 'Great Britain' : NAMES[id];
+    Object.entries(METRICS).forEach(([k, m]) => { $(`stat-${k}`).textContent = `${Math.round(m[1].reduce((a, f) => a + (mix[f] || 0), 0))}%`; });
+    document.querySelectorAll('.regions .reg').forEach((p) => p.classList.toggle('sel', Number(p.dataset.id) === id && id !== region.mine));
+  }
+  document.querySelectorAll('.regions .reg').forEach((p) => p.addEventListener('click', () => { region.focus = Number(p.dataset.id); drawDetail(); fit(); }));
+  document.querySelectorAll('.regionwrap').forEach((w) => w.addEventListener('click', (e) => { if (e.target.closest('.reg, button')) return; region.focus = GB; drawDetail(); fit(); }));
+  function regionShare(id) {
+    const mix = regionMix(id);
+    return METRICS[region.metric][1].reduce((a, k) => a + (mix[k] || 0), 0);
+  }
+  function drawRegions() {
+    const colour = METRICS[region.metric][2];
+    const shares = {};
+    Object.keys(NAMES).forEach((id) => { shares[id] = regionShare(id); });
+    document.querySelectorAll('.regions .reg').forEach((p) => {
+      const s = shares[p.dataset.id];
+      p.style.fill = `color-mix(in srgb, ${colour} ${8 + s * .92}%, var(--panel))`;
+      p.classList.toggle('mine', Number(p.dataset.id) === region.mine);
+      p.querySelector('title').textContent = NAMES[p.dataset.id];
+    });
+    document.querySelectorAll('.regions .regval').forEach((t) => { t.textContent = `${Math.round(shares[t.dataset.id])}%`; });
+    drawDetail();
+  }
+  document.querySelectorAll('.side button[data-period], .side button[data-metric]').forEach((b) => b.addEventListener('click', () => {
+    if (b.dataset.period === 'year' && S.plan === 'free') { joinCard(); return; }
+    if (b.dataset.metric) region.metric = b.dataset.metric; else region.period = b.dataset.period;
+    document.querySelectorAll('.side button[data-period], .side button[data-metric]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.metric ? x.dataset.metric === region.metric : x.dataset.period === region.period)));
+    drawRegions(); fit();
+  }));
+
+  function show(f, where, example, outward) {
+    const w = windows(f);
+    $('exampleTag').hidden = !example;
+    $('forWhere').textContent = where;
+    const mapped = drawLocal(outward, f.mix[Math.min(w.skip, f.mix.length - 1)]);
+    $('mapOn').hidden = !mapped; $('mapOff').hidden = mapped; $('hint').hidden = !mapped;
+    $('forArea').textContent = ` (${f.area} area)`;
+    const flat = w.dish && w.avoid && w.avoid.avg - w.dish.avg < Math.max(5, w.avoid.avg * 0.05);
+    if (flat) { $('dishWhen').textContent = 'Any time'; $('dishGain').textContent = 'Power in your area stays about as clean all day, so run it whenever suits.'; }
+    else fill('dish', w.dish);
+    drawMix(f, w.skip);
+    if (w.dish) drawDay(f, w, flat);
+    region.mine = f.id; region.focus = f.id; drawRegions();
+    lastF = f; renderMember();
+    $('stamp').textContent = `Forecast updated ${dayKey.format(new Date(f.updated)) === dayKey.format(new Date()) ? 'today' : weekday.format(new Date(f.updated))} at ${clock.format(new Date(f.updated))}.`;
+  }
+
+  function openResults(render) {
+    $('error').hidden = true;
+    $('home').hidden = true; $('answer').hidden = false;
+    render();
+    current = 0; sync();
+    deck.scrollTo({ left: 0, behavior: 'instant' });
+    scrollTo(0, 0);
+  }
+
+  function fail(msg) { $('error').textContent = msg; $('error').hidden = false; }
+
+  /* cards */
+  const deck = $('deck');
+  let cards = [];
+  let current = 0;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function setCards() {
+    cards = [...deck.children].filter((c) => !c.hidden);
+    $('dots').replaceChildren(...cards.map((c, i) => { const b = make('button', 'dot'); b.type = 'button'; b.setAttribute('aria-label', c.dataset.name); b.addEventListener('click', () => go(i)); return b; }));
+    $('yearTag').hidden = S.plan === 'member';
+  }
+  let moving = null;
+  function go(i, instant) {
+    current = i; sync();
+    clearTimeout(moving); moving = setTimeout(() => { moving = null; }, 900);
+    deck.scrollTo({ left: i * deck.clientWidth, behavior: instant || reduce ? 'instant' : 'smooth' });
+  }
+  function fit() { deck.style.height = `${cards[current].offsetHeight}px`; }
+  function sync() {
+    fit();
+    $('prev').hidden = current === 0;
+    [...$('dots').children].forEach((d, i) => d.setAttribute('aria-current', String(i === current)));
+    $('next').textContent = current === cards.length - 1 ? 'Back to the start' : `Next: ${cards[current + 1].dataset.name}`;
+  }
+  deck.addEventListener('scroll', () => { if (moving) return; const i = Math.round(deck.scrollLeft / deck.clientWidth); if (i !== current) { current = i; sync(); } }, { passive: true });
+  $('prev').addEventListener('click', () => go(current - 1));
+  $('next').addEventListener('click', () => go(current === cards.length - 1 ? 0 : current + 1));
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest('input')) return;
+    if (e.key === 'ArrowRight' && current < cards.length - 1) { go(current + 1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft' && current > 0) { go(current - 1); e.preventDefault(); }
+  });
+  addEventListener('resize', () => { go(current, true); fit(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+
+  $('lookup').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('error').hidden = true;
+    const raw = $('address').value.trim();
+    if (!raw) return fail('Type your address, including your postcode.');
+    const a = parseAddress(raw);
+    if (!a) return fail("We couldn't spot a postcode in that. Add it to the end, like SW9 0HB.");
+    if (/^(BT|JE|GY|IM)\d/.test(a.outward)) return fail('This forecast covers England, Scotland and Wales only.');
+    let f = await liveForecast(a.outward);
+    if (!f) f = storedForecast(a.outward);
+    if (f === 'unknown') return fail(`We couldn't find ${a.outward}. Check the postcode and try again.`);
+    openResults(() => show(f, a.label, false, a.outward));
+    go(0);
+    const box = $('answer'); box.classList.remove('fresh'); void box.offsetWidth; box.classList.add('fresh');
+  });
+
+  /* v2: free and member views. The plan switch stands in for a real sign-in. */
+  const MEMBER = /*MEMBER*/null/*END*/;
+  const FEE = 2.5, KWH = { wash: 1, car: 30 };
+  const S = (() => { const d = { plan: 'free', tariff: 'flat', car: true, checks: {}, alerts: { morning: true, evening: true, plunge: true } }; try { return { ...d, ...JSON.parse(localStorage.getItem('wme2') || '{}') }; } catch (e) { return d; } })();
+  const save = () => { try { localStorage.setItem('wme2', JSON.stringify(S)); } catch (e) {} };
+  let lastF = null;
+  const kgText = (kg) => `${kg < 10 ? kg.toFixed(1) : Math.round(kg)} kg`;
+  const money = (pence) => Math.abs(pence) >= 100 ? `£${(pence / 100).toFixed(2)}` : `${Math.round(pence)}p`;
+  const shortDate = (d) => new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${d}T12:00:00Z`));
+  const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+  function priceAt(id, t) { const a = MEMBER.agile[id]; if (!a) return null; const v = a.v[Math.round((t - Date.parse(a.start)) / SLOT)]; return v == null ? null : v; }
+  const WASH_HOURS = (h) => h >= 7 && h < 22, CAR_HOURS = (h) => h >= 19 || h < 7;
+
+  /* the best n slots in the next stretch of sensible hours */
+  function nextWindow(f, allowed, n) {
+    const base = Math.floor(Date.now() / SLOT) * SLOT;
+    const all = Array.from({ length: 48 }, (_, i) => { const t = base + i * SLOT; const c = f.values[Math.round((t - f.start) / SLOT)]; return { t, c: c == null ? null : c, p: priceAt(f.id, t), ok: allowed(Number(hourOf.format(new Date(t))) % 24) && c != null }; });
+    let run = [];
+    for (const s of all) { if (s.ok) run.push(s); else if (run.length >= n) break; else run = []; }
+    if (run.length < n) return null;
+    const priced = S.tariff === 'agile' && run.every((s) => s.p != null);
+    const key = (s) => priced ? s.p : s.c;
+    let at = 0, low = Infinity;
+    for (let i = 0; i + n <= run.length; i++) { const v = mean(run.slice(i, i + n).map(key)); if (v < low) { low = v; at = i; } }
+    const win = run.slice(at, at + n);
+    const prices = all.map((s) => s.p).filter((p) => p != null), carbons = all.map((s) => s.c).filter((c) => c != null);
+    return { from: win[0].t, to: win[n - 1].t + SLOT, priced, p: priced ? mean(win.map((s) => s.p)) : null, c: mean(win.map((s) => s.c)), baseP: prices.length ? mean(prices) : null, baseC: mean(carbons) };
+  }
+  function gainText(w, kwh) {
+    if (w.priced) { const d = (w.baseP - w.p) * kwh; return d >= 1 ? `About ${money(d)} cheaper than the average price over the next 24 hours.` : 'About the same price as the next 24 hours on average.'; }
+    const pct = Math.round((1 - w.c / w.baseC) * 100);
+    return pct >= 3 ? `About ${pct}% cleaner than the average over the next 24 hours.` : 'About the same as the rest of the next 24 hours.';
+  }
+  const pressed = (root, attr, value) => root.querySelectorAll(`button[${attr}]`).forEach((b) => b.setAttribute('aria-pressed', String(b.getAttribute(attr) === value)));
+
+  function drawMyDay(f) {
+    pressed($('tariffSeg'), 'data-tariff', S.tariff);
+    $('dayBasis').textContent = S.tariff === 'agile' ? 'Your cheapest times' : 'Your cleanest times';
+    const wash = nextWindow(f, WASH_HOURS, 5), car = nextWindow(f, CAR_HOURS, 12);
+    $('myWashWhen').textContent = wash ? say(wash.from, wash.to) : 'No forecast yet';
+    $('myWashGain').textContent = wash ? gainText(wash, KWH.wash) : '';
+    $('myCarSlot').hidden = !S.car;
+    $('myCarWhen').textContent = car ? say(car.from, car.to) : 'No forecast yet';
+    $('myCarGain').textContent = car ? gainText(car, KWH.car) : '';
+    $('tariffNote').hidden = S.tariff === 'agile';
+    $('tariffNote').textContent = S.tariff === 'flat' ? 'Your bill stays the same whenever you run things, so these are the cleanest hours.' : 'Check your bill. If you pay one price all day, choose that. Until then we show the cleanest hours.';
+    $('priceNote').hidden = !(S.tariff === 'agile' && S.car && car && !car.priced);
+    $('carCheck').checked = S.car;
+    $('alertMorningText').textContent = wash ? `Washing: ${say(wash.from, wash.to)}.` : 'Your washing time will appear here.';
+    $('alertEveningText').textContent = car ? `Car: ${say(car.from, car.to)}.` : 'Your charging time will appear here.';
+    ['morning', 'evening', 'plunge'].forEach((k) => { $(`al-${k}`).checked = S.alerts[k]; });
+    $('rowEvening').hidden = !S.car;
+    drawChecks(f);
+  }
+
+  function drawChecks(f) {
+    const i = MEMBER.days.length - 1, d = MEMBER.days[i], r = MEMBER.regions[f.id][i];
+    if (!r) { $('checks').hidden = true; return; }
+    const agile = S.tariff === 'agile';
+    const rows = [['wash', 'put the washing on', agile ? r.tw : r.tcw, `on ${shortDate(d)}`]];
+    if (S.car) rows.push(['car', 'charge the car', agile ? r.tc : r.tcc, `the night of ${shortDate(d)}`]);
+    $('checks').hidden = false;
+    $('checkRows').replaceChildren(...rows.map(([kind, label, time, when]) => {
+      const row = make('div', 'check'), key = `${kind}:${d}`, ans = S.checks[key];
+      row.append(make('span', '', `Did you ${label} around ${time}, ${when}?`));
+      if (ans == null) {
+        const box = make('span', 'yn');
+        [['Yes', true], ['No', false]].forEach(([t, v]) => { const b = make('button', '', t); b.type = 'button'; b.addEventListener('click', () => { S.checks[key] = v; save(); renderMember(); }); box.append(b); });
+        row.append(box);
+      } else {
+        const g = dayGain(r, kind);
+        row.append(make('b', ans ? 'good' : '', ans ? (agile ? `Added ${money(g.pence)}` : `Added ${g.kg.toFixed(1)} kg CO₂`) : 'Not counted'));
+      }
+      return row;
+    }));
+  }
+
+  function dayGain(r, kind) {
+    const k = KWH[kind], agile = S.tariff === 'agile';
+    const pw = kind === 'wash' ? r.pw : r.pc, c = agile ? (kind === 'wash' ? r.cwp : r.ccp) : (kind === 'wash' ? r.cw : r.cc);
+    return { pence: agile ? (r.pd - pw) * k : 0, could: (r.pd - pw) * k, kg: (r.cd - c) * k / 1000 };
+  }
+
+  function drawSavings(f) {
+    const rows = MEMBER.regions[f.id], last = MEMBER.days.length - 1;
+    const perDay = MEMBER.days.map((d, i) => {
+      const r = rows[i]; if (!r) return { d, v: null };
+      const doneW = i === last ? S.checks[`wash:${d}`] === true : [0, 2, 4].includes(i % 7);
+      const doneC = S.car && (i === last ? S.checks[`car:${d}`] === true : [1, 4].includes(i % 7));
+      const out = { d, pence: 0, could: 0, kg: 0, n: 0 };
+      [[doneW, 'wash'], [doneC, 'car']].forEach(([yes, kind]) => { if (!yes) return; const g = dayGain(r, kind); out.pence += g.pence; out.could += g.could; out.kg += g.kg; out.n++; });
+      out.v = S.tariff === 'agile' ? out.pence : out.kg;
+      return out;
+    });
+    const sum = (k) => perDay.reduce((a, x) => a + (x[k] || 0), 0);
+    const agile = S.tariff === 'agile', pence = sum('pence'), kg = sum('kg'), could = sum('could'), n = sum('n');
+    $('saveBig').textContent = agile ? `£${(pence / 100).toFixed(2)}` : kgText(kg);
+    $('saveLabel').textContent = agile ? 'saved on your bill' : 'of CO₂ avoided';
+    $('saveSub').textContent = agile ? `across ${n} loads and charges.` : `across ${n} loads and charges.`;
+    $('saveFee').hidden = !agile;
+    $('saveFee').textContent = pence >= FEE * 100 ? `Your £${FEE.toFixed(2)} membership paid for itself ${Math.floor(pence / (FEE * 100))} times over.` : `That didn't cover your £${FEE.toFixed(2)} membership this month. We'd rather tell you.`;
+    const vals = perDay.map((x) => x.v || 0), max = Math.max(...vals, .01);
+    $('saveBars').replaceChildren(...perDay.map((x) => { const b = make('div', x.v > 0 ? 'hi' : 'dim'); b.style.height = `${Math.max(0, x.v || 0) / max * 100}%`; b.title = `${shortDate(x.d)}: ${agile ? money(x.v || 0) : `${(x.v || 0).toFixed(1)} kg`}`; return b; }));
+    const a = make('span', 'first', shortDate(perDay[0].d)), z = make('span', 'last', shortDate(perDay[last].d));
+    a.style.left = '0'; z.style.left = '100%';
+    $('saveTicks').replaceChildren(a, z);
+  }
+
+  function drawYear(f) {
+    const mine = SNAPSHOT.year.regions[f.id], gb = SNAPSHOT.year.regions[GB];
+    $('yearName').textContent = f.area;
+    const shown = SNAPSHOT.fuels.map((k, i) => ({ k, a: mine[i], b: gb[i] })).filter((x) => x.a >= 1 || x.b >= 1).sort((x, y) => y.a - x.a);
+    const top = Math.max(...shown.map((x) => Math.max(x.a, x.b)));
+    const cell = (v, k) => { const c = make('div', 'cc'), track = make('div', 'ct'), bar = make('i'); bar.style.width = `${v / top * 100}%`; bar.style.background = `var(--${k})`; track.append(bar); c.append(track, make('span', '', `${Math.round(v)}%`)); return c; };
+    $('yearCompare').replaceChildren(make('span'), make('b', '', f.area), make('b', '', 'Great Britain'), ...shown.flatMap((x) => [make('span', '', FUEL_NAME[x.k]), cell(x.a, x.k), cell(x.b, x.k)]));
+    const rows = MEMBER.regions[f.id].map((r, i) => r && { r, d: MEMBER.days[i] }).filter(Boolean);
+    const lo = rows.reduce((a, b) => b.r.cd < a.r.cd ? b : a), hi = rows.reduce((a, b) => b.r.cd > a.r.cd ? b : a), max = hi.r.cd;
+    $('monthLine').textContent = `Your cleanest day in the last 30 was ${shortDate(lo.d)}.`;
+    $('monthBars').replaceChildren(...MEMBER.days.map((d, i) => { const r = MEMBER.regions[f.id][i], b = make('div', !r ? 'dim' : d === lo.d ? 'hi' : d === hi.d ? 'bad' : ''); b.style.height = r ? `${r.cd / max * 100}%` : '2px'; if (r) b.title = `${shortDate(d)}: ${Math.round(r.cd)} g per kWh`; return b; }));
+    const a = make('span', 'first', shortDate(MEMBER.days[0])), z = make('span', 'last', shortDate(MEMBER.days[MEMBER.days.length - 1]));
+    a.style.left = '0'; z.style.left = '100%';
+    $('monthTicks').replaceChildren(a, z);
+    $('monthNote').textContent = `Average ${Math.round(mean(rows.map((x) => x.r.cd)))} g of CO₂ per unit. Agile averaged ${mean(rows.map((x) => x.r.pd)).toFixed(1)}p per unit here, and its cheapest 2.5 daytime hours averaged ${mean(rows.map((x) => x.r.pw)).toFixed(1)}p.`;
+  }
+
+  function renderMember() { if (!lastF) return; drawMyDay(lastF); drawSavings(lastF); drawYear(lastF); fit(); }
+  function applyPlan() {
+    document.querySelectorAll('.card[data-plan]').forEach((c) => { c.hidden = c.dataset.plan !== S.plan; });
+    pressed($('planSeg'), 'data-plan', S.plan);
+    if (S.plan === 'free' && region.period === 'year') { region.period = 'now'; document.querySelectorAll('.side button[data-period]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.period === 'now'))); drawRegions(); }
+    setCards();
+    current = 0; sync();
+    if (!$('answer').hidden) deck.scrollTo({ left: 0, behavior: 'instant' });
+  }
+  function joinCard() { const i = cards.findIndex((c) => c.id === 'joinCard'); if (i >= 0) go(i); }
+  $('planSeg').addEventListener('click', (e) => { const b = e.target.closest('button[data-plan]'); if (b) { S.plan = b.dataset.plan; save(); applyPlan(); renderMember(); } });
+  $('tariffSeg').addEventListener('click', (e) => { const b = e.target.closest('button[data-tariff]'); if (b) { S.tariff = b.dataset.tariff; save(); renderMember(); } });
+  $('carCheck').addEventListener('change', (e) => { S.car = e.target.checked; save(); renderMember(); });
+  ['morning', 'evening', 'plunge'].forEach((k) => $(`al-${k}`).addEventListener('change', (e) => { S.alerts[k] = e.target.checked; save(); renderMember(); }));
+  $('tryMember').addEventListener('click', () => { S.plan = 'member'; save(); applyPlan(); renderMember(); });
+  $('seeMember').addEventListener('click', joinCard);
+
+  applyPlan();
+  drawGrid();
+  drawCountry();
+  $('exampleBtn').addEventListener('click', () => openResults(() => show(storedForecast('SW9'), 'Brixton, SW9', true, 'SW9')));
+  $('change').addEventListener('click', () => { $('answer').hidden = true; $('home').hidden = false; scrollTo(0, 0); $('address').focus(); });
+  sync();
+</script>
