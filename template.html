@@ -139,7 +139,7 @@
   .map .lab.you { fill: var(--go); }
   .row .name small { display: block; margin-left: 0; }
   .mapOn .rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: .45rem 1.5rem; }
-  @media (prefers-reduced-motion: no-preference) { .map .route { animation: flow 1.6s linear infinite; } @keyframes flow { to { stroke-dashoffset: 16; } } }
+  @media (prefers-reduced-motion: no-preference) { .map .route { animation: flow 1.6s linear infinite; } @keyframes flow { to { stroke-dashoffset: -16; } } }
 
   .regionwrap { display: grid; grid-template-columns: minmax(0, 19rem) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
   .regions { width: 100%; height: auto; max-height: 30rem; display: block; }
