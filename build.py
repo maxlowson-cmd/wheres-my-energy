@@ -82,6 +82,7 @@ page = page.replace('/*MEMBER*/null/*END*/', (HERE / 'member.json').read_text(en
 page = page.replace('/*GAS*/null/*END*/', (HERE / 'gas.json').read_text(encoding='utf8'))
 config = json.loads((HERE / 'site_config.json').read_text(encoding='utf8'))
 page = page.replace("/*API*/''/*END*/", json.dumps(config['api'].rstrip('/')))
+page = page.replace('/*ALERTS*/false/*END*/', 'true' if config.get('alerts') else 'false')
 (HERE / 'index.html').write_text(page, encoding='utf8')
 
 # the public website: a complete document (index.html above is the same page without its <head>)

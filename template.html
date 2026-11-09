@@ -439,17 +439,15 @@
       <article class="card" data-name="Free alerts" hidden>
         <p class="eyebrow">Free alerts</p>
         <h2>We'll tell you when.</h2>
-        <div class="toggles">
-          <label><input type="checkbox" id="al-morning"><span>Morning, 07:30<small id="alertMorningText"></small></span></label>
-          <label><input type="checkbox" id="al-evening"><span>Evening, 17:00<small id="alertEveningText"></small></span></label>
-          <label><input type="checkbox" id="al-plunge"><span>Unusually cheap power<small>Only when prices drop well below normal.</small></span></label>
-        </div>
+        <p class="lead">One email each morning with the cleanest time to run the washing or charge the car around your area. Unsubscribe in one click.</p>
         <form id="alertForm" novalidate>
           <label for="alertEmail">Your email</label>
           <div class="field">
             <input id="alertEmail" type="email" autocomplete="email" placeholder="you@example.com">
             <button class="primary" type="submit">Turn on alerts</button>
           </div>
+          <input id="alertSite" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
+          <p class="note">We only use your email for these alerts. <a href="privacy.html">Privacy</a></p>
           <p class="note" id="alertMsg" role="status"></p>
         </form>
       </article>
@@ -534,6 +532,7 @@
   const GAS = /*GAS*/null/*END*/;
   const API = /*API*/''/*END*/;
   const SITE = 'https://wheresmyenergyfrom.co.uk/';
+  const ALERTS = /*ALERTS*/false/*END*/;
   const NAMES = {1:'North Scotland',2:'South Scotland',3:'North West England',4:'North East England',5:'Yorkshire',6:'North Wales & Merseyside',7:'South Wales',8:'West Midlands',9:'East Midlands',10:'East of England',11:'South West England',12:'South England',13:'London',14:'South East England'};
   const FUEL_WORD = { gas: 'gas', wind: 'wind', nuclear: 'nuclear', imports: 'imports', biomass: 'biomass', solar: 'solar', hydro: 'hydro', coal: 'coal', other: 'other sources' };
   const FUEL_NAME = { gas: 'Gas', wind: 'Wind', nuclear: 'Nuclear', imports: 'Imports', biomass: 'Biomass', solar: 'Solar', hydro: 'Hydro', coal: 'Coal', other: 'Other' };
@@ -1240,7 +1239,7 @@
   /* v2: free and member views. The plan switch stands in for a real sign-in. */
   const MEMBER = /*MEMBER*/null/*END*/;
   const KWH = { wash: 1, car: 30 }, CAP = 26.32, HOME_MONTH = 3100 / 12;
-  const S = (() => { const d = { tariff: null, car: null, alerts: { morning: true, evening: true, plunge: true } }; try { return { ...d, ...JSON.parse(localStorage.getItem('wme3') || '{}') }; } catch (e) { return d; } })();
+  const S = (() => { const d = { tariff: null, car: null }; try { return { ...d, ...JSON.parse(localStorage.getItem('wme3') || '{}') }; } catch (e) { return d; } })();
   const save = () => { try { localStorage.setItem('wme3', JSON.stringify(S)); } catch (e) {} };
   let lastF = null;
   const money = (pence) => Math.abs(pence) >= 100 ? `£${(pence / 100).toFixed(2)}` : `${Math.round(pence)}p`;
@@ -1281,9 +1280,6 @@
     $('priceNote').hidden = !(S.tariff === 'agile' && car && !car.priced);
     $('avoidLine').hidden = !w.avoid;
     if (w.avoid) $('avoidWhen').textContent = say(w.avoid.from, w.avoid.to);
-    $('alertMorningText').textContent = wash ? `Washing: ${say(wash.from, wash.to)}.` : 'Your washing time will appear here.';
-    $('alertEveningText').textContent = car ? `Car: ${say(car.from, car.to)}.` : 'Your charging time will appear here.';
-    ['morning', 'evening', 'plunge'].forEach((k) => { $(`al-${k}`).checked = S.alerts[k]; });
   }
 
   function drawPay(f) {
@@ -1346,14 +1342,21 @@
   function renderMember() { if (!lastF) return; drawMyDay(lastF, windows(lastF)); drawPay(lastF); drawYear(lastF); fit(); }
   $('tariffSeg').addEventListener('click', (e) => { const b = e.target.closest('button[data-tariff]'); if (b) { S.tariff = b.dataset.tariff; save(); renderMember(); } });
   $('carSeg').addEventListener('click', (e) => { const b = e.target.closest('button[data-car]'); if (b) { S.car = b.dataset.car; save(); renderMember(); } });
-  ['morning', 'evening', 'plunge'].forEach((k) => $(`al-${k}`).addEventListener('change', (e) => { S.alerts[k] = e.target.checked; save(); }));
-  $('alertForm').addEventListener('submit', (e) => {
+  $('alertForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const ok = /\S+@\S+\.\S+/.test($('alertEmail').value.trim());
-    $('alertMsg').textContent = ok ? "This is a prototype, so nothing was saved or sent." : "Add your email, like you@example.com.";
-    fit();
+    const email = $('alertEmail').value.trim(), say = (text) => { $('alertMsg').textContent = text; fit(); };
+    if (!/\S+@\S+\.\S+/.test(email)) return say('Add your email, like you@example.com.');
+    if (!shown || shown.example) return say('Look up your own postcode first, then sign up here.');
+    const button = e.target.querySelector('button');
+    button.disabled = true;
+    try {
+      const r = await fetch(`${API}/alerts`, { method: 'POST', body: JSON.stringify({ email, d: shown.outward, website: $('alertSite').value }) });
+      say(r.status === 204 ? 'Nearly done. Check your inbox and click the link to confirm.' : r.status === 429 ? 'Too many tries. Please try again later.' : "That didn't work. Please try again in a few minutes.");
+    } catch (err) { say("That didn't work. Please try again in a few minutes."); }
+    button.disabled = false;
   });
   $('payGo').addEventListener('click', () => { $('payNote').textContent = 'This is a prototype. The link goes here once we choose a partner. If you switch through it we may earn a fee.'; fit(); });
+  document.querySelector('[data-name="Free alerts"]').hidden = !ALERTS;
   setCards();
   applyPause();
   drawGrid();
