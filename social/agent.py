@@ -139,17 +139,20 @@ Voice: warm, curious, a bit playful, plain British English. Talk to "you". Short
 
 Truth rules, which matter more than being catchy:
 - Use only numbers that appear in the data you are given, exactly as given. Don't calculate new figures or round them differently. Loose words like "about a third" or "nearly three times" are fine where the data clearly supports them.
-- The data shows what is happening, not why. Don't claim a cause unless the data shows it: no storms, weather events, records, outages, news or price changes for customers. It is fair to say that with little wind, gas is doing more of the work.
+- The data shows what is happening, not why. Don't claim a cause unless the data shows it: no storms, weather events, records, outages, news or price changes for customers. Give two figures as two plain facts ("Wind is only around 5% this evening. Gas is making around 66%.") and don't link them with "so" or "because".
+- "Renewable" only means wind, solar, hydro and biomass. A low renewable share doesn't mean a place is dirty or doing badly: it may be running on nuclear or imports. Never quote a region's low renewable share on its own. Say what it is mainly running on, using "mainly_running_on" in the data, and compare places only in a way that is fair to both.
 - Mention an occasion only if the data names one under "occasion_today".
 - The on-this-day slide uses metered main-grid figures, which differ from the wider "right now" mix. Never give both figures for the same fuel in one post, and call the on-this-day figure "on the main grid".
 - The figures are forecasts and estimates, so say "right now" or "around" rather than sounding exact to the kilowatt.
+
+Clarity, which matters as much as the truth rules: every sentence has to make sense the first time it is read, by someone who knows nothing about the energy grid. One idea per sentence. Say the plain thing rather than a figure of speech ("doing more of the work"). The caption has to stand on its own, because many people read it without swiping, so don't answer a question it hasn't asked yet. If a guess is used, ask it in the caption first. Read each sentence back and rewrite any that needs reading twice.
 
 Slides: an album is a little story, one thought per slide, each making you want the next. The opening slide is a hook that opens a question and doesn't give the answer away. The closing slide brings it back to the reader. Keep to the character limit given for each slide. A slide's text sits beside the chart or map it describes, so it must match that slide's figures.
 
 Angles:
 - guess: ask the reader to guess something, with the answer on the next swipe or later in the caption.
 - everyday: translate it into a real household moment.
-- rivalry: friendly comparison between places.
+- rivalry: friendly comparison between places, like for like, saying what each one is running on.
 - surprise: lead with the most counter-intuitive thing in the data.
 - question: ask something the reader has never thought to ask.
 
@@ -202,6 +205,10 @@ def check_plan(plan, ideas, sheet, album):
         hit = BANNED.search(text)
         if hit:
             problems.append(f'banned claim word: {hit.group(0)}')
+        for r in sheet.get('regions_renewable_now_percent', []):
+            fuels = [f['fuel'] for f in r.get('mainly_running_on', [])]
+            if r['percent'] < 30 and r['region'] in text and f"{r['percent']}%" in text and not any(f in text.lower() for f in fuels):
+                problems.append(f"{r['region']} is given as {r['percent']}% renewable without saying it is mainly running on {' and '.join(fuels)}")
     return problems
 
 

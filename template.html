@@ -1510,9 +1510,10 @@
       fuelPost('wind', 'coming from wind', 3); fuelPost('solar', 'coming from solar', 5); fuelPost('gas', 'made from gas', 5); fuelPost('imports', 'arriving from abroad', 3, 'Imports', 'are'); fuelPost('nuclear', 'coming from nuclear', 5);
       const shares = {}, order = Object.keys(NAMES).filter((k) => Number(k) <= 14 && nowOf(k)).map((k) => { shares[k] = renewOfMix(nowOf(k)); return { id: Number(k), v: shares[k] }; }).sort((a, b) => b.v - a.v).map((x, i) => ({ ...x, at: i + 1 }));
       if (order.length > 2) {
+        const mainly = (k) => mainFuels(nowOf(k)).map((x) => x.fuel).join(' and ');
         const top = order[0], low = order[order.length - 1], rows = order.slice(0, 5).map((x) => [NAMES[x.id], `${x.v}%`, false, x.at]);
         add('league', 'league', .4, { art: 'league', eyebrow: 'ACROSS BRITAIN', headline: `${NAMES[top.id]} is top for renewables right now.`, shares, mine: 0, rows, foot: [`Share of power from renewables, ${time}.`] }, `${NAMES[top.id]} is top for renewables right now, at ${top.v}%. Here's how the rest of Britain compares.`);
-        add('divide', 'divide', (top.v - low.v) / 100, { art: 'league', eyebrow: 'A TALE OF TWO GRIDS', headline: `${NAMES[top.id]}: ${top.v}% renewable. ${NAMES[low.id]}: ${low.v}%.`, shares, mine: low.id, rows: [...order.slice(0, 2), ...order.slice(-3)].map((x) => [NAMES[x.id], `${x.v}%`, x.id === low.id, x.at]), foot: [`Share of power from renewables, ${time}.`] }, `Same country, same moment: ${NAMES[top.id]} is at ${top.v}% renewable power while ${NAMES[low.id]} is at ${low.v}%.`);
+        add('divide', 'divide', (top.v - low.v) / 100, { art: 'league', eyebrow: 'A TALE OF TWO GRIDS', headline: `${NAMES[top.id]}: ${top.v}% renewable. ${NAMES[low.id]}: mainly ${mainly(low.id)}.`, shares, mine: low.id, rows: [...order.slice(0, 2), ...order.slice(-3)].map((x) => [NAMES[x.id], `${x.v}%`, x.id === low.id, x.at]), foot: [`Share of power from renewables, ${time}.`] }, `Same moment, very different mix: ${NAMES[top.id]} is at ${top.v}% renewable power, while ${NAMES[low.id]} is running mainly on ${mainly(low.id)}.`);
       }
       const start = slotNow(), base = Math.floor(Date.now() / SLOT) * SLOT, slots = SNAPSHOT.mix[18].slice(start, start + 48).map((row) => row[SNAPSHOT.fuels.indexOf('gas')] + row[SNAPSHOT.fuels.indexOf('coal')]);
       if (slots.length >= 24) {
@@ -1539,6 +1540,7 @@
       cache.set('explain', { art: 'fact', eyebrow: 'HOW IT WORKS', text: '', foot: [], key: 'explain', district: 'GB', cat: 'explain' });
       return out;
     }
+    function mainFuels(mix) { return Object.entries(mix).filter(([k, v]) => FUEL_NAME[k] && v >= 5).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k, v]) => ({ fuel: FUEL_NAME[k].toLowerCase(), percent: Math.round(v) })); }
     function facts() {
       const gb = nowOf(18), year = yearOf(18), round = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Math.round(v)]));
       const start = slotNow(), base = Math.floor(Date.now() / SLOT) * SLOT, ids = Object.keys(NAMES).filter((k) => Number(k) <= 14);
@@ -1547,7 +1549,7 @@
       const pick = (better) => { let at = 0, b = null; for (let i = 0; i + 5 <= fossil.length; i++) { const v = fossil.slice(i, i + 5).reduce((x, y) => x + y, 0); if (b === null || better(v, b)) { b = v; at = i; } } return at; };
       const low = pick((a, b) => a < b), high = pick((a, b) => a > b), mean = (at) => grams.slice(at, at + 5).reduce((a, b) => a + b, 0) / 5, gl = mean(low), gh = mean(high), when = (at) => say(base + at * SLOT, base + (at + 5) * SLOT);
       const prices = SNAPSHOT.prices.slice(-48), vals = prices.map((x) => x.p), lo = prices[vals.indexOf(Math.min(...vals))], hi = prices[vals.indexOf(Math.max(...vals))];
-      const out = { reading_time: stamp(), britain_now_percent: round(gb), britain_12_month_average_percent: round(year), britain_renewable_now_percent: renewOfMix(gb), britain_renewable_12_month_percent: renewOfMix(year), regions_renewable_now_percent: ids.filter((k) => nowOf(k)).map((k) => ({ region: NAMES[k], percent: renewOfMix(nowOf(k)) })).sort((a, b) => b.percent - a.percent), number_of_regions: ids.length, top_import_country: SNAPSHOT.topImport,
+      const out = { reading_time: stamp(), britain_now_percent: round(gb), britain_12_month_average_percent: round(year), britain_renewable_now_percent: renewOfMix(gb), britain_renewable_12_month_percent: renewOfMix(year), regions_renewable_now_percent: ids.filter((k) => nowOf(k)).map((k) => ({ region: NAMES[k], percent: renewOfMix(nowOf(k)), mainly_running_on: mainFuels(nowOf(k)) })).sort((a, b) => b.percent - a.percent), number_of_regions: ids.length, top_import_country: SNAPSHOT.topImport,
         next_24_hours: { cleanest_2_5_hours: when(low), least_clean_2_5_hours: when(high), fossil_percent_cleanest: Math.round(fossil.slice(low, low + 5).reduce((a, b) => a + b, 0) / 5), fossil_percent_least_clean: Math.round(fossil.slice(high, high + 5).reduce((a, b) => a + b, 0) / 5) },
         everyday: { one_wash_uses_kwh: KWH.wash, one_ev_charge_uses_kwh: KWH.car, washing_grams_co2_cleanest_window: Math.round(gl * KWH.wash), washing_grams_co2_least_clean_window: Math.round(gh * KWH.wash), ev_charge_kg_co2_cleanest_window: +(gl * KWH.car / 1000).toFixed(1), ev_charge_kg_co2_least_clean_window: +(gh * KWH.car / 1000).toFixed(1), least_clean_vs_cleanest_ratio: +(gh / Math.max(gl, 1)).toFixed(1) },
         wholesale_last_24_hours: { lowest_gbp_per_mwh: Math.round(lo.p), lowest_at: clock.format(new Date(lo.t)), highest_gbp_per_mwh: Math.round(hi.p), highest_at: clock.format(new Date(hi.t)) } };
