@@ -145,9 +145,9 @@ Truth rules, which matter more than being catchy:
 - The on-this-day slide uses metered main-grid figures, which differ from the wider "right now" mix. Never give both figures for the same fuel in one post, and call the on-this-day figure "on the main grid".
 - The figures are forecasts and estimates, so say "right now" or "around" rather than sounding exact to the kilowatt.
 
-Clarity, which matters as much as the truth rules: every sentence has to make sense the first time it is read, by someone who knows nothing about the energy grid. One idea per sentence. Say the plain thing rather than a figure of speech ("doing more of the work"). The caption has to stand on its own, because many people read it without swiping, so don't answer a question it hasn't asked yet. If a guess is used, ask it in the caption first. Read each sentence back and rewrite any that needs reading twice.
+Clarity, which matters as much as the truth rules: every sentence has to make sense the first time it is read, by someone who knows nothing about the energy grid. One idea per sentence. Say the plain thing rather than a figure of speech ("doing more of the work", "the timing is yours to play with"). The caption has to stand on its own, because many people read it without swiping, so don't answer a question it hasn't asked yet. If a guess is used, ask it in the caption first. Read each sentence back and rewrite any that needs reading twice.
 
-Slides: an album is a little story, one thought per slide, each making you want the next. The opening slide is a hook that opens a question and doesn't give the answer away. The closing slide brings it back to the reader. Keep to the character limit given for each slide. A slide's text sits beside the chart or map it describes, so it must match that slide's figures.
+Slides: an album is a little story, one thought per slide, each making you want the next. The opening slide is a hook that opens a question and doesn't give the answer away. The closing slide brings it back to the reader by telling them one concrete thing they can do or find out. Keep to the character limit given for each slide. A slide's text sits beside the chart or map it describes, so it must match that slide's figures.
 
 Angles:
 - guess: ask the reader to guess something, with the answer on the next swipe or later in the caption.
@@ -212,6 +212,23 @@ def check_plan(plan, ideas, sheet, album):
     return problems
 
 
+EDITOR = """You are the last check on an Instagram post from a free British site about where electricity comes from. Picture someone with no knowledge of the energy grid, reading quickly on their phone.
+
+List every sentence or slide line they would have to read twice, or could not act on or picture. Flag lines that are vague or sound nice but say nothing ("the timing is yours to play with"), figures of speech standing in for a plain statement ("gas is doing more of the work"), two facts joined as if one caused the other without saying how, and anything that answers a question not yet asked or relies on something the reader hasn't seen. The caption and each slide must each make sense alone.
+
+Quote the exact words and say in a few words what is unclear. Don't flag tone, style, length or the figures themselves. If everything is clear first time, return an empty list."""
+EDITOR_SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['unclear'], 'properties': {'unclear': {'type': 'array', 'items': {'type': 'string'}}}}
+
+
+def unclear_lines(client, plan, album):
+    """A fresh read of the finished wording. Returns the lines that need rewriting."""
+    post = {'caption': plan['caption'], 'slides': ([plan['hook']] if album else []) + [s['text'] for s in plan['slides']] + ([plan['closing']] if album else [])}
+    response = client.beta.messages.create(model='claude-opus-5-5', max_tokens=4000, system=EDITOR, messages=[{'role': 'user', 'content': json.dumps(post, ensure_ascii=False)}], betas=['server-side-fallback-2026-07-01'], fallbacks='default', output_config={'effort': 'medium', 'format': {'type': 'json_schema', 'schema': EDITOR_SCHEMA}})
+    if response.stop_reason in ('refusal', 'max_tokens'):
+        return ['the editor could not read this post']
+    return [f'unclear: {x}' for x in json.loads(next(b.text for b in response.content if b.type == 'text'))['unclear']]
+
+
 def write_plan(lead, ideas, sheet, angle, album, recent, today):
     if not ANTHROPIC_KEY:
         return None
@@ -222,14 +239,14 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
              'instructions': ('Write 3 to 6 chart slides in story order, starting from the lead slide if it suits the story, plus the hook and closing. Hook at most 90 characters, kicker at most 28, closing at most 140. The fact slide cannot be reworded.' if album else 'Write exactly one slide: the lead slide. Leave hook, hook_kicker and closing as empty strings.'),
              'recent_captions_to_avoid_repeating': recent}
     messages = [{'role': 'user', 'content': json.dumps(brief, ensure_ascii=False)}]
-    for attempt in range(2):
+    for attempt in range(3):
         response = client.beta.messages.create(model='claude-opus-5-5', max_tokens=16000, system=VOICE, messages=messages, betas=['server-side-fallback-2026-07-01'], fallbacks='default', output_config={'effort': 'medium', 'format': {'type': 'json_schema', 'schema': PLAN_SCHEMA}})
         if response.stop_reason in ('refusal', 'max_tokens'):
             print('no usable wording:', response.stop_reason)
             return None
         text = next(b.text for b in response.content if b.type == 'text')
         plan = json.loads(text)
-        problems = check_plan(plan, ideas, sheet, album)
+        problems = check_plan(plan, ideas, sheet, album) or unclear_lines(client, plan, album)
         print('wording check', attempt, problems or 'passed')
         if not problems:
             return plan
