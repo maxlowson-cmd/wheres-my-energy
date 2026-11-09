@@ -165,9 +165,9 @@ for name, fn in (('post_1_what', post_1), ('post_2_how', post_2), ('post_3_daily
     made[name] = save(fn(), 1080, 1350, name)
 
 # banners: text stays central, clear of each platform's profile picture and phone crop
-def banner(w, h, name):
+def banner(w, h, name, k=.2):
     im, d = canvas(w, h, GREEN)
-    title = font('Bricolage', int(h * .2), 700)
+    title = font('Bricolage', int(h * k), 700)
     text(d, (w / 2, h * .4), "Where's my energy from?", title, MINT, 'mm')
     text(d, (w / 2, h * .58), SITE, font('Figtree', int(h * .075), 500), MINT, 'mm')
     bar_w = w * .46
@@ -175,6 +175,7 @@ def banner(w, h, name):
     made[name] = save(im, w, h, name)
 banner(1640, 624, 'banner_facebook')
 banner(1500, 500, 'banner_x')
+banner(1200, 630, 'share_preview', .13)
 
 # one sheet showing the lot
 W, P = 2200, 70

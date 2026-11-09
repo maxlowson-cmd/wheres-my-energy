@@ -196,11 +196,22 @@
   a.next { display: inline-block; text-decoration: none; text-align: center; box-sizing: border-box; }
   .forrow { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
   .forrow > div { flex: 1 1 auto; min-width: 0; }
-  .sharepanel { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); gap: .9rem; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: .9rem; }
-  .sharepanel img { width: 100%; height: auto; border-radius: 8px; display: block; }
-  .shareside { display: flex; flex-direction: column; gap: .5rem; align-items: stretch; }
-  .shareside .note { margin: 0; }
-  @media (max-width: 30rem) { .sharepanel { grid-template-columns: 1fr; } .sharepanel img { max-width: 14rem; } }
+  .staleline { margin: .45rem 0 0; font-size: .86rem; line-height: 1.35; color: var(--ink); background: color-mix(in srgb, var(--solar) 20%, var(--panel)); border-radius: 8px; padding: .45rem .65rem; }
+  .sharesheet { border: 0; padding: 0; color: var(--ink); background: var(--panel); border-radius: 16px; width: min(25rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; }
+  .sharesheet::backdrop { background: rgb(0 0 0 / .55); }
+  .sheetin { display: grid; gap: .7rem; padding: 1rem; }
+  .sheethead { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+  .sheethead h2 { margin: 0; font-size: 1.2rem; }
+  .sheetclose { font: inherit; font-size: 1.5rem; line-height: 1; color: var(--ink); background: none; border: 0; padding: .1rem .4rem; cursor: pointer; }
+  .sheetimg { display: grid; place-items: center; min-height: 8rem; }
+  .sheetimg img { display: block; height: min(36dvh, 19rem); width: auto; max-width: 100%; border-radius: 8px; }
+  .sheetbtns { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+  .sheetbtns .next { width: 100%; box-sizing: border-box; }
+  .sheetbtns .next:disabled { opacity: .5; cursor: default; }
+  .sheetbtns .wide { grid-column: 1 / -1; }
+  .sheetbtns .main { color: var(--go-ink); background: var(--go); border-color: transparent; }
+  .sharesheet .note { margin: 0; }
+  @media (max-width: 30rem) { .sharesheet { width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 16px 16px 0 0; } .sheetin { padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); } }
   .contactbox form { margin-top: .6rem; max-width: 30rem; }
   .contactbox .opt { font-weight: 400; color: var(--muted); }
   .contactbox .note { margin: 0; }
@@ -273,18 +284,27 @@
       <div>
         <p class="for"><span class="tag" id="exampleTag">Example</span>For <strong id="forWhere"></strong><span id="forArea"></span></p>
         <p class="stamp" id="stamp"></p>
+        <p class="staleline" id="staleLine" role="status" hidden></p>
       </div>
       <button class="next" id="shareBtn" type="button">Share</button>
     </div>
-    <div class="sharepanel" id="sharePanel" hidden>
-      <img id="shareImg" alt="An image showing the power mix for your postcode district">
-      <div class="shareside">
-        <p class="note">To post on Instagram, save the image and add it to a post or story. The image and link only show the first half of your postcode.</p>
-        <a class="next" id="shareSave" download>Save image</a>
-        <button class="next" id="shareCopy" type="button">Copy link</button>
+    <dialog class="sharesheet" id="shareSheet" aria-labelledby="shareTitle">
+      <div class="sheetin">
+        <div class="sheethead"><h2 id="shareTitle">Share your area</h2><button class="sheetclose" id="shareClose" type="button" aria-label="Close">&times;</button></div>
+        <div class="sheetimg"><img id="shareImg" alt="An image showing the power mix for your postcode district" hidden><p class="note" id="shareBusy">Making your image&hellip;</p></div>
+        <div class="sheetbtns">
+          <button class="next main wide" id="shareInsta" type="button" disabled>Share to Instagram</button>
+          <a class="next" id="shareWa" target="_blank" rel="noopener">WhatsApp</a>
+          <a class="next" id="shareFb" target="_blank" rel="noopener">Facebook</a>
+          <a class="next" id="shareX" target="_blank" rel="noopener">X</a>
+          <button class="next" id="shareCopy" type="button">Copy link</button>
+          <a class="next" id="shareSave" download hidden>Save image</a>
+          <button class="next" id="shareMore" type="button" hidden>More apps</button>
+        </div>
         <p class="note" id="shareMsg" role="status"></p>
+        <p class="note">The image and link only show the first half of your postcode.</p>
       </div>
-    </div>
+    </dialog>
 
     <div class="deck" id="deck" tabindex="0" aria-label="Your results, swipe for more">
       <article class="card" data-name="Where it's from">
@@ -570,11 +590,18 @@
     } catch (e) { return null; } finally { clearTimeout(t); }
   }
 
+  /* never pass old readings off as current: past STALE_NOTE say how old they are, past STALE_STOP stop showing them */
+  const HOUR = 3600000, STALE_NOTE = 2 * HOUR, STALE_STOP = 12 * HOUR;
+  const NO_DATA = "We can't get a current forecast at the moment, and we won't show you old figures. Please try again in a few minutes.";
+  const dataAge = () => Date.now() - Date.parse(SNAPSHOT.taken);
+  const tooOld = () => dataAge() > STALE_STOP;
+
   function storedForecast(outward) {
     const id = regionFor(outward);
     if (!id) return 'unknown';
+    if (tooOld()) return null;
     return {
-      start: Date.parse(SNAPSHOT.start), values: SNAPSHOT.regions[id], area: NAMES[id], id, updated: Date.parse(SNAPSHOT.taken),
+      stored: true, start: Date.parse(SNAPSHOT.start), values: SNAPSHOT.regions[id], area: NAMES[id], id, updated: Date.parse(SNAPSHOT.taken),
       mix: SNAPSHOT.mix[id].map((row) => Object.fromEntries(row.map((p, i) => [SNAPSHOT.fuels[i], p]))),
     };
   }
@@ -782,7 +809,7 @@
   /* where gas landing in Britain right now is likely to have come from, weighted gently towards the nearest terminals */
   const GAS_NAME = { uk: 'UK North Sea', norway: 'Norway', lng: 'LNG tankers', europe: 'Europe by pipeline' };
   function gasOrigin(p) {
-    if (!GAS || !GAS.terminals.length) return null;
+    if (!GAS || !GAS.terminals.length || Date.now() - Date.parse(GAS.taken) > STALE_STOP) return null;
     const rows = GAS.terminals.map((t) => ({ ...t, km: distKm(p, t.xy), score: t.flow / Math.max(distKm(p, t.xy), 50) }));
     const sum = rows.reduce((a, t) => a + t.score, 0);
     rows.forEach((t) => { t.share = t.score / sum; });
@@ -1000,11 +1027,34 @@
     drawRegions(); fit();
   }));
 
+  let paused = false;
+  function applyPause() {
+    if (paused || !tooOld()) return;
+    paused = true;
+    document.querySelector('[data-name="The whole country"]').hidden = true;
+    $('cheapAt').closest('.block').hidden = true;
+    document.querySelector('.side button[data-period="now"]').hidden = true;
+    document.querySelector('.side button[data-period="year"]').setAttribute('aria-pressed', 'true');
+    region.period = 'year';
+    setCards();
+    if (current >= cards.length) current = 0;
+  }
+  function freshnessText(f) {
+    const when = whenText(Date.parse(SNAPSHOT.taken));
+    if (f.stored) return dataAge() > STALE_NOTE ? `The latest forecast didn't load, so these figures come from our last update, ${when}.` : '';
+    if (tooOld()) return `The station map, gas flows and prices are paused because our last update was ${when}. Your power mix and best times are current.`;
+    return dataAge() > STALE_NOTE ? `Your power mix and best times are current. The station map, gas flows and prices are from our last update, ${when}.` : '';
+  }
+  let shown = null;
   function show(f, where, example, outward) {
+    applyPause();
+    shown = { where, example, outward, at: Date.now() };
     const w = windows(f);
     $('exampleTag').hidden = !example;
     $('forWhere').textContent = where;
-    const mapped = drawLocal(outward, f.mix[Math.min(w.skip, f.mix.length - 1)]);
+    const mapped = drawLocal(outward, f.mix[Math.min(w.skip, f.mix.length - 1)]) && !paused;
+    $('mapOff').querySelector('h2').textContent = paused ? 'The station map is paused.' : "We couldn't place that postcode on the map.";
+    $('mapOff').querySelector('.lead').textContent = paused ? 'It comes back with our next data update.' : 'Check the postcode and try again.';
     $('mapOn').hidden = !mapped; $('mapOff').hidden = mapped; $('hint').hidden = !mapped;
     $('forArea').textContent = ` (${f.area} area)`;
     const flat = w.dish && w.avoid && w.avoid.avg - w.dish.avg < Math.max(5, w.avoid.avg * 0.05);
@@ -1012,7 +1062,8 @@
     if (w.dish) drawDay(f, w, flat);
     region.mine = f.id; region.focus = f.id; drawRegions();
     lastF = f; renderMember();
-    $('stamp').textContent = `Forecast updated ${whenText(f.updated)}.${Date.now() - f.updated > 3 * 3600000 ? ' This is older than usual, so check back soon.' : ''}`;
+    $('stamp').textContent = `Forecast updated ${whenText(f.updated)}.`;
+    $('staleLine').textContent = freshnessText(f); $('staleLine').hidden = !$('staleLine').textContent;
     if (GAS) $('gasTime').textContent = `Flows read ${whenText(Date.parse(GAS.taken))}.`;
     prepareShare(f, w, outward);
   }
@@ -1022,6 +1073,7 @@
   const CARD = { bg: '#dfeae6', panel: '#f4f8f6', ink: '#10302a', muted: '#4c6a62', line: '#bfd2cb', gas: '#c8553d', wind: '#2f7fb5', nuclear: '#6a4fa3', imports: '#b0719a', biomass: '#6f8f3a', solar: '#d9a21b', hydro: '#2aa198', coal: '#55524d', other: '#8d8577' };
   const CARD_RENEW = ['wind', 'solar', 'hydro', 'biomass'];
   let share = null;
+  const sheet = $('shareSheet');
   const pageLink = (d) => { const here = /^https?:$/.test(location.protocol) && !location.hostname.includes('claude') ? location.origin + location.pathname : SITE; return `${here}?pc=${d}`; };
   function wrapText(c, text, width) {
     const lines = []; let cur = '';
@@ -1062,30 +1114,65 @@
     const renew = Math.round(CARD_RENEW.reduce((a, k) => a + (mix[k] || 0), 0));
     const cleanest = nextWindow(f, WASH_HOURS, 5);
     const s = { district: outward, area: f.area, mix, renew, best: cleanest ? `Cleanest time for the washing: ${say(cleanest.from, cleanest.to)}.` : null, time: `${clock.format(new Date())} ${shortDate(dayKey.format(new Date()))}`, link: pageLink(outward), text: `Right now ${renew}% of the power around ${outward} is renewable. Where's yours from?`, blob: null };
+    const enc = encodeURIComponent, msg = `${s.text} ${s.link}`;
+    $('shareWa').href = `https://wa.me/?text=${enc(msg)}`;
+    $('shareFb').href = `https://www.facebook.com/sharer/sharer.php?u=${enc(s.link)}`;
+    $('shareX').href = `https://x.com/intent/post?text=${enc(s.text)}&url=${enc(s.link)}`;
     share = s;
-    $('sharePanel').hidden = true;
-    drawCard(s).then((b) => { s.blob = b; }).catch(() => {});
+    drawCard(s).then((b) => { s.blob = b; if (share === s && sheet.open) fillSheet(s); }).catch(() => { if (share === s) $('shareBusy').textContent = "The image couldn't be made, but the links still work."; });
   }
-  function openSharePanel(s) {
-    if (s.url) URL.revokeObjectURL(s.url);
-    s.url = URL.createObjectURL(s.blob);
-    $('shareImg').src = s.url; $('shareSave').href = s.url; $('shareSave').download = `wheres-my-energy-${s.district}.png`;
-    $('shareMsg').textContent = '';
-    $('sharePanel').hidden = false;
+  const shareFile = (s) => new File([s.blob], `wheres-my-energy-${s.district}.png`, { type: 'image/png' });
+  const canShareFile = (s) => { try { return !!(navigator.canShare && navigator.canShare({ files: [shareFile(s)] })); } catch (e) { return false; } };
+  const sheetSay = (text) => { $('shareMsg').textContent = text; };
+  function fillSheet(s) {
+    const ready = !!s.blob;
+    if (ready && !s.url) s.url = URL.createObjectURL(s.blob);
+    $('shareImg').hidden = !ready; $('shareBusy').hidden = ready;
+    if (ready) { $('shareImg').src = s.url; $('shareSave').href = s.url; $('shareSave').download = `wheres-my-energy-${s.district}.png`; }
+    $('shareSave').hidden = !ready;
+    $('shareInsta').disabled = !ready;
+    $('shareMore').hidden = !ready || !canShareFile(s);
   }
-  $('shareBtn').addEventListener('click', async () => {
+  function saveForInstagram(s) {
+    $('shareSave').click();
+    if (matchMedia('(pointer: fine)').matches) window.open('https://www.instagram.com/', '_blank', 'noopener');
+    sheetSay('Image saved. In Instagram, start a new post or story and choose it. If it did not save, press and hold the image above.');
+  }
+  $('shareBtn').addEventListener('click', () => {
+    if (!share) return;
+    sheetSay('');
+    $('shareBusy').textContent = 'Making your image\u2026';
+    fillSheet(share);
+    sheet.showModal();
+  });
+  $('shareClose').addEventListener('click', () => sheet.close());
+  sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.close(); });
+  $('shareInsta').addEventListener('click', () => {
     const s = share;
-    if (!s) return;
-    if (!s.blob) s.blob = await drawCard(s);
-    const file = new File([s.blob], `wheres-my-energy-${s.district}.png`, { type: 'image/png' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], text: `${s.text} ${s.link}` }); return; } catch (e) { if (e.name === 'AbortError') return; }
-    }
-    if ($('sharePanel').hidden) openSharePanel(s); else $('sharePanel').hidden = true;
+    if (!s || !s.blob) return;
+    if (navigator.clipboard) navigator.clipboard.writeText(s.link).catch(() => {});
+    if (!canShareFile(s)) return saveForInstagram(s);
+    sheetSay('Choose Instagram from the list. Your link is copied too, ready for a story link sticker.');
+    navigator.share({ files: [shareFile(s)] }).catch((e) => { if (e.name !== 'AbortError') saveForInstagram(s); });
+  });
+  $('shareMore').addEventListener('click', () => {
+    const s = share;
+    if (s && s.blob) navigator.share({ files: [shareFile(s)], text: `${s.text} ${s.link}` }).catch((e) => { if (e.name !== 'AbortError') sheetSay('That did not work on this device. Try Save image or Copy link.'); });
   });
   $('shareCopy').addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(share.link); $('shareMsg').textContent = 'Link copied.'; } catch (e) { $('shareMsg').textContent = share.link; }
+    try { await navigator.clipboard.writeText(share.link); sheetSay('Link copied.'); } catch (e) { sheetSay(share.link); }
   });
+  /* a page left open must not keep saying "right now" */
+  async function refreshIfOld() {
+    if (document.hidden || !shown || $('answer').hidden || sheet.open || Date.now() - shown.at < 30 * 60000) return;
+    const { where, example, outward } = shown;
+    shown.at = Date.now();
+    const f = await liveForecast(outward) || storedForecast(outward);
+    if (f && f !== 'unknown') return show(f, where, example, outward);
+    $('answer').hidden = true; $('home').hidden = false; fail(NO_DATA);
+  }
+  document.addEventListener('visibilitychange', refreshIfOld);
+  setInterval(refreshIfOld, 5 * 60000);
   function setAddressBar(d) { try { history.replaceState(null, '', d ? `?pc=${d}` : location.pathname); } catch (e) {} }
   function countDistrict(d) { if (API) fetch(`${API}/count`, { method: 'POST', keepalive: true, body: JSON.stringify({ d }) }).catch(() => {}); }
 
@@ -1144,6 +1231,7 @@
     let f = await liveForecast(a.outward);
     if (!f) f = storedForecast(a.outward);
     if (f === 'unknown') return fail(`We couldn't find ${a.outward}. Check the postcode and try again.`);
+    if (!f) return fail(NO_DATA);
     openResults(() => show(f, a.label, false, a.outward));
     go(0);
     setAddressBar(a.outward); countDistrict(a.outward);
@@ -1268,9 +1356,14 @@
   });
   $('payGo').addEventListener('click', () => { $('payNote').textContent = 'This is a prototype. The link goes here once we choose a partner. If you switch through it we may earn a fee.'; fit(); });
   setCards();
+  applyPause();
   drawGrid();
   drawCountry();
-  $('exampleBtn').addEventListener('click', () => openResults(() => show(storedForecast('SW9'), 'Brixton, SW9', true, 'SW9')));
+  $('exampleBtn').addEventListener('click', async () => {
+    const f = storedForecast('SW9') || await liveForecast('SW9');
+    if (!f) return fail(NO_DATA);
+    openResults(() => show(f, 'Brixton, SW9', true, 'SW9'));
+  });
   $('change').addEventListener('click', () => { setAddressBar(null); $('answer').hidden = true; $('home').hidden = false; scrollTo(0, 0); $('address').focus(); });
   sync();
 
@@ -1288,13 +1381,15 @@
   });
 
   /* a shared link opens straight on that district */
-  (() => {
+  (async () => {
     const pc = (new URLSearchParams(location.search).get('pc') || '').toUpperCase();
     if (!/^[A-Z]{1,2}\d[A-Z\d]?$/.test(pc) || /^(BT|JE|GY|IM)\d/.test(pc)) return;
-    const f = storedForecast(pc);
-    if (f === 'unknown') return;
+    const stored = storedForecast(pc);
+    if (stored === 'unknown') return;
+    const f = stored || await liveForecast(pc);
+    if (!f) return fail(NO_DATA);
     openResults(() => show(f, pc, false, pc));
     countDistrict(pc);
-    liveForecast(pc).then((l) => { if (l && !$('answer').hidden && share && share.district === pc) show(l, pc, false, pc); });
+    if (stored) liveForecast(pc).then((l) => { if (l && !$('answer').hidden && share && share.district === pc) show(l, pc, false, pc); });
   })();
 </script>

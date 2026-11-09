@@ -103,7 +103,10 @@ document = f"""<!doctype html>
 <meta property="og:title" content="{TITLE}">
 <meta property="og:description" content="{DESCRIPTION}">
 <meta property="og:type" content="website">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://wheresmyenergyfrom.co.uk/share.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="{ICON}">
 <style>:root{{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}}body{{margin:0}}img{{max-width:100%}}</style>
 {head}
@@ -118,4 +121,5 @@ document = f"""<!doctype html>
 (HERE / 'site' / 'index.html').write_text(document, encoding='utf8')
 for extra in (HERE / 'pages').glob('*.html'):
     shutil.copy(extra, HERE / 'site' / extra.name)
+shutil.copy(HERE / 'brand' / 'share_preview.png', HERE / 'site' / 'share.png')
 print('OK', snapshot['taken'], 'slots', len(rows), 'bytes', len(page.encode('utf8')), 'top import', top_import)
