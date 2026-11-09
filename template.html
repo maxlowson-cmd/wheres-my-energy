@@ -417,7 +417,7 @@
           <h3 id="dayLine"></h3>
           <div class="bars" id="dayBars" aria-hidden="true"></div>
           <div class="ticks" id="dayTicks" aria-hidden="true"></div>
-          <div class="key" id="dayKey"><span><i style="background:var(--go)"></i>Best for the washing</span><span><i style="background:var(--stop)"></i>Try to avoid</span><span><i style="background:color-mix(in srgb, var(--bar) 38%, transparent)"></i>Outside the next 24 hours</span></div>
+          <div class="key" id="dayKey"><span><i style="background:var(--go)"></i>Cleanest 2.5 hours</span><span><i style="background:var(--stop)"></i>Try to avoid</span><span><i style="background:color-mix(in srgb, var(--bar) 38%, transparent)"></i>Outside the next 24 hours</span></div>
           <p class="note">Taller bars mean more CO<sub>2</sub> for each unit of electricity. It doesn't change your bill unless your tariff varies by the hour.</p>
         </section>
       </article>
@@ -1091,33 +1091,47 @@
     text.split(' ').forEach((w) => { const trial = cur ? `${cur} ${w}` : w; if (c.measureText(trial).width <= width) cur = trial; else { lines.push(cur); cur = w; } });
     return [...lines, cur];
   }
+  /* one layout for every slide: a headline, then whichever of bar, chart and rows that slide has */
   async function drawCard(s) {
     try { await Promise.all([document.fonts.load('700 80px "Bricolage Grotesque"'), document.fonts.load('600 30px Figtree')]); } catch (e) {}
     const W = 1080, H = 1350, M = 72, cv = document.createElement('canvas');
     cv.width = W; cv.height = H;
-    const c = cv.getContext('2d'), DISPLAY = '"Bricolage Grotesque", "Trebuchet MS", sans-serif', BODY = 'Figtree, "Segoe UI", sans-serif';
+    const c = cv.getContext('2d'), DISPLAY = '"Bricolage Grotesque", "Trebuchet MS", sans-serif', BODY = 'Figtree, "Segoe UI", sans-serif', barW = W - 2 * M;
     c.fillStyle = CARD.bg; c.fillRect(0, 0, W, H);
     c.textBaseline = 'alphabetic';
-    let y = 112;
-    c.fillStyle = CARD.muted; c.font = `600 30px ${BODY}`; c.fillText(`RIGHT NOW IN ${s.district}`, M, y);
-    y += 112;
-    c.fillStyle = CARD.ink; c.font = `700 104px ${DISPLAY}`;
-    wrapText(c, `${s.renew}% of this area's power is renewable.`, W - 2 * M).forEach((line) => { c.fillText(line, M, y); y += 112; });
+    c.fillStyle = CARD.muted; c.font = `600 30px ${BODY}`; c.fillText(s.eyebrow, M, 112);
+    const room = s.segments || s.spark || s.rows ? 360 : 760;
+    let size = 104, lines = [];
+    for (size of [104, 92, 80, 68, 58, 50]) { c.font = `700 ${size}px ${DISPLAY}`; lines = wrapText(c, s.headline, barW); if (lines.length * size * 1.08 <= room) break; }
+    let y = 112 + size * 1.08 + 4;
+    c.fillStyle = CARD.ink;
+    lines.forEach((line) => { c.fillText(line, M, y); y += size * 1.08; });
     y += 12;
-    const fuels = Object.entries(s.mix).filter(([, p]) => p >= 1).sort((a, b) => b[1] - a[1]);
-    const total = fuels.reduce((a, [, p]) => a + p, 0), barW = W - 2 * M, gap = 4, barH = 64;
-    let x = M;
-    fuels.forEach(([k, p]) => { const w = (barW - gap * (fuels.length - 1)) * p / total; c.fillStyle = CARD[k] || CARD.other; c.beginPath(); c.roundRect(x, y, Math.max(w, 2), barH, 8); c.fill(); x += w + gap; });
-    y += barH + 66;
-    fuels.slice(0, 5).forEach(([k, p]) => {
-      c.fillStyle = CARD[k] || CARD.other; c.beginPath(); c.roundRect(M, y - 28, 34, 34, 7); c.fill();
-      c.fillStyle = CARD.ink; c.font = `500 40px ${BODY}`; c.textAlign = 'left'; c.fillText(FUEL_NAME[k] || k, M + 54, y);
-      c.font = `600 40px ${BODY}`; c.textAlign = 'right'; c.fillText(`${Math.round(p)}%`, W - M, y); c.textAlign = 'left';
+    if (s.segments) {
+      const total = s.segments.reduce((a, x) => a + x[1], 0), gap = 4, barH = 64;
+      let x = M;
+      s.segments.forEach(([colour, v]) => { const part = (barW - gap * (s.segments.length - 1)) * v / total; c.fillStyle = colour; c.beginPath(); c.roundRect(x, y, Math.max(part, 2), barH, 8); c.fill(); x += part + gap; });
+      y += barH + 66;
+    }
+    if (s.spark) {
+      const h = 170, max = Math.max(...s.spark.map((b) => b[0]), 1), step = barW / s.spark.length;
+      s.spark.forEach(([v, colour], i) => { const bar = Math.max(4, h * v / max); c.fillStyle = colour; c.beginPath(); c.roundRect(M + i * step, y + h - bar, Math.max(step - 4, 3), bar, 4); c.fill(); });
+      y += h + 72;
+    }
+    (s.rows || []).forEach(([colour, label, value, strong]) => {
+      if (y > H - 230) return;
+      const x = colour ? M + 54 : M;
+      if (colour) { c.fillStyle = colour; c.beginPath(); c.roundRect(M, y - 28, 34, 34, 7); c.fill(); }
+      let px = 40;
+      const width = () => { c.font = `600 ${px}px ${BODY}`; const v = c.measureText(value).width; c.font = `${strong ? 700 : 500} ${px}px ${BODY}`; return c.measureText(label).width + v; };
+      while (px > 28 && width() > W - M - x - 28) px -= 2;
+      c.fillStyle = CARD.ink; c.font = `${strong ? 700 : 500} ${px}px ${BODY}`; c.fillText(label, x, y);
+      c.font = `${strong ? 700 : 600} ${px}px ${BODY}`; c.textAlign = 'right'; c.fillText(value, W - M, y); c.textAlign = 'left';
       y += 66;
     });
-    if (s.best && y < H - 280) { y += 22; c.fillStyle = CARD.muted; c.font = `500 34px ${BODY}`; wrapText(c, s.best, W - 2 * M).forEach((line) => { c.fillText(line, M, y); y += 44; }); }
+    if (s.note && y < H - 280) { y += 22; c.fillStyle = CARD.muted; c.font = `500 34px ${BODY}`; wrapText(c, s.note, barW).forEach((line) => { c.fillText(line, M, y); y += 44; }); }
     c.fillStyle = CARD.ink; c.font = `700 40px ${DISPLAY}`; c.fillText('wheresmyenergyfrom.co.uk', M, H - 128);
-    c.fillStyle = CARD.muted; c.font = `500 28px ${BODY}`; c.fillText(`Estimate for ${s.area}, ${s.time}.`, M, H - 84); c.fillText('Renewable includes biomass.', M, H - 46);
+    c.fillStyle = CARD.muted; c.font = `500 28px ${BODY}`; s.foot.slice(0, 2).forEach((line, i) => c.fillText(line, M, H - 84 + i * 38));
     return new Promise((done) => cv.toBlob(done, 'image/png'));
   }
   const ordinal = (n) => `${n}${n > 10 && n < 14 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`;
@@ -1128,26 +1142,102 @@
     if (mine == null || now.some((v) => v == null)) return null;
     return { place: now.filter((v) => v < mine).length + 1, total: now.length };
   }
-  function prepareShare(f, w, outward) {
-    const mix = f.mix[Math.min(w.skip, f.mix.length - 1)];
-    const renew = Math.round(CARD_RENEW.reduce((a, k) => a + (mix[k] || 0), 0));
-    const cleanest = nextWindow(f, WASH_HOURS, 5);
-    const s = { district: outward, area: f.area, mix, renew, best: cleanest ? `Cleanest time for the washing: ${say(cleanest.from, cleanest.to)}.` : null, time: `${clock.format(new Date())} ${shortDate(dayKey.format(new Date()))}`, link: pageLink(outward), text: `Right now ${renew}% of the power around ${outward} is renewable${regionRank(f.id) ? `, the ${ordinal(regionRank(f.id).place)} cleanest of Britain's ${regionRank(f.id).total} regions` : ''}. Where's yours from?`, blob: null };
-    const enc = encodeURIComponent, msg = `${s.text} ${s.link}`;
-    $('shareWa').href = `https://wa.me/?text=${enc(msg)}`;
+  const slideSlug = (name) => name.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '');
+  const mixParts = (mix) => {
+    const fuels = Object.entries(mix).filter(([, p]) => p >= 1).sort((a, b) => b[1] - a[1]);
+    return { segments: fuels.map(([k, p]) => [CARD[k] || CARD.other, p]), rows: fuels.slice(0, 5).map(([k, p]) => [CARD[k] || CARD.other, FUEL_NAME[k] || k, `${Math.round(p)}%`]) };
+  };
+  const renewOfMix = (mix) => Math.round(CARD_RENEW.reduce((a, k) => a + (mix[k] || 0), 0));
+  let shareBase = null, shareCache = new Map();
+  function setShareLinks(s) {
+    const enc = encodeURIComponent;
+    $('shareWa').href = `https://wa.me/?text=${enc(`${s.text} ${s.link}`)}`;
     $('shareFb').href = `https://www.facebook.com/sharer/sharer.php?u=${enc(s.link)}`;
     $('shareX').href = `https://x.com/intent/post?text=${enc(s.text)}&url=${enc(s.link)}`;
-    share = s;
+  }
+  function renderShare(s) {
+    if (s.started) return;
+    s.started = true;
     drawCard(s).then((b) => { s.blob = b; if (share === s && sheet.open) fillSheet(s); }).catch(() => { if (share === s) $('shareBusy').textContent = "The image couldn't be made, but the links still work."; });
   }
-  const shareFile = (s) => new File([s.blob], `wheres-my-energy-${s.district}.png`, { type: 'image/png' });
+  function prepareShare(f, w, outward) {
+    const mix = f.mix[Math.min(w.skip, f.mix.length - 1)];
+    const renew = renewOfMix(mix);
+    const cleanest = nextWindow(f, WASH_HOURS, 5), rank = regionRank(f.id);
+    const time = `${clock.format(new Date())} ${shortDate(dayKey.format(new Date()))}`;
+    const main = { key: 'main', title: 'your area', district: outward, eyebrow: `RIGHT NOW IN ${outward}`, headline: `${renew}% of this area's power is renewable.`, ...mixParts(mix),
+      note: cleanest ? `Cleanest time for the washing: ${say(cleanest.from, cleanest.to)}.` : null, foot: [`Estimate for ${f.area}, ${time}.`, 'Renewable includes biomass.'], link: pageLink(outward),
+      text: `Right now ${renew}% of the power around ${outward} is renewable${rank ? `, the ${ordinal(rank.place)} cleanest of Britain's ${rank.total} regions` : ''}. Where's yours from?`, blob: null };
+    shareBase = { f, w, d: outward, time, main };
+    shareCache = new Map();
+    share = main;
+    setShareLinks(main);
+    renderShare(main);
+  }
+  /* what to share for each slide; slides that are personal or a form share the area card */
+  function slideShare(name) {
+    const { f, w, d, time, main } = shareBase;
+    const make = (o) => ({ key: slideSlug(name), title: name, district: d, link: `${pageLink(d)}&c=${slideSlug(name)}`, foot: [`Estimate for ${f.area}, ${time}.`], blob: null, ...o });
+    if (name === 'Did you know?') { const x = FACTS[factAt]; return make({ eyebrow: 'DID YOU KNOW?', headline: x.t, foot: [`Source: ${x.s}`], text: `Did you know? ${x.t}` }); }
+    if (name === 'Your gas') {
+      if (!gasCtx) return main;
+      const COL = { uk: CARD.wind, norway: CARD.nuclear, lng: CARD.gas, europe: CARD.imports }, list = gasCtx.o.sources, top = list[0], pct = (x) => Math.round(x.share * 100);
+      const line = `About ${pct(top)}% of the gas around ${d} likely came from ${top.key === 'lng' ? 'LNG tankers' : GAS_TAB[top.key] === 'Europe' ? 'Europe' : GAS_NAME[top.key]}.`;
+      return make({ eyebrow: `YOUR GAS IN ${d}`, headline: line, segments: list.map((x) => [COL[x.key] || CARD.other, x.share]), rows: list.slice(0, 5).map((x) => [COL[x.key] || CARD.other, GAS_NAME[x.key] || x.key, `${pct(x)}%`]), foot: ['An estimate from where gas is landing right now.', 'Gas mixes in the pipes.'], text: `${line} Where's yours from?` });
+    }
+    if (name === 'The whole country') {
+      const row = SNAPSHOT.mix[18][slotNow()];
+      if (!row) return main;
+      const mix = Object.fromEntries(row.map((p, i) => [SNAPSHOT.fuels[i], p])), fuel = $('gbFuel').textContent;
+      return make({ eyebrow: 'RIGHT NOW ACROSS GREAT BRITAIN', headline: `Britain's biggest power source right now is ${fuel.toLowerCase()}.`, ...mixParts(mix), foot: [`Estimate for Great Britain, ${time}.`, 'Renewable includes biomass.'], text: `Britain's biggest power source right now is ${fuel.toLowerCase()}. Where's yours from?` });
+    }
+    if (name === 'Across Britain') {
+      const list = Object.keys(NAMES).filter((k) => Number(k) <= 14).map((k) => ({ id: Number(k), v: regionShare(k) })).sort((a, b) => b.v - a.v).map((x, i) => ({ ...x, at: i + 1 }));
+      const shown5 = list.slice(0, 5), mine = list.find((x) => x.id === region.mine);
+      if (mine && mine.at > 5) shown5[4] = mine;
+      const when = region.period === 'now' ? 'right now' : 'over the last 12 months', what = METRICS[region.metric][0];
+      const line = `${NAMES[list[0].id]} is top for ${what} ${when}.`;
+      return make({ eyebrow: 'ACROSS BRITAIN', headline: line, rows: shown5.map((x) => [null, `${x.at}. ${NAMES[x.id]}`, `${Math.round(x.v)}%`, x.id === region.mine]), foot: [`Share of power from ${what}, ${when === 'right now' ? time : 'last 12 months'}.`, 'Your region is in bold.'], text: `${line} Where does your area rank?` });
+    }
+    if (name === 'Cost and next 24 hours') {
+      if (!w.dish || !w.avoid) return main;
+      const line = $('dayLine').textContent.replace('Power in your area', `Power around ${d}`).replace('Your area', d), flat = /about as clean/.test(line);
+      const inWin = (at, win) => at >= win.from && at < win.to;
+      const spark = w.v.slice(0, 48).map((v, i) => [v, flat ? CARD.line : inWin(w.t[i], w.dish) ? '#06704b' : inWin(w.t[i], w.avoid) ? CARD.gas : CARD.line]);
+      const rows = flat ? [] : [['#06704b', 'Cleanest 2.5 hours', say(w.dish.from, w.dish.to)], [CARD.gas, 'Try to avoid', say(w.avoid.from, w.avoid.to)]];
+      if (!$('cheapAt').closest('.block').hidden) rows.push([null, 'Cheapest wholesale', $('cheapAt').textContent], [null, 'Dearest wholesale', $('dearAt').textContent]);
+      return make({ eyebrow: `NEXT 24 HOURS AROUND ${d}`, headline: line, spark, rows, foot: [`Carbon forecast for ${f.area}, ${time}.`, 'Taller bars mean more CO2 per unit.'], text: `${line} When's your best time?` });
+    }
+    if (name === "Your area's history") {
+      const toMix = (id) => Object.fromEntries(SNAPSHOT.year.regions[id].map((p, i) => [SNAPSHOT.fuels[i], p])), mine = toMix(f.id), gb = renewOfMix(toMix(18)), pct = renewOfMix(mine);
+      const line = `${pct}% of ${f.area}'s power was renewable over the last 12 months.`;
+      return make({ eyebrow: `${f.area.toUpperCase()}, LAST 12 MONTHS`, headline: line, ...mixParts(mine), note: `Great Britain overall: ${gb}% renewable.`, foot: [`12-month estimate for ${f.area}.`, 'Renewable includes biomass.'], text: `${line} Great Britain managed ${gb}%. How does your area compare?` });
+    }
+    if (name === 'Best times') {
+      const wash = $('myWashWhen').textContent, car = $('myCarWhen').textContent;
+      if (!wash) return main;
+      const rows = [];
+      if (car) rows.push([CARD.wind, 'Electric car', car]);
+      if (!$('avoidLine').hidden && $('avoidWhen').textContent) rows.push([CARD.gas, 'Try to avoid', $('avoidWhen').textContent]);
+      const line = `Best time for the washing around ${d}: ${wash}.`;
+      return make({ eyebrow: `BEST TIMES AROUND ${d}`, headline: line, rows, text: `${line} When's yours?` });
+    }
+    return main;
+  }
+  function currentShare() {
+    const name = cards[current] ? cards[current].dataset.name : '';
+    const id = [name, factAt, region.metric, region.period, S.tariff, S.car].join('|');
+    if (!shareCache.has(id)) { let s = null; try { s = slideShare(name); } catch (e) {} shareCache.set(id, s || shareBase.main); }
+    return shareCache.get(id);
+  }
+  const shareFile = (s) => new File([s.blob], `wheres-my-energy-${s.district}-${s.key}.png`, { type: 'image/png' });
   const canShareFile = (s) => { try { return !!(navigator.canShare && navigator.canShare({ files: [shareFile(s)] })); } catch (e) { return false; } };
   const sheetSay = (text) => { $('shareMsg').textContent = text; };
   function fillSheet(s) {
     const ready = !!s.blob;
     if (ready && !s.url) s.url = URL.createObjectURL(s.blob);
     $('shareImg').hidden = !ready; $('shareBusy').hidden = ready;
-    if (ready) { $('shareImg').src = s.url; $('shareSave').href = s.url; $('shareSave').download = `wheres-my-energy-${s.district}.png`; }
+    if (ready) { $('shareImg').src = s.url; $('shareSave').href = s.url; $('shareSave').download = `wheres-my-energy-${s.district}-${s.key}.png`; }
     $('shareSave').hidden = !ready;
     $('shareInsta').disabled = !ready;
     $('shareMore').hidden = !ready || !canShareFile(s);
@@ -1158,9 +1248,13 @@
     sheetSay('Image saved. In Instagram, start a new post or story and choose it. If it did not save, press and hold the image above.');
   }
   $('shareBtn').addEventListener('click', () => {
-    if (!share) return;
+    if (!shareBase) return;
+    share = currentShare();
     sheetSay('');
     $('shareBusy').textContent = 'Making your image\u2026';
+    $('shareTitle').textContent = share.key === 'main' ? 'Share your area' : `Share: ${share.title}`;
+    setShareLinks(share);
+    renderShare(share);
     fillSheet(share);
     sheet.showModal();
   });
@@ -1410,7 +1504,7 @@
     msg.textContent = 'Sending…';
     try {
       const r = await fetch(`${API}/contact`, { method: 'POST', body: JSON.stringify({ message, reply: $('contactReply').value.trim(), website: $('contactSite').value }) });
-      if (r.ok) { msg.textContent = "Thanks, that's with a real person now."; $('contactForm').reset(); }
+      if (r.ok) { msg.textContent = "Thanks, we appreciate your message. We'll look into it as soon as we can."; $('contactForm').reset(); }
       else msg.textContent = r.status === 429 ? "That's a lot of messages. Please try again later." : "That didn't send. Please try again.";
     } catch (err) { msg.textContent = "That didn't send. Please try again."; }
   });
@@ -1425,6 +1519,8 @@
     if (!f) return fail(NO_DATA);
     openResults(() => show(f, pc, false, pc));
     countDistrict(pc);
+    const slide = cards.findIndex((x) => slideSlug(x.dataset.name) === new URLSearchParams(location.search).get('c'));
+    if (slide > 0) go(slide, true);
     if (stored) liveForecast(pc).then((l) => { if (l && !$('answer').hidden && share && share.district === pc) show(l, pc, false, pc); });
   })();
 </script>
