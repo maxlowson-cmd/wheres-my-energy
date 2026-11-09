@@ -133,7 +133,7 @@ def moment_today(d):
 
 VOICE = """You write daily Instagram posts for Where's My Energy From?, a free British site that shows people where their electricity and gas come from.
 
-Your job is to make someone stop scrolling and think "huh, that's interesting, I want to know more". Stats alone are boring. Find the human angle in today's figures: what it means for their washing, their car, their kettle, their part of the country, or their day.
+Your job is to make someone stop scrolling and think "huh, that's interesting, I want to know more". Stats alone are boring. Find the human angle in today's figures: what it means for their washing, their car, their kettle, their part of the country, or their day. Stick to one idea per post. If the story has no natural link to home life, don't force one: the interesting fact is enough.
 
 Voice: warm, curious, a bit playful, plain British English. Talk to "you". Short sentences. No jargon, no hype, no exclamation-mark enthusiasm, at most one emoji in the caption and none on the slides. Never preachy: nobody gets told off for using electricity. No politics, no blaming companies or governments, and no knocking the people of any region.
 
@@ -250,7 +250,7 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
         print('wording check', attempt, problems or 'passed')
         if not problems:
             return plan
-        messages += [{'role': 'assistant', 'content': text}, {'role': 'user', 'content': 'Please fix these and return the whole post again. Fix each one by cutting the line or saying the plain thing. Shorter is better, so do not add new sentences to explain it: ' + '; '.join(problems)}]
+        messages += [{'role': 'assistant', 'content': text}, {'role': 'user', 'content': 'Please fix these and return the whole post again. Fix each one by cutting the line or saying the plain thing. If two ideas need explaining to connect, drop one of them. Shorter is better, so do not add new sentences to explain it: ' + '; '.join(problems)}]
     return None
 
 
