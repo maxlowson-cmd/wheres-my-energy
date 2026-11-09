@@ -1,0 +1,40 @@
+name: Daily Instagram post
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Render the ideas without posting (1 or 0)'
+        default: '1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: social
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the browser
+        run: |
+          pip install playwright==1.48.0
+          playwright install --with-deps chromium
+      - name: Run the agent
+        env:
+          INSTAGRAM_TOKEN: ${{ secrets.INSTAGRAM_TOKEN }}
+          SOCIAL_KEY: ${{ secrets.SOCIAL_KEY }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: python social/agent.py
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.dry_run == '1' }}
+        with:
+          name: social-preview
+          path: out/
+          retention-days: 3

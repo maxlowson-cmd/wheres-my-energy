@@ -72,13 +72,49 @@ async function stats(url, env) {
   return new Response(JSON.stringify({ since, total: results.reduce((a, r) => a + r.n, 0), districts: results }), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
 
+/* the Instagram agent's small store: images it hands to Instagram, and how each post did */
+const IMAGE_ID = /^[a-z0-9-]{4,40}$/;
+async function socialImage(request, url, env) {
+  if (request.headers.get('X-Key') !== env.SOCIAL_KEY || !env.SOCIAL_KEY) return new Response('Not found', { status: 404 });
+  const id = url.searchParams.get('id') || '';
+  if (!IMAGE_ID.test(id)) return new Response('bad id', { status: 400 });
+  const data = await request.arrayBuffer();
+  if (data.byteLength > 1900000) return new Response('too big', { status: 413 });
+  await env.DB.prepare('DELETE FROM social_images WHERE created < ?1').bind(Date.now() - 3 * 86400000).run();
+  await env.DB.prepare('INSERT INTO social_images (id, data, created) VALUES (?1, ?2, ?3) ON CONFLICT (id) DO UPDATE SET data = ?2, created = ?3').bind(id, data, Date.now()).run();
+  return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
+}
+
+async function socialServe(url, env) {
+  const id = url.pathname.slice('/social/img/'.length).replace(/\.jpg$/, '');
+  if (!IMAGE_ID.test(id)) return new Response('Not found', { status: 404 });
+  const row = await env.DB.prepare('SELECT data FROM social_images WHERE id = ?1').bind(id).first();
+  if (!row) return new Response('Not found', { status: 404 });
+  return new Response(new Uint8Array(row.data), { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=3600' } });
+}
+
+async function socialOp(request, env) {
+  if (request.headers.get('X-Key') !== env.SOCIAL_KEY || !env.SOCIAL_KEY) return new Response('Not found', { status: 404 });
+  const b = await readJson(request);
+  const ok = (v) => new Response(JSON.stringify(v || { ok: true }), { headers: { 'Content-Type': 'application/json' } });
+  if (!b) return new Response('bad request', { status: 400 });
+  if (b.op === 'history') {
+    const { results } = await env.DB.prepare('SELECT media_id, day, type, novelty, posted, stats FROM social_posts ORDER BY posted DESC LIMIT 200').all();
+    return ok({ posts: results.map((r) => ({ ...r, stats: r.stats ? JSON.parse(r.stats) : null })) });
+  }
+  if (b.op === 'log') { await env.DB.prepare('INSERT OR REPLACE INTO social_posts (media_id, day, type, caption, novelty, posted) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(String(b.media_id), String(b.day), String(b.type), String(b.caption).slice(0, 2200), Number(b.novelty) || 0, Date.now()).run(); return ok(); }
+  if (b.op === 'stats') { await env.DB.prepare('UPDATE social_posts SET stats = ?2 WHERE media_id = ?1').bind(String(b.media_id), JSON.stringify(b.stats)).run(); return ok(); }
+  if (b.op === 'telegram') { await telegram(env, String(b.text)); return ok(); }
+  return new Response('unknown op', { status: 400 });
+}
+
 /* tell GitHub to rebuild; its own schedule has been unreliable. Does nothing until GITHUB_TOKEN is set. */
-async function rebuild(env) {
+async function rebuild(env, file = env.GH_WORKFLOW || 'build.yml', inputs) {
   if (!env.GITHUB_TOKEN || !env.GH_REPO) return;
-  const r = await fetch(`https://api.github.com/repos/${env.GH_REPO}/actions/workflows/${env.GH_WORKFLOW || 'build.yml'}/dispatches`, {
+  const r = await fetch(`https://api.github.com/repos/${env.GH_REPO}/actions/workflows/${file}/dispatches`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'wheres-my-energy-relay', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ref: env.GH_REF || 'main' }),
+    body: JSON.stringify({ ref: env.GH_REF || 'main', ...(inputs ? { inputs } : {}) }),
   });
   if (!r.ok && await underLimit(env, 'rebuild-alert', 6 * 3600000, 1)) await telegram(env, `The site rebuild could not be started (GitHub said ${r.status}).`);
 }
@@ -88,6 +124,7 @@ const EMAIL = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
 const SITE_URL = 'https://wheresmyenergyfrom.co.uk';
 const RELAY_URL = 'https://wheres-my-energy-relay.wheresmyenergy.workers.dev';
 const ALERT_CRON = '30 6,7 * * *'; // Cloudflare's clock is UTC, so this covers 07:30 UK time in winter and summer
+const SOCIAL_CRON = '15 11,12 * * *'; // 12:15 UK time, winter and summer
 const DAILY_CAP = 95; // stays inside the email service's free daily limit, leaving room for confirmation emails
 const SLOT = 1800000, LONDON = 'Europe/London';
 const part = (options) => new Intl.DateTimeFormat('en-GB', { timeZone: LONDON, ...options });
@@ -240,6 +277,9 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/stats') return stats(url, env);
+    if (request.method === 'GET' && url.pathname.startsWith('/social/img/')) return socialServe(url, env);
+    if (request.method === 'POST' && url.pathname === '/social/image') return socialImage(request, url, env);
+    if (request.method === 'POST' && url.pathname === '/social') return socialOp(request, env);
     if (['GET', 'POST'].includes(request.method) && url.pathname === '/alerts/confirm') return alertConfirm(request, url, env);
     if (['GET', 'POST'].includes(request.method) && url.pathname === '/alerts/stop') return alertStop(request, url, env);
     const headers = cors(request, env);
@@ -251,6 +291,7 @@ export default {
     return reply(404, headers, { error: 'not found' });
   },
   async scheduled(event, env, ctx) {
+    if (event.cron === SOCIAL_CRON) { if (Number(ukHour.format(new Date())) === 12) ctx.waitUntil(rebuild(env, 'social.yml', { dry_run: '0' })); return; }
     ctx.waitUntil(event.cron === ALERT_CRON ? morningEmails(env) : rebuild(env));
   },
 };
