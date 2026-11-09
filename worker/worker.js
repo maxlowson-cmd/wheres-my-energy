@@ -95,6 +95,15 @@ const ukHour = part({ hour: 'numeric', hourCycle: 'h23' }), ukClock = part({ hou
 
 const stopLink = (token) => `${RELAY_URL}/alerts/stop?t=${token}`;
 
+/* emails use tables and inline styles because mail apps ignore most modern CSS; no images, as many apps block them */
+const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const escapeHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const capital = (s) => s[0].toUpperCase() + s.slice(1);
+const emailButton = (href, label) => `<a href="${href}" style="display:inline-block;background:#06704b;color:#f2fbf7;font-family:${FONT};font-size:17px;font-weight:700;line-height:1;text-decoration:none;padding:17px 28px;border-radius:999px">${label}</a>`;
+function emailShell(preview, inner, foot) {
+  return `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#dfeae6"><div style="display:none;max-height:0;overflow:hidden">${preview}</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#dfeae6"><tr><td align="center" style="padding:28px 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px"><tr><td style="padding:0 6px 16px;font-family:${FONT};font-size:15px;font-weight:700;color:#06704b">Where's my energy from?</td></tr><tr><td style="background:#ffffff;border-radius:18px;padding:30px 26px;font-family:${FONT};color:#10302a">${inner}</td></tr><tr><td style="padding:18px 6px 0;font-family:${FONT};font-size:13px;line-height:1.5;color:#4c6a62">${foot}</td></tr></table></td></tr></table></body></html>`;
+}
+
 async function sendEmails(env, mails) {
   const r = await fetch('https://api.resend.com/emails/batch', {
     method: 'POST',
@@ -127,9 +136,11 @@ async function alertSignup(request, env, headers) {
   const row = await env.DB.prepare('INSERT INTO subscribers (email, token, district, region, confirmed, created) VALUES (?1, ?2, ?3, ?4, 0, ?5) ON CONFLICT (email) DO UPDATE SET district = ?3, region = ?4 RETURNING token, confirmed')
     .bind(email, crypto.randomUUID().replaceAll('-', ''), district, region, Date.now()).first();
   if (row.confirmed) return reply(204, headers);
+  const confirm = `${RELAY_URL}/alerts/confirm?t=${row.token}`;
   const ok = await sendEmails(env, [{
     to: [email], subject: 'Confirm your morning energy email',
-    text: `Click to get one email each morning with the cleanest time to use electricity around ${district}:\n\n${RELAY_URL}/alerts/confirm?t=${row.token}\n\nIf this wasn't you, ignore this email and nothing more will be sent.`,
+    text: `Confirm to get one email each morning with the cleanest time to use electricity around ${district}:\n\n${confirm}\n\nDidn't ask for this? Ignore this email and you won't hear from us again.`,
+    html: emailShell('One tap to turn on your morning energy email.', `<h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;font-weight:800">Confirm your morning email</h1><p style="margin:0 0 26px;font-size:17px;line-height:1.5;color:#4c6a62">Each morning we'll tell you the cleanest time to use electricity around <strong style="color:#10302a">${district}</strong>.</p>${emailButton(confirm, 'Yes, send me the email')}`, "Didn't ask for this? Ignore this email and you won't hear from us again."),
   }]);
   return ok ? reply(204, headers) : reply(502, headers, { error: 'not delivered' });
 }
@@ -174,8 +185,13 @@ function morningMail(sub, f, now) {
   const lines = flat
     ? [`Power around ${sub.district} stays about as clean all day, so there's no need to plan around it today.`]
     : [`The cleanest times to use electricity around ${sub.district} in the next 24 hours:`, '', `Washing and other short jobs: ${whenWords(wash, now)}`, `Charging a car: ${whenWords(car, now)}`, `Try to avoid: ${whenWords(worst, now)}`];
+  const row = (label, value, last) => `<tr><td style="padding:14px 0;${last ? '' : 'border-bottom:1px solid #dfeae6;'}"><div style="font-size:13px;font-weight:600;color:#4c6a62;padding-bottom:3px">${label}</div><div style="font-size:18px;font-weight:700;color:#10302a">${capital(value)}</div></td></tr>`;
+  const inner = flat
+    ? `<h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;font-weight:800">Steady power today</h1><p style="margin:0 0 26px;font-size:17px;line-height:1.5;color:#4c6a62">Power around <strong style="color:#10302a">${sub.district}</strong> stays about as clean all day, so there's no need to plan around it.</p>`
+    : `<p style="margin:0 0 6px;font-size:14px;font-weight:600;color:#4c6a62">Best time for washing and short jobs around ${sub.district}</p><h1 style="margin:0 0 14px;font-size:26px;line-height:1.2;font-weight:800">${capital(whenWords(wash, now))}</h1><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px">${row('Charging a car', whenWords(car, now))}${row('Try to avoid', whenWords(worst, now), true)}</table>`;
   return {
     to: [sub.email],
+    html: emailShell(flat ? 'Power stays about as clean all day.' : `Cleanest power: ${whenWords(wash, now)}.`, inner + emailButton(link, 'See the full picture'), `An estimate from the national carbon forecast for ${escapeHtml(f.name)}.<br><a href="${stop}" style="color:#4c6a62">Unsubscribe</a>`),
     subject: flat ? `Power around ${sub.district} is steady today` : `Cleanest power around ${sub.district}: ${whenWords(wash, now)}`,
     text: `${lines.join('\n')}\n\nThe full picture: ${link}\n\nAn estimate from the national carbon forecast for ${f.name}.\n\nUnsubscribe: ${stop}`,
     headers: { 'List-Unsubscribe': `<${stop}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
