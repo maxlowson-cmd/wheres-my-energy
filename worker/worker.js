@@ -99,7 +99,7 @@ async function socialOp(request, env) {
   const ok = (v) => new Response(JSON.stringify(v || { ok: true }), { headers: { 'Content-Type': 'application/json' } });
   if (!b) return new Response('bad request', { status: 400 });
   if (b.op === 'history') {
-    const { results } = await env.DB.prepare('SELECT media_id, day, type, novelty, posted, stats FROM social_posts ORDER BY posted DESC LIMIT 200').all();
+    const { results } = await env.DB.prepare('SELECT media_id, day, type, caption, novelty, posted, stats FROM social_posts ORDER BY posted DESC LIMIT 200').all();
     return ok({ posts: results.map((r) => ({ ...r, stats: r.stats ? JSON.parse(r.stats) : null })) });
   }
   if (b.op === 'log') { await env.DB.prepare('INSERT OR REPLACE INTO social_posts (media_id, day, type, caption, novelty, posted) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(String(b.media_id), String(b.day), String(b.type), String(b.caption).slice(0, 2200), Number(b.novelty) || 0, Date.now()).run(); return ok(); }

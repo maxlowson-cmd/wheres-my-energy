@@ -3,7 +3,11 @@
 Every number comes from the site's own data feeds; nothing here writes figures. Run by .github/workflows/social.yml.
 DRY_RUN=1 renders every idea into out/ and publishes nothing.
 """
+from zoneinfo import ZoneInfo
 import base64, datetime as dt, json, math, os, pathlib, random, re, time, urllib.error, urllib.parse, urllib.request
+import sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import extras
 from playwright.sync_api import sync_playwright
 
 SITE = 'https://wheresmyenergyfrom.co.uk/'
@@ -285,6 +289,15 @@ def main():
         page.goto(f'{SITE}?agent={int(time.time())}', wait_until='load', timeout=120000)
         page.wait_for_function('window.WMESocial && document.fonts.status === "loaded"', timeout=60000)
         ideas = page.evaluate('WMESocial.candidates()')
+        if ideas:
+            signoff = page.evaluate('WMESocial.signoff')
+            uk = dt.datetime.now(ZoneInfo('Europe/London'))
+            more = extras.build(uk, [r.get('caption', '') for r in history])
+            page.evaluate('(x) => WMESocial.addExtras(x)', more)
+            for x in more:
+                x['caption'] += signoff
+                x.pop('spec')
+            ideas += more
         print('ideas', [(i['id'], round(i['novelty'], 2)) for i in ideas])
         if not ideas:
             if not DRY:

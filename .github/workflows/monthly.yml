@@ -17,10 +17,13 @@ jobs:
         with:
           python-version: '3.12'
       - run: python fetch_year.py
+      - name: Refresh the renewable sites data
+        continue-on-error: true
+        run: python social/update_repd.py
       - name: Save the new averages
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add year.json
-          git diff --staged --quiet || git commit -m "Update 12-month averages"
+          git add year.json data/repd.csv
+          git diff --staged --quiet || git commit -m "Update 12-month averages and renewable sites"
           git push
