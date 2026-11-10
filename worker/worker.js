@@ -140,6 +140,69 @@ async function dashboard(url, env) {
   return new Response(JSON.stringify(rows), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
 
+/* a Telegram message at each posting time saying what has changed since the last one, so nobody has to go and look. Silent if nothing changed. */
+const SOURCE_NAMES = { instagram: 'Instagram', facebook: 'Facebook', search: 'search engines', x: 'X', whatsapp: 'WhatsApp', telegram: 'Telegram', reddit: 'Reddit', tiktok: 'TikTok', linkedin: 'LinkedIn', other: 'other sites', direct: 'direct' };
+const signed = (n, word) => `${n > 0 ? '+' : ''}${n} ${word}${Math.abs(n) === 1 ? '' : 's'}`;
+const tally = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+async function numbersUpdate(env, preview) {
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS report_state (id INTEGER PRIMARY KEY, data TEXT NOT NULL, taken INTEGER NOT NULL)').run();
+  const one = (sql) => env.DB.prepare(sql).first();
+  const [ig, { results: hits }, lookups, signups, saved] = await Promise.all([
+    igNumbers(env),
+    env.DB.prepare("SELECT name, detail, SUM(n) AS n FROM hits WHERE name IN ('visit', 'share') GROUP BY name, detail").all(),
+    one('SELECT COALESCE(SUM(n), 0) AS n FROM counts'),
+    one('SELECT COUNT(*) AS n FROM subscribers WHERE confirmed = 1'),
+    one('SELECT data, taken FROM report_state WHERE id = 1'),
+  ]);
+  const before = saved ? JSON.parse(saved.data) : { visits: {}, shares: 0, lookups: 0, signups: 0, followers: 0, posts: {} };
+  const now = {
+    visits: Object.fromEntries(hits.filter((h) => h.name === 'visit').map((h) => [h.detail, h.n])),
+    shares: hits.filter((h) => h.name === 'share').reduce((a, h) => a + h.n, 0),
+    lookups: lookups.n,
+    signups: signups.n,
+    followers: ig ? ig.followers : before.followers, // if Instagram can't be read, keep the last figures so nothing is lost or double counted
+    posts: ig && ig.media.length ? Object.fromEntries(ig.media.map((m) => [m.id, [m.like_count || 0, m.comments_count || 0]])) : before.posts,
+  };
+  let likes = 0, comments = 0, top = null;
+  for (const [id, [l, c]] of Object.entries(now.posts)) {
+    const [oldL, oldC] = before.posts[id] || [0, 0], score = l - oldL + 2 * (c - oldC);
+    likes += l - oldL;
+    comments += c - oldC;
+    if (score > 0 && (!top || score > top.score)) top = { id, score, likes: l - oldL, comments: c - oldC };
+  }
+  const followers = now.followers - before.followers, lookupsNew = now.lookups - before.lookups, signupsNew = now.signups - before.signups, sharesNew = now.shares - before.shares;
+  const came = Object.keys(now.visits).map((s) => [s, now.visits[s] - (before.visits[s] || 0)]).filter((x) => x[1] > 0).sort((a, b) => b[1] - a[1]);
+  const visits = came.reduce((a, x) => a + x[1], 0);
+  if (ig && !followers && !likes && !comments && !visits && !lookupsNew && !signupsNew && !sharesNew) return '';
+
+  const social = [
+    followers ? `${signed(followers, 'follower')}, now ${now.followers}` : '',
+    likes ? signed(likes, 'like') : '',
+    comments ? signed(comments, 'comment') : '',
+    ig ? '' : 'Could not read Instagram this time, so these figures may be behind.',
+  ].filter(Boolean);
+  const site = [
+    visits ? `${signed(visits, 'visit')}: ${came.slice(0, 4).map(([s, n]) => `${n} ${SOURCE_NAMES[s] || s}`).join(', ')}` : '',
+    lookupsNew ? signed(lookupsNew, 'postcode lookup') : '',
+    signupsNew ? signed(signupsNew, 'email alert sign-up') : '',
+    sharesNew > 0 ? `${sharesNew} opened the share menu` : '',
+  ].filter(Boolean);
+  const when = saved ? new Date(saved.taken) : null;
+  const lines = [when ? `Since ${part({ weekday: 'short' }).format(when)} ${ukClock.format(when)}` : "Numbers so far. From now on you'll get what's changed at each posting time."];
+  if (social.length) lines.push('', 'Instagram', ...social);
+  if (site.length) lines.push('', 'Website', ...site);
+  if (top && ig) {
+    const row = await env.DB.prepare('SELECT caption FROM social_posts WHERE media_id = ?1').bind(top.id).first();
+    const media = ig.media.find((m) => m.id === top.id), gains = [top.likes > 0 ? signed(top.likes, 'like') : '', top.comments > 0 ? signed(top.comments, 'comment') : ''].filter(Boolean).join(', ');
+    lines.push('', `Top post (${gains}):`, ...(row ? [String(row.caption || '').split('\n')[0].slice(0, 110)] : []), media ? media.permalink : '');
+  }
+  if (saved) lines.push('', `Total so far: ${tally(now.followers, 'follower')}, ${tally(Object.values(now.visits).reduce((a, b) => a + b, 0), 'visit')}, ${tally(now.lookups, 'postcode lookup')}, ${tally(now.signups, 'alert sign-up')}`);
+  const text = lines.join('\n').trim();
+  if (preview) return text;
+  if (await telegram(env, text)) await env.DB.prepare('INSERT OR REPLACE INTO report_state (id, data, taken) VALUES (1, ?1, ?2)').bind(JSON.stringify(now), Date.now()).run();
+  return text;
+}
+
 /* the Instagram agent's small store: images it hands to Instagram, and how each post did */
 const IMAGE_ID = /^[a-z0-9-]{4,40}$/;
 async function socialImage(request, url, env) {
@@ -173,6 +236,7 @@ async function socialOp(request, env) {
   if (b.op === 'log') { await env.DB.prepare('INSERT OR REPLACE INTO social_posts (media_id, day, type, caption, novelty, posted) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(String(b.media_id), String(b.day), String(b.type), String(b.caption).slice(0, 2200), Number(b.novelty) || 0, Date.now()).run(); return ok(); }
   if (b.op === 'stats') { await env.DB.prepare('UPDATE social_posts SET stats = ?2 WHERE media_id = ?1').bind(String(b.media_id), JSON.stringify(b.stats)).run(); return ok(); }
   if (b.op === 'telegram') { await telegram(env, String(b.text)); return ok(); }
+  if (b.op === 'update') return ok({ text: await numbersUpdate(env, b.send !== true) }); // a preview unless told to send
   return new Response('unknown op', { status: 400 });
 }
 
@@ -366,7 +430,13 @@ export default {
     return reply(404, headers, { error: 'not found' });
   },
   async scheduled(event, env, ctx) {
-    if (event.cron === SOCIAL_CRON) { if (socialDue(new Date())) ctx.waitUntil(rebuild(env, 'social.yml', { dry_run: '0' })); return; }
+    if (event.cron === SOCIAL_CRON) {
+      if (socialDue(new Date())) {
+        ctx.waitUntil(rebuild(env, 'social.yml', { dry_run: '0' }));
+        ctx.waitUntil(numbersUpdate(env).catch((e) => telegram(env, `The numbers update failed: ${e.message}`)));
+      }
+      return;
+    }
     ctx.waitUntil(event.cron === ALERT_CRON ? morningEmails(env) : rebuild(env));
   },
 };
