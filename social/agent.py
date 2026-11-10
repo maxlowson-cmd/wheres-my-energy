@@ -224,13 +224,15 @@ List every sentence or slide line they would have to read twice, or could not ac
 
 You are told the post's shape. If it is a "story", also flag any jump: a place in the caption, or between one slide and the next, where the subject changes and no words say how the two connect, so it feels like a new post has started. Quote the words on either side of it. If it is a "bulletin", separate facts are correct and are not jumps, but flag it if the opening doesn't make clear this is a round-up, or if it starts like a story and turns into a list. A post that is half story and half list is always worth flagging.
 
+You only see the words. Each slide sits beside a chart or map that carries the rest of its figures, so don't flag a slide for leaving out part of a breakdown. If "already_raised" is given, this is a rewrite: check only whether those points are now fixed, and raise something new only if a line makes no sense at all.
+
 Quote the exact words and say in a few words what is unclear. Don't flag tone, style, length or the figures themselves. Units such as MW or grams of CO2 are fine when the post gives a sense of scale or comparison. Flag only what would really trip someone up, and list at most the two worst. A post doesn't have to explain every term: never ask for more explanation of a single fact, such as why a time is cleaner or what CO2 is. Different figures can come from different sources, so don't flag those. If everything is clear first time, return an empty list."""
 EDITOR_SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['unclear'], 'properties': {'unclear': {'type': 'array', 'items': {'type': 'string'}}}}
 
 
-def unclear_lines(client, plan, album):
+def unclear_lines(client, plan, album, raised):
     """A fresh read of the finished wording. Returns the lines that need rewriting."""
-    post = {'shape': plan['shape'], 'caption': plan['caption'], 'slides': ([plan['hook']] if album else []) + [s['text'] for s in plan['slides']] + ([plan['closing']] if album else [])}
+    post = {'shape': plan['shape'], 'caption': plan['caption'], 'slides': ([plan['hook']] if album else []) + [s['text'] for s in plan['slides']] + ([plan['closing']] if album else []), **({'already_raised': raised} if raised else {})}
     response = client.beta.messages.create(model='claude-opus-5-5', max_tokens=4000, system=EDITOR, messages=[{'role': 'user', 'content': json.dumps(post, ensure_ascii=False)}], betas=['server-side-fallback-2026-07-01'], fallbacks='default', output_config={'effort': 'medium', 'format': {'type': 'json_schema', 'schema': EDITOR_SCHEMA}})
     if response.stop_reason in ('refusal', 'max_tokens'):
         return ['the editor could not read this post']
@@ -254,9 +256,10 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
     client = anthropic.Anthropic()
     brief = {'data': {**sheet, 'occasion_today': moment_today(today)}, 'how_things_connect': HOW_THINGS_CONNECT, 'format': 'album' if album else 'single image', 'angle_to_use': angle, 'lead_slide_id': lead['id'],
              'available_slides': [{'id': i['id'], 'shows': i['shows'], 'character_limit': i['limit'], 'interest_score': round(i['novelty'], 2)} for i in ideas],
-             'instructions': ('Choose the shape first, story or bulletin. Then write 2 to 5 chart slides in order, starting from the lead slide if it suits, plus the hook and closing. In a story, use only the slides that belong to its thread. Hook at most 90 characters, kicker at most 28, closing at most 140. The fact slide cannot be reworded.' if album else 'Write exactly one slide: the lead slide. Leave hook, hook_kicker and closing as empty strings.'),
+             'instructions': ('Choose the shape first, story or bulletin. Then write 2 to 5 chart slides in order, plus the hook and closing. The post is about the lead slide, so it must be included, usually first. In a story, use only the slides that belong to its thread. Hook at most 90 characters, kicker at most 28, closing at most 140. The fact slide cannot be reworded.' if album else 'Write exactly one slide: the lead slide. Leave hook, hook_kicker and closing as empty strings.'),
              'recent_captions_to_avoid_repeating': recent}
     messages = [{'role': 'user', 'content': json.dumps(brief, ensure_ascii=False)}]
+    raised = []
     for attempt in range(4):
         response = client.beta.messages.create(model='claude-opus-5-5', max_tokens=16000, system=VOICE, messages=messages, betas=['server-side-fallback-2026-07-01'], fallbacks='default', output_config={'effort': 'medium', 'format': {'type': 'json_schema', 'schema': PLAN_SCHEMA}})
         if response.stop_reason in ('refusal', 'max_tokens'):
@@ -264,7 +267,10 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
             return None
         text = next(b.text for b in response.content if b.type == 'text')
         plan = json.loads(text)
-        problems = check_plan(plan, ideas, sheet, album) or unclear_lines(client, plan, album)
+        problems = check_plan(plan, ideas, sheet, album) + ([] if any(s['id'] == lead['id'] for s in plan['slides']) else [f"the post must include the lead slide {lead['id']}"])
+        if not problems:
+            problems = unclear_lines(client, plan, album, raised)
+            raised += problems
         print('wording check', attempt, problems or 'passed')
         if not problems:
             return plan
