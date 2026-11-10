@@ -1112,7 +1112,8 @@
   function setFont(c, size, weight, fam) { c.font = `${weight} ${size}px ${fam}`; }
   function textLines(c, text, x, y, width, size, weight, fam, colour, lead = 1.14, maxLines = 9) {
     setFont(c, size, weight, fam); c.fillStyle = colour;
-    const lines = wrapText(c, text, width).slice(0, maxLines);
+    while (size > 40 && wrapText(c, text, width).length > maxLines) { size -= 4; setFont(c, size, weight, fam); } /* shrink rather than lose the end of a sentence */
+    const lines = wrapText(c, text, width);
     lines.forEach((line, i) => c.fillText(line, x, y + i * size * lead));
     return y + lines.length * size * lead;
   }
