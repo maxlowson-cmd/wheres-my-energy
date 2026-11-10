@@ -149,11 +149,11 @@ Truth rules, which matter more than being catchy:
 Clarity, which matters as much as the truth rules: every sentence has to make sense the first time it is read, by someone who knows nothing about the energy grid. One idea per sentence. Say the plain thing rather than a figure of speech ("doing more of the work", "the timing is yours to play with"). The caption has to stand on its own, because many people read it without swiping, so don't answer a question it hasn't asked yet. If a guess is used, ask it in the caption first. Read each sentence back and rewrite any that needs reading twice.
 
 Shape, which matters as much as clarity: every post is one of two shapes, and never half of each. Choose one and put it in "shape".
-- "story": one thread from start to finish, and the reader should never feel the subject change. Write the thread in "story" as one sentence. Each slide answers the question the one before it raised, and says how it connects: if the post moves from how many batteries Britain has to the price of power, a line must say that batteries can charge when power is cheap and sell it back when it's dear. Leave out any slide or fact that doesn't serve the thread, however interesting it is. Two slides that connect beat five that don't. A household tip, such as when to run the washing, only belongs if the thread leads to it. The closing slide finishes the thread: it must be about the same subject, not a general invitation to look up your area.
+- "story": one thread from start to finish, and the reader should never feel the subject change. Write the thread in "story" as one sentence. Each slide answers the question the one before it raised, and says how it connects: if the post moves from how many batteries Britain has to the price of power, a line must say that batteries can charge when power is cheap and sell it back when it's dear. Leave out any slide or fact that doesn't serve the thread, however interesting it is. Two slides that connect beat five that don't. A household tip, such as when to run the washing, only belongs if the thread leads to it.
 - "bulletin": a plain run-through of today's facts, like a news round-up. Say so from the first line, such as "Today on the grid: three things worth knowing", and in "story" write what the round-up covers. Each slide is its own fact and needs no link to the next, so don't invent links or build up to anything. Don't open like a story and then turn into a list.
 Pick "story" when the facts really connect, and "bulletin" when they don't.
 
-Slides: one thought per slide. In a story, the opening slide is a hook that opens a question and doesn't give the answer away, and each slide makes you want the next. In a bulletin, the opening slide says what the round-up is. The closing slide brings it back to the reader with one concrete thing they can do or find out, and in a story that thing comes from the thread. Keep to the character limit given for each slide. A slide's text sits beside the chart or map it describes, so it must match that slide's figures.
+Slides: one thought per slide. In a story, the opening slide is a hook that opens a question and doesn't give the answer away, and each slide makes you want the next. In a bulletin, the opening slide says what the round-up is. The closing slide always ends by inviting the reader to look up their own area on the site, using the words "your area", "your postcode" or "your region". Only promise what the site shows: what's powering their area right now, where their gas started out and the cleanest time to run the washing. If there's room, wrap up the post's subject first in one short line. Keep to the character limit given for each slide. A slide's text sits beside the chart or map it describes, so it must match that slide's figures.
 
 Angles:
 - guess: ask the reader to guess something, with the answer on the next swipe or later in the caption.
@@ -195,6 +195,8 @@ def check_plan(plan, ideas, sheet, album):
             problems.append('an album needs 2 to 5 chart slides')
         if len(plan['hook']) > 90 or len(plan['closing']) > 140 or len(plan['hook_kicker']) > 28:
             problems.append('hook, kicker or closing is too long')
+        if not re.search(r'your (area|postcode|region)', plan['closing'], re.I):
+            problems.append('the closing slide must invite the reader to look up your area')
         if len({s['id'] for s in plan['slides']}) != len(plan['slides']):
             problems.append('a slide is used twice')
         ids = {s['id'] for s in plan['slides']}
@@ -222,7 +224,7 @@ EDITOR = """You are the last check on an Instagram post from a free British site
 
 List every sentence or slide line they would have to read twice, or could not act on or picture. Flag lines that are vague or sound nice but say nothing ("the timing is yours to play with"), figures of speech standing in for a plain statement ("gas is doing more of the work"), two facts joined as if one caused the other without saying how, and anything that answers a question not yet asked or relies on something the reader hasn't seen. Read in order, the caption and the slides must each make sense.
 
-You are told the post's shape. If it is a "story", also flag any jump: a place in the caption, or between one slide and the next, where the subject changes and no words say how the two connect, so it feels like a new post has started. Quote the words on either side of it. A closing slide that drops the subject for a general invitation is a jump too. If it is a "bulletin", separate facts are correct and are not jumps, but flag it if the opening doesn't make clear this is a round-up, or if it starts like a story and turns into a list. A post that is half story and half list is always worth flagging.
+You are told the post's shape. If it is a "story", also flag any jump: a place in the caption, or between one slide and the next, where the subject changes and no words say how the two connect, so it feels like a new post has started. Quote the words on either side of it. The closing slide always invites the reader to look up their own area, and that invitation is never a jump. If it is a "bulletin", separate facts are correct and are not jumps, but flag it if the opening doesn't make clear this is a round-up, or if it starts like a story and turns into a list. A post that is half story and half list is always worth flagging.
 
 You only see the words. Each slide sits beside a chart or map that carries the rest of its figures, so don't flag a slide for leaving out part of a breakdown. If "already_raised" is given, this is a rewrite: check only whether those points are now fixed, and raise something new only if a line makes no sense at all.
 
@@ -469,6 +471,8 @@ def main():
         signoff = page.evaluate('WMESocial.signoff')
         day = dt.date.fromisoformat(today)
         album = pick['novelty'] >= .8 or day.weekday() in (1, 3, 6) or os.environ.get('MOCK_ALBUM', '').startswith('album')
+        if DRY and os.environ.get('MOCK_ALBUM', '').startswith('single'):
+            album = False
         angle = pick_angle(history, f'{today}{slot}')
         print('format', 'album' if album else 'single', 'angle', angle)
         plan = None if explainer_due(history) or os.environ.get('MOCK_ALBUM') == 'explain' else write_plan(pick, ideas, sheet, angle, album, [r.get('caption', '')[:200] for r in history[:7]], day)
@@ -513,10 +517,11 @@ def main():
         else:
             words = spec.get('headline') or spec.get('sub') or re.split(r'(?<=[.!?])\s', spec.get('text', ''))[0]
             parts.insert(0, ('cover', {'cover': {**cover, 'big': spec.get('big'), 'text': words, 'eyebrow': spec.get('eyebrow', ''), 'swipe': True}}))
+            parts.append(('closing', {'text': "What's powering your area right now? Look it up in seconds.", 'label': 'NOW FOR YOUR AREA'}))
             album = True
         if parts[-1][0] == 'closing':
             shade = random.Random(f'{today}{slot}end').choice(POSTER_COLOURS[pick.get('cat', 'now')])
-            parts[-1] = ('closing', {**parts[-1][1], 'cover': {'look': 'poster', 'colour': shade, 'text': parts[-1][1]['text'], 'eyebrow': 'WHAT IT MEANS FOR YOU', 'note': 'Put in your postcode at the link in our bio.'}})
+            parts[-1] = ('closing', {**parts[-1][1], 'cover': {'look': 'poster', 'colour': shade, 'text': parts[-1][1]['text'], 'eyebrow': parts[-1][1].get('label', 'WHAT IT MEANS FOR YOU'), 'note': 'Put in your postcode at the link in our bio.'}})
         caption = with_credit(caption, credit)
         kind += f'|cover:{label}'
         print('cover', label)
