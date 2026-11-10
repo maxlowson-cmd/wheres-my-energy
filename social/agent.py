@@ -78,17 +78,53 @@ def category_of(kind):
     return 'explain' if lead == 'explainer' else 'new' if lead == 'new-site' else 'history' if lead in ('on-this-day', 'growth') else 'fact' if lead == 'fact' else 'now'
 
 
-def explainer_due(history):
-    """Every fourth post explains how the site works, so people understand and trust it."""
+HERE = pathlib.Path(__file__).resolve().parent
+EXPLAINERS = json.loads((HERE / 'explainers.json').read_text(encoding='utf8'))
+LESSONS = json.loads((HERE / 'lessons.json').read_text(encoding='utf8'))  # what we've learned so far, added to at each review
+REPEAT_DAYS = 30  # a pre-written post or fact can come back, but not within this many days
+
+
+def repeat_cutoff():
+    return (time.time() - REPEAT_DAYS * 86400) * 1000
+
+
+def explainer_state(history):
+    """How many explainers have gone out, how many posts ago the last one was, and how many posts there are."""
     ordered = sorted(history, key=lambda r: r['posted'], reverse=True)
     since = next((i for i, r in enumerate(ordered) if r['type'].startswith('explainer')), len(ordered))
-    return len(ordered) >= 3 and since >= 3
+    return sum(1 for r in ordered if r['type'].startswith('explainer')), since, len(ordered)
+
+
+def explainers_free(history):
+    """Explainers not used lately, the never-used ones first and then the longest ago."""
+    last = {}
+    for row in sorted(history, key=lambda r: r['posted']):
+        found = re.search(r'\|explain(\d+)', row['type'])
+        if found:
+            last[int(found[1])] = row['posted']
+    return sorted((n for n in range(len(EXPLAINERS)) if last.get(n, 0) < repeat_cutoff()), key=lambda n: (last.get(n, 0), n))
+
+
+def explainer_due(history):
+    """Every fourth post explains how the site works, so people understand and trust it, if one hasn't been used lately."""
+    _, since, total = explainer_state(history)
+    return total >= 3 and since >= 3 and bool(explainers_free(history))
+
+
+def review_due(history):
+    """True once only: at the point the next explainer would have been due and the first set has run out."""
+    done, since, _ = explainer_state(history)
+    return done == len(EXPLAINERS) and since == 3
+
+
+def fact_tag(idea):
+    """A short label recording which did-you-know fact a post used."""
+    return 'fact:' + re.sub(r'\W+', '-', idea['shows'][:30]).strip('-').lower()
 
 
 def next_explainer(history):
-    items = json.loads((pathlib.Path(__file__).resolve().parent / 'explainers.json').read_text(encoding='utf8'))
-    done = sum(1 for r in history if r['type'].startswith('explainer'))
-    return items[done % len(items)], done % len(items)
+    number = (explainers_free(history) or [0])[0]
+    return EXPLAINERS[number], number
 
 
 def choose(ideas, history, today):
@@ -141,6 +177,7 @@ Truth rules, which matter more than being catchy:
 - Use only numbers that appear in the data you are given, exactly as given. Don't calculate new figures or round them differently. Loose words like "about a third" or "nearly three times" are fine where the data clearly supports them.
 - The data shows what is happening, not why. Don't claim a cause for today's figures unless the data shows it: no storms, weather events, records, outages, news or price changes for customers. Give two of today's figures as two plain facts ("Wind is only around 5% this evening. Gas is making around 66%.") and don't link them with "so" or "because".
 - "how_things_connect" lists how the grid generally works, checked against published sources. Use these to join one part of a story to the next. Say what usually happens, never that it happened today: "Batteries can charge when power is cheap and sell it back when it's dear" is fine, "Batteries charged at 04:30" is not. Don't add any other explanation of your own.
+- "lessons_so_far" lists what we have learned from earlier posts. Apply every one of them, but they never override the truth rules.
 - "Renewable" only means wind, solar, hydro and biomass. A low renewable share doesn't mean a place is dirty or doing badly: it may be running on nuclear or imports. Never quote a region's low renewable share on its own. Say what it is mainly running on, using "mainly_running_on" in the data, and compare places only in a way that is fair to both.
 - Mention an occasion only if the data names one under "occasion_today".
 - The on-this-day slide uses metered main-grid figures, which differ from the wider "right now" mix. Never give both figures for the same fuel in one post, and call the on-this-day figure "on the main grid".
@@ -256,7 +293,7 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
         return None
     import anthropic
     client = anthropic.Anthropic()
-    brief = {'data': {**sheet, 'occasion_today': moment_today(today)}, 'how_things_connect': HOW_THINGS_CONNECT, 'format': 'album' if album else 'single image', 'angle_to_use': angle, 'lead_slide_id': lead['id'],
+    brief = {'data': {**sheet, 'occasion_today': moment_today(today)}, 'how_things_connect': HOW_THINGS_CONNECT, 'lessons_so_far': [x['lesson'] for x in LESSONS if x['area'] == 'writing'], 'format': 'album' if album else 'single image', 'angle_to_use': angle, 'lead_slide_id': lead['id'],
              'available_slides': [{'id': i['id'], 'shows': i['shows'], 'character_limit': i['limit'], 'interest_score': round(i['novelty'], 2)} for i in ideas],
              'instructions': ('Choose the shape first, story or bulletin. Then write 2 to 5 chart slides in order, plus the hook and closing. The post is about the lead slide, so it must be included, usually first. In a story, use only the slides that belong to its thread. Hook at most 90 characters, kicker at most 28, closing at most 140. The fact slide cannot be reworded.' if album else 'Write exactly one slide: the lead slide. Leave hook, hook_kicker and closing as empty strings.'),
              'recent_captions_to_avoid_repeating': recent}
@@ -447,6 +484,8 @@ def main():
         return
     if not DRY:
         refresh_stats(history)
+        if review_due(history):
+            relay('telegram', text=f"All {len(EXPLAINERS)} how-it-works posts have now gone out. Each can only come back after {REPEAT_DAYS} days. Time to review how the posts have done and plan the next lot.")
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={'width': 1080, 'height': 1400})
@@ -463,6 +502,8 @@ def main():
                 x['caption'] += signoff
                 x.pop('spec')
             ideas += more
+        used = {part for r in history if r['posted'] >= repeat_cutoff() for part in r['type'].split('|')}
+        ideas = [i for i in ideas if i['id'] != 'fact' or fact_tag(i) not in used]
         print('ideas', [(i['id'], round(i['novelty'], 2)) for i in ideas])
         if not ideas:
             if not DRY:
@@ -530,6 +571,11 @@ def main():
             parts[-1] = ('closing', {**parts[-1][1], 'cover': {'look': 'poster', 'colour': shade, 'text': parts[-1][1]['text'], 'eyebrow': parts[-1][1].get('label', 'WHAT IT MEANS FOR YOU'), 'note': 'Put in your postcode at the link in our bio.'}})
         caption = with_credit(caption, credit)
         kind += f'|cover:{label}'
+        if plan and plan.get('shape'):
+            kind += f"|shape:{plan['shape']}"  # so a review can compare stories with bulletins
+        fact = next((i for i in ideas if i['id'] == 'fact'), None)
+        if fact and any(a == 'fact' for a, _ in parts):
+            kind += f'|{fact_tag(fact)}'
         print('cover', label)
         if DRY:
             OUT.mkdir(exist_ok=True)
