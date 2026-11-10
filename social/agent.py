@@ -79,10 +79,10 @@ def category_of(kind):
 
 
 def explainer_due(history):
-    """Every sixth post explains how the site works, so people understand and trust it."""
+    """Every fourth post explains how the site works, so people understand and trust it."""
     ordered = sorted(history, key=lambda r: r['posted'], reverse=True)
     since = next((i for i, r in enumerate(ordered) if r['type'].startswith('explainer')), len(ordered))
-    return len(ordered) >= 5 and since >= 5
+    return len(ordered) >= 3 and since >= 3
 
 
 def next_explainer(history):
