@@ -79,10 +79,10 @@ def category_of(kind):
 
 
 def explainer_due(history):
-    """Every fourth post explains how the site works, so people understand and trust it."""
+    """Every sixth post explains how the site works, so people understand and trust it."""
     ordered = sorted(history, key=lambda r: r['posted'], reverse=True)
     since = next((i for i, r in enumerate(ordered) if r['type'].startswith('explainer')), len(ordered))
-    return len(ordered) >= 3 and since >= 3
+    return len(ordered) >= 5 and since >= 5
 
 
 def next_explainer(history):
@@ -430,12 +430,18 @@ def weekly(history):
     relay('telegram', text=f"Instagram this week: {len(week)} posts measured, {sum(r['stats'].get('likes', 0) for r in week)} likes, {sum(r['stats'].get('comments', 0) for r in week)} comments, {sum(r['stats'].get('reach', 0) for r in week)} reach.\nBest: {best['type']} ({best['stats'].get('likes', 0)} likes).")
 
 
+def slot_name(moment):
+    """Which of the day's posting times this falls in, by the UK clock."""
+    hour = moment.astimezone(ZoneInfo('Europe/London')).hour
+    return 'am' if hour < 11 else 'noon' if hour < 17 else 'pm'
+
+
 def main():
     today = dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d')
     history = relay('history').get('posts', [])
     now_utc = dt.datetime.now(dt.timezone.utc)
-    slot = f'x{now_utc:%H%M}' if os.environ.get('EXTRA_POST') == '1' else 'am' if now_utc.hour < 14 else 'pm'  # a post asked for by hand gets its own slot
-    same_slot = lambda r: r['day'] == today and ('am' if dt.datetime.fromtimestamp(r['posted'] / 1000, dt.timezone.utc).hour < 14 else 'pm') == slot
+    slot = f'x{now_utc:%H%M}' if os.environ.get('EXTRA_POST') == '1' else slot_name(now_utc)  # a post asked for by hand gets its own slot
+    same_slot = lambda r: r['day'] == today and slot_name(dt.datetime.fromtimestamp(r['posted'] / 1000, dt.timezone.utc)) == slot
     if not DRY and any(same_slot(r) for r in history):
         print('already posted in this slot')
         return

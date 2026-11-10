@@ -193,10 +193,10 @@ const SITE_URL = 'https://wheresmyenergyfrom.co.uk';
 const RELAY_URL = 'https://wheres-my-energy-relay.wheresmyenergy.workers.dev';
 const ALERT_CRON = '30 6,7 * * *'; // Cloudflare's clock is UTC, so this covers 07:30 UK time in winter and summer
 const SOCIAL_CRON = '15 7,8,11,12,19,20 * * *'; // covers each posting time in UK winter and summer; socialDue picks the real ones
-const TWICE_DAILY_UNTIL = '2026-11-16'; // the launch week: 08:15 and 20:15, then 12:15 once a day
+const THREE_A_DAY_UNTIL = '2026-11-24'; // 08:15, 12:15 and 20:15 until then, afterwards 08:15 and 20:15
 function socialDue(now) {
   const [d, m, y] = ukDay.format(now).split('/'), hour = Number(ukHour.format(now));
-  return `${y}-${m}-${d}` <= TWICE_DAILY_UNTIL ? hour === 8 || hour === 20 : hour === 12;
+  return hour === 8 || hour === 20 || (hour === 12 && `${y}-${m}-${d}` <= THREE_A_DAY_UNTIL);
 }
 const DAILY_CAP = 95; // stays inside the email service's free daily limit, leaving room for confirmation emails
 const SLOT = 1800000, LONDON = 'Europe/London';
