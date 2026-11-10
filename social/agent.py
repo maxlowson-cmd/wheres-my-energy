@@ -139,13 +139,16 @@ Voice: warm, curious, a bit playful, plain British English. Talk to "you". Short
 
 Truth rules, which matter more than being catchy:
 - Use only numbers that appear in the data you are given, exactly as given. Don't calculate new figures or round them differently. Loose words like "about a third" or "nearly three times" are fine where the data clearly supports them.
-- The data shows what is happening, not why. Don't claim a cause unless the data shows it: no storms, weather events, records, outages, news or price changes for customers. Give two figures as two plain facts ("Wind is only around 5% this evening. Gas is making around 66%.") and don't link them with "so" or "because".
+- The data shows what is happening, not why. Don't claim a cause for today's figures unless the data shows it: no storms, weather events, records, outages, news or price changes for customers. Give two of today's figures as two plain facts ("Wind is only around 5% this evening. Gas is making around 66%.") and don't link them with "so" or "because".
+- "how_things_connect" lists how the grid generally works, checked against published sources. Use these to join one part of a story to the next. Say what usually happens, never that it happened today: "Batteries can charge when power is cheap and sell it back when it's dear" is fine, "Batteries charged at 04:30" is not. Don't add any other explanation of your own.
 - "Renewable" only means wind, solar, hydro and biomass. A low renewable share doesn't mean a place is dirty or doing badly: it may be running on nuclear or imports. Never quote a region's low renewable share on its own. Say what it is mainly running on, using "mainly_running_on" in the data, and compare places only in a way that is fair to both.
 - Mention an occasion only if the data names one under "occasion_today".
 - The on-this-day slide uses metered main-grid figures, which differ from the wider "right now" mix. Never give both figures for the same fuel in one post, and call the on-this-day figure "on the main grid".
 - The figures are forecasts and estimates, so say "right now" or "around" rather than sounding exact to the kilowatt.
 
 Clarity, which matters as much as the truth rules: every sentence has to make sense the first time it is read, by someone who knows nothing about the energy grid. One idea per sentence. Say the plain thing rather than a figure of speech ("doing more of the work", "the timing is yours to play with"). The caption has to stand on its own, because many people read it without swiping, so don't answer a question it hasn't asked yet. If a guess is used, ask it in the caption first. Read each sentence back and rewrite any that needs reading twice.
+
+Story, which matters as much as clarity: a post follows one thread from start to finish, and the reader should never feel the subject change. Decide the thread first and write it in "story" as one sentence. Each slide answers the question the one before it raised, and says how it connects: if the post moves from how many batteries Britain has to the price of power, a line must say that batteries can charge when power is cheap and sell it back when it's dear. Leave out any slide or fact that doesn't serve the thread, however interesting it is. Two slides that connect beat five that don't. A household tip, such as when to run the washing, only belongs if the thread leads to it.
 
 Slides: an album is a little story, one thought per slide, each making you want the next. The opening slide is a hook that opens a question and doesn't give the answer away. The closing slide brings it back to the reader by telling them one concrete thing they can do or find out. Keep to the character limit given for each slide. A slide's text sits beside the chart or map it describes, so it must match that slide's figures.
 
@@ -156,10 +159,10 @@ Angles:
 - surprise: lead with the most counter-intuitive thing in the data.
 - question: ask something the reader has never thought to ask.
 
-Write the caption as a short story of two or three short paragraphs, ending with a question people would want to answer. Don't include links or hashtags, as those are added afterwards."""
+Write the caption as a short story of two or three short paragraphs, following the same thread as the slides, with each paragraph picking up where the last one stopped, ending with a question people would want to answer. Don't include links or hashtags, as those are added afterwards."""
 
-PLAN_SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['hook_kicker', 'hook', 'slides', 'closing', 'caption', 'alt'], 'properties': {
-    'hook_kicker': {'type': 'string'}, 'hook': {'type': 'string'},
+PLAN_SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['story', 'hook_kicker', 'hook', 'slides', 'closing', 'caption', 'alt'], 'properties': {
+    'story': {'type': 'string'}, 'hook_kicker': {'type': 'string'}, 'hook': {'type': 'string'},
     'slides': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'required': ['id', 'text'], 'properties': {'id': {'type': 'string'}, 'text': {'type': 'string'}}}},
     'closing': {'type': 'string'}, 'caption': {'type': 'string'}, 'alt': {'type': 'string'}}}
 NUMBER = re.compile(r'\d+(?:[.:,]\d+)*')
@@ -185,8 +188,8 @@ def check_plan(plan, ideas, sheet, album):
         fields.append(s['text'])
     if album:
         fields += [plan['hook'], plan['hook_kicker'], plan['closing']]
-        if not 3 <= len(plan['slides']) <= 6:
-            problems.append('an album needs 3 to 6 chart slides')
+        if not 2 <= len(plan['slides']) <= 5:
+            problems.append('an album needs 2 to 5 chart slides')
         if len(plan['hook']) > 90 or len(plan['closing']) > 140 or len(plan['hook_kicker']) > 28:
             problems.append('hook, kicker or closing is too long')
         if len({s['id'] for s in plan['slides']}) != len(plan['slides']):
@@ -214,9 +217,11 @@ def check_plan(plan, ideas, sheet, album):
 
 EDITOR = """You are the last check on an Instagram post from a free British site about where electricity comes from. Picture someone with no knowledge of the energy grid, reading quickly on their phone.
 
-List every sentence or slide line they would have to read twice, or could not act on or picture. Flag lines that are vague or sound nice but say nothing ("the timing is yours to play with"), figures of speech standing in for a plain statement ("gas is doing more of the work"), two facts joined as if one caused the other without saying how, and anything that answers a question not yet asked or relies on something the reader hasn't seen. The caption and each slide must each make sense alone.
+List every sentence or slide line they would have to read twice, or could not act on or picture. Flag lines that are vague or sound nice but say nothing ("the timing is yours to play with"), figures of speech standing in for a plain statement ("gas is doing more of the work"), two facts joined as if one caused the other without saying how, and anything that answers a question not yet asked or relies on something the reader hasn't seen. Read in order, the caption and the slides must each make sense.
 
-Quote the exact words and say in a few words what is unclear. Don't flag tone, style, length or the figures themselves. Units such as MW or grams of CO2 are fine when the post gives a sense of scale or comparison. Flag only what would really trip someone up, and list at most the two worst. A post doesn't have to explain everything: never ask for more explanation, such as why a time is cleaner or what CO2 is, and a fact may simply stand on its own. Different figures can come from different sources, so don't flag those. If everything is clear first time, return an empty list."""
+Also flag any jump: a place in the caption, or between one slide and the next, where the subject changes and no words say how the two connect, so it feels like a new post has started. A jump counts as one of the things that would trip someone up. Quote the words on either side of it.
+
+Quote the exact words and say in a few words what is unclear. Don't flag tone, style, length or the figures themselves. Units such as MW or grams of CO2 are fine when the post gives a sense of scale or comparison. Flag only what would really trip someone up, and list at most the two worst. A post doesn't have to explain every term: never ask for more explanation of a single fact, such as why a time is cleaner or what CO2 is. Different figures can come from different sources, so don't flag those. If everything is clear first time, return an empty list."""
 EDITOR_SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['unclear'], 'properties': {'unclear': {'type': 'array', 'items': {'type': 'string'}}}}
 
 
@@ -229,14 +234,24 @@ def unclear_lines(client, plan, album):
     return [f'unclear: {x}' for x in json.loads(next(b.text for b in response.content if b.type == 'text'))['unclear']]
 
 
+# General background the writer may use to join facts together. Sources: Modo Energy (battery income), First Hydro (pumped storage), Carbon Brief and Institute for Government (gas and price), UKERC and Modo Energy (Scottish constraints), NESO (carbon intensity).
+HOW_THINGS_CONNECT = [
+    "Grid batteries earn much of their money by charging when electricity is cheap and selling it back when it is dear. They are also paid to help keep the grid steady.",
+    "Pumped hydro works like a giant battery: water is pumped uphill when power is plentiful and let back down through turbines when it's needed.",
+    "Wholesale prices are often set by gas plants, because the last power station needed sets the price for everyone in that period, and that is often a gas plant.",
+    "The cables from Scotland to England have a limit. When they are full, some Scottish wind farms are asked to turn down and power stations further south, often gas, are asked to run instead.",
+    "A time of day counts as cleaner when each unit of electricity comes with less CO2, which happens when less of the power is being made by burning gas.",
+]
+
+
 def write_plan(lead, ideas, sheet, angle, album, recent, today):
     if not ANTHROPIC_KEY:
         return None
     import anthropic
     client = anthropic.Anthropic()
-    brief = {'data': {**sheet, 'occasion_today': moment_today(today)}, 'format': 'album' if album else 'single image', 'angle_to_use': angle, 'lead_slide_id': lead['id'],
+    brief = {'data': {**sheet, 'occasion_today': moment_today(today)}, 'how_things_connect': HOW_THINGS_CONNECT, 'format': 'album' if album else 'single image', 'angle_to_use': angle, 'lead_slide_id': lead['id'],
              'available_slides': [{'id': i['id'], 'shows': i['shows'], 'character_limit': i['limit'], 'interest_score': round(i['novelty'], 2)} for i in ideas],
-             'instructions': ('Write 3 to 6 chart slides in story order, starting from the lead slide if it suits the story, plus the hook and closing. Hook at most 90 characters, kicker at most 28, closing at most 140. The fact slide cannot be reworded.' if album else 'Write exactly one slide: the lead slide. Leave hook, hook_kicker and closing as empty strings.'),
+             'instructions': ('Decide the one thread of the post first. Then write 2 to 5 chart slides in story order, starting from the lead slide if it suits the story, plus the hook and closing. Use only the slides that belong to that thread. Hook at most 90 characters, kicker at most 28, closing at most 140. The fact slide cannot be reworded.' if album else 'Write exactly one slide: the lead slide. Leave hook, hook_kicker and closing as empty strings.'),
              'recent_captions_to_avoid_repeating': recent}
     messages = [{'role': 'user', 'content': json.dumps(brief, ensure_ascii=False)}]
     for attempt in range(4):
@@ -250,7 +265,7 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
         print('wording check', attempt, problems or 'passed')
         if not problems:
             return plan
-        messages += [{'role': 'assistant', 'content': text}, {'role': 'user', 'content': 'Please fix these and return the whole post again. Fix each one by cutting the line or saying the plain thing. If two ideas need explaining to connect, drop one of them. Shorter is better, so do not add new sentences to explain it: ' + '; '.join(problems)}]
+        messages += [{'role': 'assistant', 'content': text}, {'role': 'user', 'content': 'Please fix these and return the whole post again. Fix an unclear line by cutting it or saying the plain thing. Fix a jump by adding a short line that connects the two parts, using how_things_connect, or by removing the part that does not belong to the thread. Otherwise shorter is better: ' + '; '.join(problems)}]
     return None
 
 
