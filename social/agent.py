@@ -577,8 +577,11 @@ def main():
             words = (parts[0][1] or {}).get('text') or spec.get('headline') or spec.get('sub') or re.split(r'(?<=[.!?])\s', spec.get('text', ''))[0]
             if spec.get('big') and cover.get('look') not in ('scene', 'photo', 'poster', 'battery') and words[:1].islower():
                 words = f"{spec['big']} {words}"  # this cover style doesn't show the big figure, so the words must carry it
-            parts = [('cover', {'cover': {**cover, 'big': spec.get('big'), 'text': words, 'eyebrow': spec.get('eyebrow', ''), 'swipe': True}}),
-                     ('closing', {'text': "What's powering your area right now? Look it up in seconds.", 'label': 'NOW FOR YOUR AREA'})]
+            if spec.get('art') in ('bars', 'day', 'clock', 'league'):  # the chart is the point (a trend, a day's curve), so it is the main image, not a photo
+                parts, label, credit = [lead_part], 'chart', ''
+            else:
+                parts = [('cover', {'cover': {**cover, 'big': spec.get('big'), 'text': words, 'eyebrow': spec.get('eyebrow', ''), 'swipe': True}})]
+            parts += [('closing', {'text': "What's powering your area right now? Look it up in seconds.", 'label': 'NOW FOR YOUR AREA'})]
             album = True  # a single post is one main image plus the page inviting people to look up their area
         if parts[-1][0] == 'closing':
             shade = random.Random(f'{today}{slot}end').choice(POSTER_COLOURS[pick.get('cat', 'now')])
