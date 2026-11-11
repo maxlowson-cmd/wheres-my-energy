@@ -1,4 +1,4 @@
-"""Post ideas that look back in time: this day ten years ago, how each renewable has grown, and sites that recently opened.
+"""Post ideas that look back in time: one fuel's yearly share since 2019, how each renewable has grown, and sites that recently opened.
 
 Sources: Elexon generation records, and the government's Renewable Energy Planning Database (large-scale sites only).
 """
@@ -65,27 +65,36 @@ def ago_words(n):
     return 'a year ago' if n == 1 else f'{n} years ago'
 
 
-def on_this_day(now):
-    """Today so far against the same hours of the same date in an earlier year. Metered generation on both sides, so it compares like with like."""
-    back = lookback(now, (1, 2, 3, 5, 8, 10), 'day')
-    try:
-        then_day = now.date().replace(year=now.year - back)
-    except ValueError:
-        return []
-    period = now.hour * 2 + (now.minute >= 30)
-    if period < 8:
-        return []
-    today, got = day_mix(now.date(), period)
-    then, got_then = day_mix(then_day, period)
-    if got < 8 or got_then < 8:
-        return []
-    fuel = max(('coal', 'wind', 'gas'), key=lambda k: abs(today.get(k, 0) - then.get(k, 0)))
-    a, b = round(then.get(fuel, 0)), round(today.get(fuel, 0))
-    renew = lambda m: round(m.get('wind', 0) + m.get('biomass', 0) + m.get('hydro', 0))
-    date_words = f'{then_day.day} {then_day:%B %Y}'
-    words = f'On {date_words}, {LABEL[fuel]} made {a}% of the power on Britain\'s main grid at this point in the day. Today it is {b}%.'
-    return [{'id': 'on-this-day', 'type': 'on-this-day', 'cat': 'history', 'art': 'year', 'limit': 60, 'novelty': clip(abs(a - b) / 25), 'shows': words, 'caption': words, 'alt': words,
-             'spec': {'art': 'year', 'eyebrow': f'THIS DAY IN {then_day.year}', 'big': f'{a}%', 'sub': f'of our grid power came from {LABEL[fuel]}. Today: {b}%.', 'mixBars': [[str(then_day.year), then, renew(then)], [str(now.year), today, renew(today)]], 'month': [], 'foot': ['Metered generation so far today against the same hours then. Elexon.']}}]
+# Why each fuel's yearly share changed. Each reason is a published fact, so a post can say why rather than just show two numbers.
+WHY = {
+    'gas': ('fell', "Gas fell as wind took over more of the work. It still fills the gap when the wind drops, so a calm year like 2021 pushed it back up."),
+    'wind': ('grew', "Wind grew as big new offshore wind farms opened, such as Hornsea 2 in 2022 and Seagreen in 2023. It dipped in 2021, an unusually calm year."),
+    'nuclear': ('fell', "Nuclear fell as older power stations closed, including Hunterston B in January 2022 and Hinkley Point B in August 2022."),
+    'coal': ('ended', "Coal ended when Britain's last coal power station, Ratcliffe-on-Soar, closed on 30 September 2024."),
+    'imports': ('grew', "Imports grew as new undersea cables opened to Norway in 2021 and Denmark in 2023. They dipped in 2022, when many French reactors were shut for repairs and Britain sent power to France instead."),
+    'solar': ('grew', "Solar grew as more solar farms and rooftop panels were fitted."),
+}
+NAME = {'gas': 'Gas', 'wind': 'Wind', 'nuclear': 'Nuclear', 'coal': 'Coal', 'imports': 'Imports', 'solar': 'Solar'}
+
+
+def year_trend(now):
+    """One fuel's share of Britain's power, as a yearly average for every full year since 2019, with the published reason it changed.
+    Whole years against whole years shows the trend; a single day against a single day mostly shows the weather."""
+    data = json.loads((HERE / 'social' / 'annual_mix.json').read_text(encoding='utf8'))
+    years = sorted(data['years'])
+    first, last = years[0], years[-1]
+    share = lambda y, f: data['years'][y]['mix'].get(f, 0)
+    fuel = random.Random(f'{now.date()}trend').choice([f for f in WHY if abs(share(last, f) - share(first, f)) >= 1])
+    a, b = share(first, fuel), share(last, fuel)
+    fmt = lambda v: f'{v:.1f}%' if v < 2 else f'{round(v)}%'
+    bars = [[y, round(share(y, fuel), 1)] for y in years]
+    why = WHY[fuel][1]
+    headline = (f"{NAME[fuel]} made {fmt(a)} of Britain's power in {first}. In {last}: {fmt(b)}." if b >= .5 else f"{NAME[fuel]} made {fmt(a)} of Britain's power in {first}. By {last}, none.")
+    yearly = ', '.join(f'{y} {fmt(share(y, fuel))}' for y in years)
+    words = f"{headline} Yearly averages: {yearly}. Why: {why}"
+    return [{'id': 'year-trend', 'type': 'year-trend', 'cat': 'history', 'art': 'bars', 'limit': 90, 'novelty': .55, 'shows': words, 'caption': f'{headline} {why}', 'alt': f"Bar chart of {fuel} as a share of Britain's power each year: {yearly}.",
+             'spec': {'art': 'bars', 'eyebrow': f'{first} TO {last}, YEAR BY YEAR', 'headline': headline, 'bars': bars, 'values': True, 'fuel': 'hydro' if fuel == 'imports' else fuel,
+                      'rows': [[f'{first} average', fmt(a)], [f'{last} average', fmt(b)]], 'note': why, 'foot': ['Yearly averages. NESO Carbon Intensity API.']}}]
 
 
 def repd_rows():
@@ -146,7 +155,7 @@ def new_sites(rows, posted):
 def build(now, posted):
     """Each source is optional: if one fails the agent simply has fewer ideas that day."""
     out = []
-    for name, fn in (('on this day', lambda: on_this_day(now)), ('growth', lambda: growth(repd_rows(), now)), ('new sites', lambda: new_sites(repd_rows(), posted))):
+    for name, fn in (('year trend', lambda: year_trend(now)), ('growth', lambda: growth(repd_rows(), now)), ('new sites', lambda: new_sites(repd_rows(), posted))):
         try:
             out += fn()
         except Exception as e:

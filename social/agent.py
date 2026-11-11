@@ -75,7 +75,7 @@ def score_posts(history):
 
 def category_of(kind):
     lead = kind.split('|')[0]
-    return 'explain' if lead == 'explainer' else 'new' if lead == 'new-site' else 'history' if lead in ('on-this-day', 'growth') else 'fact' if lead == 'fact' else 'now'
+    return 'explain' if lead == 'explainer' else 'new' if lead == 'new-site' else 'history' if lead in ('year-trend', 'growth') else 'fact' if lead == 'fact' else 'now'
 
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -180,7 +180,7 @@ Truth rules, which matter more than being catchy:
 - "lessons_so_far" lists what we have learned from earlier posts. Apply every one of them, but they never override the truth rules.
 - "Renewable" only means wind, solar, hydro and biomass. A low renewable share doesn't mean a place is dirty or doing badly: it may be running on nuclear or imports. Never quote a region's low renewable share on its own. Say what it is mainly running on, using "mainly_running_on" in the data, and compare places only in a way that is fair to both.
 - Mention an occasion only if the data names one under "occasion_today".
-- The on-this-day slide uses metered main-grid figures, which differ from the wider "right now" mix. Never give both figures for the same fuel in one post, and call the on-this-day figure "on the main grid".
+- The year-trend slide shows yearly averages. Always say they are yearly averages, never mix them with a "right now" figure for the same fuel, and explain the change only with the reason given in its "shows" text (it comes from published sources). Never compare a single day with another single day.
 - The figures are forecasts and estimates, so say "right now" or "around" rather than sounding exact to the kilowatt.
 
 Clarity, which matters as much as the truth rules: every sentence has to make sense the first time it is read, by someone who knows nothing about the energy grid. One idea per sentence. Say the plain thing rather than a figure of speech ("doing more of the work", "the timing is yours to play with"). The caption has to stand on its own, because many people read it without swiping, so don't answer a question it hasn't asked yet. If a guess is used, ask it in the caption first. Read each sentence back and rewrite any that needs reading twice.
@@ -240,8 +240,8 @@ def check_plan(plan, ideas, sheet, album):
         if len({s['id'] for s in plan['slides']}) != len(plan['slides']):
             problems.append('a slide is used twice')
         ids = {s['id'] for s in plan['slides']}
-        if 'on-this-day' in ids and any(x.startswith('fuel-') for x in ids):
-            problems.append('on-this-day uses main-grid figures, so it cannot share an album with a fuel-mix slide')
+        if 'year-trend' in ids and any(x.startswith('fuel-') for x in ids):
+            problems.append('year-trend shows yearly averages, so it cannot share an album with a right-now fuel-mix slide')
     elif len(plan['slides']) != 1:
         problems.append('a single post needs exactly one slide')
     if len(plan['caption']) > 1800:
@@ -327,7 +327,7 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
 PHOTOS = json.loads((pathlib.Path(__file__).resolve().parent / 'photos.json').read_text(encoding='utf8'))
 POSTER_COLOURS = {'now': ['sun', 'mint', 'blue'], 'history': ['sun', 'paper', 'mint'], 'new': ['blue', 'mint'], 'explain': ['lilac'], 'fact': ['coral', 'paper']}
 LOOK_WEIGHT = {'photo': 0, 'flag': .1, 'price': .1, 'battery': .1, 'scene': .2, 'poster': .6}
-SUBJECTS = {'fuel-wind': ('wind', ['offshore', 'onshore']), 'fuel-solar': ('solar', ['solar']), 'fuel-gas': ('gas', ['gas']), 'fuel-nuclear': ('nuclear', ['nuclear']), 'fuel-imports': ('pylons', ['pylons']), 'gas-origin': ('hob', ['gas_import']), 'day': ('wash', []), 'prices': ('pylons', ['pylons']), 'league': ('wind', ['pylons']), 'divide': ('pylons', ['pylons']), 'on-this-day': ('pylons', ['pylons']), 'growth-battery': (None, []), 'growth-solar-photovoltaics': ('solar', ['solar']), 'growth-wind-offshore': ('wind', ['offshore']), 'growth-wind-onshore': ('wind', ['onshore'])}
+SUBJECTS = {'fuel-wind': ('wind', ['offshore', 'onshore']), 'fuel-solar': ('solar', ['solar']), 'fuel-gas': ('gas', ['gas']), 'fuel-nuclear': ('nuclear', ['nuclear']), 'fuel-imports': ('pylons', ['pylons']), 'gas-origin': ('hob', ['gas_import']), 'day': ('wash', []), 'prices': ('pylons', ['pylons']), 'league': ('wind', ['pylons']), 'divide': ('pylons', ['pylons']), 'year-trend': ('pylons', ['pylons']), 'growth-battery': (None, []), 'growth-solar-photovoltaics': ('solar', ['solar']), 'growth-wind-offshore': ('wind', ['offshore']), 'growth-wind-onshore': ('wind', ['onshore'])}
 FACT_SUBJECTS = [(r'hydro|\bdam\b|reservoir|Cruachan|Dinorwig|pumped', ('hydro', ['hydro'])), (r'nuclear|Sizewell|Calder Hall|Torness', ('nuclear', ['nuclear'])), (r'wind|turbine', ('wind', ['offshore', 'onshore'])), (r'solar', ('solar', ['solar'])), (r'\bgas\b|North Sea|LNG', ('hob', ['gas_import']))]
 
 
