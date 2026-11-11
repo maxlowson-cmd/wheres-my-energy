@@ -575,6 +575,8 @@ def main():
             parts[0] = (parts[0][0], {**first, 'cover': {**cover, 'text': first['text'], 'eyebrow': first['eyebrow'], 'swipe': True}})
         else:
             words = (parts[0][1] or {}).get('text') or spec.get('headline') or spec.get('sub') or re.split(r'(?<=[.!?])\s', spec.get('text', ''))[0]
+            if spec.get('big') and cover.get('look') not in ('scene', 'photo', 'poster', 'battery') and words[:1].islower():
+                words = f"{spec['big']} {words}"  # this cover style doesn't show the big figure, so the words must carry it
             parts = [('cover', {'cover': {**cover, 'big': spec.get('big'), 'text': words, 'eyebrow': spec.get('eyebrow', ''), 'note': 'Look up your area at the link in our bio.'}})]
         if parts[-1][0] == 'closing':
             shade = random.Random(f'{today}{slot}end').choice(POSTER_COLOURS[pick.get('cat', 'now')])
