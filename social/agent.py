@@ -524,7 +524,8 @@ def main():
         sheet = page.evaluate('WMESocial.facts()')
         signoff = page.evaluate('WMESocial.signoff')
         day = dt.date.fromisoformat(today)
-        album = pick['novelty'] >= .8 or day.weekday() in (1, 3, 6) or os.environ.get('MOCK_ALBUM', '').startswith('album')
+        last = history[0]['type'] if history else ''
+        album = '|single|' in last or not history or os.environ.get('MOCK_ALBUM', '').startswith('album')  # take turns, so the feed mixes single images with posts of a few pages
         if DRY and os.environ.get('MOCK_ALBUM', '').startswith('single'):
             album = False
         angle = pick_angle(history, f'{today}{slot}')
@@ -566,15 +567,15 @@ def main():
             kind = f"{pick['type']}|{'album' if album else 'single'}|{angle}"
         spec = page.evaluate('id => WMESocial.spec(id)', pick['id']) or {}
         explainer = kind.startswith('explainer')
+        lead_part = next((p for p in parts if p[0] not in ('cover', 'hook', 'closing')), parts[0])
+        story_over = {k: v for k, v in (lead_part[1] or {}).items() if k not in ('cover', 'swipe')} or None
         cover, label, credit = choose_cover(pick, spec, sheet, history, album, explainer, f'{today}{slot}cover')
         if album:
             first = parts[0][1]
             parts[0] = (parts[0][0], {**first, 'cover': {**cover, 'text': first['text'], 'eyebrow': first['eyebrow'], 'swipe': True}})
         else:
-            words = spec.get('headline') or spec.get('sub') or re.split(r'(?<=[.!?])\s', spec.get('text', ''))[0]
-            parts.insert(0, ('cover', {'cover': {**cover, 'big': spec.get('big'), 'text': words, 'eyebrow': spec.get('eyebrow', ''), 'swipe': True}}))
-            parts.append(('closing', {'text': "What's powering your area right now? Look it up in seconds.", 'label': 'NOW FOR YOUR AREA'}))
-            album = True
+            words = (parts[0][1] or {}).get('text') or spec.get('headline') or spec.get('sub') or re.split(r'(?<=[.!?])\s', spec.get('text', ''))[0]
+            parts = [('cover', {'cover': {**cover, 'big': spec.get('big'), 'text': words, 'eyebrow': spec.get('eyebrow', ''), 'note': 'Look up your area at the link in our bio.'}})]
         if parts[-1][0] == 'closing':
             shade = random.Random(f'{today}{slot}end').choice(POSTER_COLOURS[pick.get('cat', 'now')])
             parts[-1] = ('closing', {**parts[-1][1], 'cover': {'look': 'poster', 'colour': shade, 'text': parts[-1][1]['text'], 'eyebrow': parts[-1][1].get('label', 'WHAT IT MEANS FOR YOU'), 'note': 'Put in your postcode at the link in our bio.'}})
@@ -586,8 +587,6 @@ def main():
         if fact and any(a == 'fact' for a, _ in parts):
             kind += f'|{fact_tag(fact)}'
         print('cover', label)
-        lead_part = next((p for p in parts if p[0] not in ('cover', 'hook', 'closing')), parts[0])
-        story_over = {k: v for k, v in (lead_part[1] or {}).items() if k not in ('cover', 'swipe')} or None
         if DRY:
             OUT.mkdir(exist_ok=True)
             for n, (a, over) in enumerate(parts):
