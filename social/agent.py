@@ -577,7 +577,9 @@ def main():
             words = (parts[0][1] or {}).get('text') or spec.get('headline') or spec.get('sub') or re.split(r'(?<=[.!?])\s', spec.get('text', ''))[0]
             if spec.get('big') and cover.get('look') not in ('scene', 'photo', 'poster', 'battery') and words[:1].islower():
                 words = f"{spec['big']} {words}"  # this cover style doesn't show the big figure, so the words must carry it
-            parts = [('cover', {'cover': {**cover, 'big': spec.get('big'), 'text': words, 'eyebrow': spec.get('eyebrow', ''), 'note': 'Look up your area at the link in our bio.'}})]
+            parts = [('cover', {'cover': {**cover, 'big': spec.get('big'), 'text': words, 'eyebrow': spec.get('eyebrow', ''), 'swipe': True}}),
+                     ('closing', {'text': "What's powering your area right now? Look it up in seconds.", 'label': 'NOW FOR YOUR AREA'})]
+            album = True  # a single post is one main image plus the page inviting people to look up their area
         if parts[-1][0] == 'closing':
             shade = random.Random(f'{today}{slot}end').choice(POSTER_COLOURS[pick.get('cat', 'now')])
             parts[-1] = ('closing', {**parts[-1][1], 'cover': {'look': 'poster', 'colour': shade, 'text': parts[-1][1]['text'], 'eyebrow': parts[-1][1].get('label', 'WHAT IT MEANS FOR YOU'), 'note': 'Put in your postcode at the link in our bio.'}})
