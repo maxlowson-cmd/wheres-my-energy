@@ -16,14 +16,14 @@
     --go-ink: #f2fbf7;
     --stop: #a8481a;
     --bar: #a9c0b8;
-    --gas: #c8553d; --wind: #2f7fb5; --nuclear: #6a4fa3; --imports: #b0719a; --biomass: #6f8f3a; --solar: #d9a21b; --hydro: #2aa198; --coal: #55524d; --other: #8d8577;
+    --gas: #c8553d; --wind: #2f7fb5; --nuclear: #6a4fa3; --imports: #b0719a; --biomass: #6f8f3a; --solar: #d9a21b; --hydro: #2aa198; --coal: #2f2d2b; --other: #8d8577;
     --display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
     --body: "Figtree", "Segoe UI", system-ui, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --bg: #0f211d; --panel: #18302a; --ink: #e6f2ee; --muted: #9db8b0; --line: #2d4a42; --go: #4fd6a2; --go-ink: #08261d; --stop: #f0a077; --bar: #3f5f56; --gas: #e0735c; --wind: #58a6da; --nuclear: #9a82d6; --imports: #cf93b9; --biomass: #9dbb5f; --solar: #e8bb49; --hydro: #4cc4ba; --coal: #8f8b84; --other: #aaa294; color-scheme: dark; }
+    :root:not([data-theme="light"]) { --bg: #0f211d; --panel: #18302a; --ink: #e6f2ee; --muted: #9db8b0; --line: #2d4a42; --go: #4fd6a2; --go-ink: #08261d; --stop: #f0a077; --bar: #3f5f56; --gas: #e0735c; --wind: #58a6da; --nuclear: #9a82d6; --imports: #cf93b9; --biomass: #9dbb5f; --solar: #e8bb49; --hydro: #4cc4ba; --coal: #5f5a54; --other: #d2cbbe; color-scheme: dark; }
   }
-  :root[data-theme="dark"] { --bg: #0f211d; --panel: #18302a; --ink: #e6f2ee; --muted: #9db8b0; --line: #2d4a42; --go: #4fd6a2; --go-ink: #08261d; --stop: #f0a077; --bar: #3f5f56; --gas: #e0735c; --wind: #58a6da; --nuclear: #9a82d6; --imports: #cf93b9; --biomass: #9dbb5f; --solar: #e8bb49; --hydro: #4cc4ba; --coal: #8f8b84; --other: #aaa294; color-scheme: dark; }
+  :root[data-theme="dark"] { --bg: #0f211d; --panel: #18302a; --ink: #e6f2ee; --muted: #9db8b0; --line: #2d4a42; --go: #4fd6a2; --go-ink: #08261d; --stop: #f0a077; --bar: #3f5f56; --gas: #e0735c; --wind: #58a6da; --nuclear: #9a82d6; --imports: #cf93b9; --biomass: #9dbb5f; --solar: #e8bb49; --hydro: #4cc4ba; --coal: #5f5a54; --other: #d2cbbe; color-scheme: dark; }
 
   [hidden] { display: none !important; }
   body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.5; }
@@ -1094,7 +1094,7 @@
   const whenText = (t) => `${dayKey.format(new Date(t)) === dayKey.format(new Date()) ? 'today' : weekday.format(new Date(t))} at ${clock.format(new Date(t))}`;
 
   /* sharing: the card and link only ever carry the postcode district, never the address typed in */
-  const CARD = { bg: '#dfeae6', panel: '#f4f8f6', ink: '#10302a', muted: '#4c6a62', line: '#bfd2cb', gas: '#c8553d', wind: '#2f7fb5', nuclear: '#6a4fa3', imports: '#b0719a', biomass: '#6f8f3a', solar: '#d9a21b', hydro: '#2aa198', coal: '#55524d', other: '#8d8577' };
+  const CARD = { bg: '#dfeae6', panel: '#f4f8f6', ink: '#10302a', muted: '#4c6a62', line: '#bfd2cb', gas: '#c8553d', wind: '#2f7fb5', nuclear: '#6a4fa3', imports: '#b0719a', biomass: '#6f8f3a', solar: '#d9a21b', hydro: '#2aa198', coal: '#2f2d2b', other: '#8d8577' };
   const CARD_RENEW = ['wind', 'solar', 'hydro', 'biomass'];
   let share = null;
   const sheet = $('shareSheet');
@@ -1107,7 +1107,7 @@
   }
   /* one layout for every slide: a headline, then whichever of bar, chart and rows that slide has */
   /* story images, 1080 x 1920: everything important stays between y 250 and y 1680, clear of Instagram's own buttons */
-  const DK = { ink: '#f0f8f5', muted: '#a3beb6', go: '#4fd6a2', land: '#1b4a3e', line: 'rgba(124,240,196,.32)', track: 'rgba(240,248,245,.10)', stop: '#ff8a70', gas: '#e0735c', wind: '#58a6da', nuclear: '#9a82d6', imports: '#cf93b9', biomass: '#9dbb5f', solar: '#e8bb49', hydro: '#4cc4ba', coal: '#8f8b84', other: '#aaa294' };
+  const DK = { ink: '#f0f8f5', muted: '#a3beb6', go: '#4fd6a2', land: '#1b4a3e', line: 'rgba(124,240,196,.32)', track: 'rgba(240,248,245,.10)', stop: '#ff8a70', gas: '#e0735c', wind: '#58a6da', nuclear: '#9a82d6', imports: '#cf93b9', biomass: '#9dbb5f', solar: '#e8bb49', hydro: '#4cc4ba', coal: '#5f5a54', other: '#d2cbbe' };
   const fuelDk = (k) => DK[k] || DK.other;
   /* each kind of post has its own colour, so a glance at the feed shows what's what */
   const CATEGORY = { now: '#4fd6a2', history: '#f2b84b', new: '#5db4f0', explain: '#b79cf2', fact: '#ff8a70' };

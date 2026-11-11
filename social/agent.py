@@ -191,7 +191,7 @@ Shape, which matters as much as clarity: every post is one of two shapes, and ne
 Pick "story" when the facts really connect, and "bulletin" when they don't.
 
 Slides: one thought per slide. In a story, the opening slide is a hook that opens a question and doesn't give the answer away, and each slide makes you want the next. In a bulletin, the opening slide says what the round-up is. The closing slide always ends by inviting the reader to look up their own area on the site, using the words "your area", "your postcode" or "your region". Only promise what the site shows: what's powering their area right now, where their gas started out and the cleanest time to run the washing. If there's room, wrap up the post's subject first in one short line. Keep to the character limit given for each slide. A slide's text sits beside the chart or map it describes, so it must match that slide's figures.
-Some slides show a big figure in large type with your words straight underneath it ("big_figure_above_your_words"). People read the two together, so carry on from the figure and never repeat it. Under "57%", for example: "of Britain's power is coming from gas right now. Over the last year it averaged 25%." Write every slide in plain sentences, never as notes or labels such as "All of Britain: gas around 57% now."
+Some slides show a big figure in large type with your words straight underneath it ("big_figure_above_your_words"). People read the two together, so carry on from the figure and never repeat it. Under "57%", for example: "of Britain's power is coming from gas right now. Over the last year it averaged 25%." Some slides also have a small header label at the top ("header_label"), such as "2019 TO 2025, YEAR BY YEAR". It is only a label: your words must make complete sense without it, so never start or finish a sentence from it, and say any year, place or time your sentence needs. Write every slide in plain sentences, never as notes or labels such as "All of Britain: gas around 57% now."
 
 Angles:
 - guess: ask the reader to guess something, with the answer on the next swipe or later in the caption.
@@ -268,7 +268,7 @@ You are told the post's shape. If it is a "story", also flag any jump: a place i
 
 You only see the words. Each slide sits beside a chart or map that carries the rest of its figures, so don't flag a slide for leaving out part of a breakdown. If "already_raised" is given, this is a rewrite: check only whether those points are now fixed, and raise something new only if a line makes no sense at all.
 
-Some slides start with a big figure shown in large type, written in square brackets; the words underneath are read straight after it. Flag a slide that repeats that figure or that reads as notes or labels rather than sentences, such as "All of Britain: gas around 57% now. 12-month average: 25%."
+Some slides start with a big figure shown in large type, written in square brackets; the words underneath are read straight after it. Some slides have a small header label, shown in round brackets; it is only a label. Flag a slide whose words only make sense if read on from that header (for example a header "THIS DAY IN 2018" then "36% of our grid power came from gas", which leaves the year to the header). Flag a slide that repeats the big figure or that reads as notes or labels rather than sentences, such as "All of Britain: gas around 57% now. 12-month average: 25%."
 
 Quote the exact words and say in a few words what is unclear. Don't flag tone, style, length or the figures themselves. Units such as MW or grams of CO2 are fine when the post gives a sense of scale or comparison. Flag only what would really trip someone up, and list at most the two worst. A post doesn't have to explain every term: never ask for more explanation of a single fact, such as why a time is cleaner or what CO2 is. Different figures can come from different sources, so don't flag those. If everything is clear first time, return an empty list."""
 EDITOR_SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['unclear'], 'properties': {'unclear': {'type': 'array', 'items': {'type': 'string'}}}}
@@ -299,7 +299,7 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
     import anthropic
     client = anthropic.Anthropic()
     brief = {'data': {**sheet, 'occasion_today': moment_today(today)}, 'how_things_connect': HOW_THINGS_CONNECT, 'lessons_so_far': [x['lesson'] for x in LESSONS if x['area'] == 'writing'], 'format': 'album' if album else 'single image', 'angle_to_use': angle, 'lead_slide_id': lead['id'],
-             'available_slides': [{'id': i['id'], 'shows': i['shows'], 'character_limit': i['limit'], 'interest_score': round(i['novelty'], 2), **({'big_figure_above_your_words': i['big']} if i.get('big') else {})} for i in ideas],
+             'available_slides': [{'id': i['id'], 'shows': i['shows'], 'character_limit': i['limit'], 'interest_score': round(i['novelty'], 2), **({'big_figure_above_your_words': i['big']} if i.get('big') else {}), **({'header_label': i['eyebrow']} if i.get('eyebrow') else {})} for i in ideas],
              'instructions': ('Choose the shape first, story or bulletin. Then write 2 to 5 chart slides in order, plus the hook and closing. The post is about the lead slide, so it must be included, usually first. In a story, use only the slides that belong to its thread. Hook at most 90 characters, kicker at most 28, closing at most 140. The fact slide cannot be reworded.' if album else 'Write exactly one slide: the lead slide. Leave hook, hook_kicker and closing as empty strings.'),
              'recent_captions_to_avoid_repeating': recent}
     messages = [{'role': 'user', 'content': json.dumps(brief, ensure_ascii=False)}]
@@ -313,8 +313,8 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
         plan = json.loads(text)
         problems = check_plan(plan, ideas, sheet, album) + ([] if any(s['id'] == lead['id'] for s in plan['slides']) else [f"the post must include the lead slide {lead['id']}"])
         if not problems:
-            big = {i['id']: i.get('big') for i in ideas}
-            shown = {**plan, 'slides': [{**s, 'text': f"[{big[s['id']]} in large type] {s['text']}" if big.get(s['id']) else s['text']} for s in plan['slides']]}
+            big, head = {i['id']: i.get('big') for i in ideas}, {i['id']: i.get('eyebrow') for i in ideas}
+            shown = {**plan, 'slides': [{**s, 'text': (f"(header label: {head[s['id']]}) " if head.get(s['id']) else '') + (f"[{big[s['id']]} in large type] {s['text']}" if big.get(s['id']) else s['text'])} for s in plan['slides']]}
             problems = unclear_lines(client, shown, album, raised)
             raised += problems
         print('wording check', attempt, problems or 'passed')
@@ -530,8 +530,8 @@ def main():
             album = False
         angle = pick_angle(history, f'{today}{slot}')
         print('format', 'album' if album else 'single', 'angle', angle)
-        for idea, big in zip(ideas, page.evaluate('ids => ids.map((id) => String((WMESocial.spec(id) || {}).big || ""))', [i['id'] for i in ideas])):
-            idea['big'] = big
+        for idea, (big, eyebrow) in zip(ideas, page.evaluate('ids => ids.map((id) => [String((WMESocial.spec(id) || {}).big || ""), String((WMESocial.spec(id) || {}).eyebrow || "")])', [i['id'] for i in ideas])):
+            idea['big'], idea['eyebrow'] = big, eyebrow
         plan = None if explainer_due(history) or os.environ.get('MOCK_ALBUM') == 'explain' else write_plan(pick, ideas, sheet, angle, album, [r.get('caption', '')[:200] for r in history[:7]], day)
         if plan is None and DRY and os.environ.get('MOCK_ALBUM') == '1':
             lead = [pick['id']] + [i['id'] for i in ideas if i['id'] != pick['id'] and i['type'] != 'fact'][:3]
