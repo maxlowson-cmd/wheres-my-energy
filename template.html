@@ -1269,7 +1269,7 @@
         if (i % 2 === 0 || last || s.values) { setFont(c, 28, 600, BODY); c.fillStyle = DK.muted; c.textAlign = 'center'; c.fillText(label, M + i * step + step / 2, top + h + 46); c.textAlign = 'left'; }
       });
       colourList(c, s.rows.map(([a, b], i) => [i ? col : col + '88', a, b]), M, 1370, W - 2 * M, 38, 64);
-      if (s.note) textLines(c, s.note, M, 1500, W - 2 * M, 30, 500, BODY, DK.muted, 1.25, 3);
+      if (s.note) textLines(c, s.note, M, 1484, W - 2 * M, 30, 500, BODY, DK.muted, 1.22, 3);
       storyChrome(c, s);
     },
     league(c, s) {
