@@ -183,7 +183,12 @@
   .dots { display: flex; gap: .4rem; flex: 1; }
   .dot { width: .6rem; height: .6rem; padding: 0; border: 0; border-radius: .3rem; background: var(--bar); cursor: pointer; transition: width .25s; }
   .dot[aria-current="true"] { width: 1.6rem; background: var(--go); }
-  .next { flex: none; font: inherit; font-weight: 600; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .55rem 1.1rem; cursor: pointer; }
+  .next { flex: none; font: inherit; font-weight: 600; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: .55rem 1.1rem; cursor: pointer; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (max-width: 560px) { /* phones: dots get their own line so the Next button always fits */
+    .nav { flex-wrap: wrap; row-gap: .7rem; }
+    .dots { order: -1; flex: 1 0 100%; justify-content: center; }
+    .next { flex: 1 1 0; }
+  }
   .stamp { margin: 0; font-size: .85rem; color: var(--muted); }
 
   @media (prefers-reduced-motion: no-preference) { .answer.fresh { animation: rise .35s ease-out; } @keyframes rise { from { opacity: .3; transform: translateY(8px); } to { opacity: 1; transform: none; } } }
