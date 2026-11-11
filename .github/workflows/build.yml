@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false  # let a running publish finish; a newer run waits rather than cancelling it (a cancel shows as a failure)
 
 jobs:
   build:

@@ -1,6 +1,6 @@
 """Fetch the 48-hour regional carbon forecast plus GB grid data, and write index.html from template.html + lookup.json."""
 from html import escape as esc_html
-import json, pathlib, shutil, subprocess, sys, urllib.request, datetime as dt, collections
+import json, pathlib, shutil, subprocess, sys, time, urllib.error, urllib.request, datetime as dt, collections
 
 HERE = pathlib.Path(__file__).resolve().parent
 FUELS = ['gas', 'wind', 'nuclear', 'imports', 'biomass', 'solar', 'hydro', 'coal', 'other']
@@ -28,9 +28,20 @@ def uk_midnight(day):
 
 midnight = uk_midnight(today_uk)
 yesterday = uk_midnight(today_uk - dt.timedelta(days=1))
+def fetch(req):
+    """Open a URL, retrying one-off server errors and timeouts rather than failing the whole build."""
+    for attempt in range(4):
+        try:
+            return urllib.request.urlopen(req, timeout=60)
+        except (urllib.error.URLError, TimeoutError) as e:
+            if attempt == 3 or (isinstance(e, urllib.error.HTTPError) and e.code < 500 and e.code != 429):
+                raise
+            time.sleep(5 * (attempt + 1))
+
+
 url = f'https://api.carbonintensity.org.uk/regional/intensity/{midnight:%Y-%m-%dT%H:%MZ}/fw48h'
 req = urllib.request.Request(url, headers={'Accept': 'application/json', 'User-Agent': 'when-to-run/1.0'})
-with urllib.request.urlopen(req, timeout=60) as r:
+with fetch(req) as r:
     rows = [x for x in json.load(r)['data'] if x['from'] >= midnight.strftime('%Y-%m-%dT%H:%MZ')]
 regions = {i: [] for i in range(1, 15)}
 mix = {i: [] for i in [*range(1, 15), 18]}  # 18 is the whole of Great Britain
@@ -53,7 +64,7 @@ for m in grid['mix_now']:
 top_import = imports.most_common(1)[0][0] if imports else None
 B = 'https://data.elexon.co.uk/bmrs/api/v1'
 def get(u):
-    with urllib.request.urlopen(urllib.request.Request(u, headers={'Accept': 'application/json', 'User-Agent': 'where-my-energy/1.0'}), timeout=60) as r:
+    with fetch(urllib.request.Request(u, headers={'Accept': 'application/json', 'User-Agent': 'where-my-energy/1.0'})) as r:
         return json.load(r)['data']
 system = {x['startTime']: float(x['systemSellPrice']) for day in (today_uk - dt.timedelta(days=1), today_uk) for x in get(f'{B}/balancing/settlement/system-prices/{day}?format=json')}
 market = {x['startTime']: x['price'] for x in get(f"{B}/datasets/MID?from={yesterday:%Y-%m-%dT%H:%MZ}&to={now:%Y-%m-%dT%H:%MZ}&format=json") if x['dataProvider'] == 'APXMIDP' and x['price']}

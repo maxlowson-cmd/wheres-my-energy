@@ -3,7 +3,7 @@
 Sources: Elexon BMRS Insights API and the National Grid ESO Carbon Intensity API (both free, no key).
 Run: python refresh.py   -> writes grid_snapshot.json next to this file and prints a one-line summary.
 """
-import json, collections, datetime as dt, urllib.request, pathlib, sys
+import json, collections, datetime as dt, time, urllib.error, urllib.request, pathlib, sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 B = 'https://data.elexon.co.uk/bmrs/api/v1'
@@ -13,8 +13,14 @@ POSTCODE = 'SW9'
 
 def get(url):
     req = urllib.request.Request(url, headers={'Accept': 'application/json', 'User-Agent': 'gb-grid-live/1.0'})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.load(r)
+    for attempt in range(4):  # retry one-off server errors and timeouts
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.load(r)
+        except (urllib.error.URLError, TimeoutError) as e:
+            if attempt == 3 or (isinstance(e, urllib.error.HTTPError) and e.code < 500 and e.code != 429):
+                raise
+            time.sleep(5 * (attempt + 1))
 
 
 def last_sunday(year, month):

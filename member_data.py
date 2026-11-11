@@ -1,5 +1,5 @@
 """Last 30 days of real Agile prices and carbon, summarised per region, plus current Agile prices. Writes member.json."""
-import json, pathlib, urllib.request, datetime as dt
+import json, pathlib, time, urllib.error, urllib.request, datetime as dt
 
 HERE = pathlib.Path(__file__).resolve().parent
 GSP = {1: 'P', 2: 'N', 3: 'G', 4: 'F', 5: 'M', 6: 'D', 7: 'K', 8: 'E', 9: 'B', 10: 'A', 11: 'L', 12: 'H', 13: 'C', 14: 'J'}
@@ -26,8 +26,14 @@ def at_uk(day, hour=0):
 
 def get(url):
     req = urllib.request.Request(url, headers={'Accept': 'application/json', 'User-Agent': 'where-my-energy/2.0'})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.load(r)
+    for attempt in range(4):  # the data APIs sometimes return a one-off server error; try again before giving up
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.load(r)
+        except (urllib.error.URLError, TimeoutError) as e:
+            if attempt == 3 or (isinstance(e, urllib.error.HTTPError) and e.code < 500 and e.code != 429):
+                raise
+            time.sleep(5 * (attempt + 1))
 
 
 def parse(s):
