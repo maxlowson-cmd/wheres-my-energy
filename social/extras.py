@@ -216,9 +216,9 @@ def new_sites(rows, posted):
             continue
         kind, fuel = {'Solar Photovoltaics': ('solar farm', 'solar'), 'Wind Onshore': ('wind farm', 'wind'), 'Wind Offshore': ('offshore wind farm', 'wind'), 'Battery': ('battery site', 'hydro')}[r['Technology Type']]
         place = (r.get('County') or r.get('Region') or '').strip()
-        words = f"{name}, a {round(mw)} MW {kind}{' in ' + place if place else ''}, started operating in {when:%B %Y}."
+        words = f"{name}, a new {kind}{' in ' + place if place else ''}, started operating in {when:%B %Y}. It can make up to {round(mw)} MW of power."
         return [{'id': 'new-site', 'type': 'new-site', 'cat': 'new', 'art': 'map', 'limit': 60, 'novelty': .8, 'shows': words, 'caption': words, 'alt': words,
-                 'spec': {'art': 'map', 'glow': None, 'fuelGlow': fuel, 'eyebrow': 'NEW ON THE GRID', 'big': f'{round(mw)} MW', 'sub': f'{kind} now running: {name}.', 'list': [], 'spot': to_xy(lat, lon), 'spotFuel': fuel, 'spotLabel': name, 'foot': [f'Started operating {when:%B %Y}. Government planning database.']}}]
+                 'spec': {'art': 'map', 'glow': None, 'fuelGlow': fuel, 'eyebrow': 'NEW ON THE GRID', 'big': f'Up to {round(mw)} MW', 'sub': f'New {kind} now running: {name}.', 'list': [], 'spot': to_xy(lat, lon), 'spotFuel': fuel, 'spotLabel': name, 'foot': [f'Started operating {when:%B %Y}. Government planning database.']}}]
     return []
 
 
