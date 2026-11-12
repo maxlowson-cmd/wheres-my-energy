@@ -77,6 +77,11 @@ WHY = {
 NAME = {'gas': 'Gas', 'wind': 'Wind', 'nuclear': 'Nuclear', 'coal': 'Coal', 'imports': 'Imports', 'solar': 'Solar'}
 
 
+def pct(v):
+    """Round .5 upwards, the way the charts do, so the words and the bars never disagree (Python's round() sends 12.5 to 12)."""
+    return int(math.floor(v + .5))
+
+
 def year_trend(now):
     """One fuel's share of Britain's power, as a yearly average for every full year since 2019, with the published reason it changed.
     Whole years against whole years shows the trend; a single day against a single day mostly shows the weather."""
@@ -86,7 +91,7 @@ def year_trend(now):
     share = lambda y, f: data['years'][y]['mix'].get(f, 0)
     fuel = random.Random(f'{now.date()}trend').choice([f for f in WHY if abs(share(last, f) - share(first, f)) >= 1])
     a, b = share(first, fuel), share(last, fuel)
-    fmt = lambda v: f'{v:.1f}%' if v < 2 else f'{round(v)}%'
+    fmt = lambda v: f'{v:.1f}%' if v < 2 else f'{pct(v)}%'
     bars = [[y, round(share(y, fuel), 1)] for y in years]
     why = WHY[fuel][1]
     headline = (f"{NAME[fuel]} made {fmt(a)} of Britain's power in {first}. In {last}: {fmt(b)}." if b >= .5 else f"{NAME[fuel]} made {fmt(a)} of Britain's power in {first}. By {last}, none.")
@@ -156,11 +161,11 @@ def mix_years(now):
     share = lambda y, f: data['years'][y]['mix'].get(f, 0)
     pages = []
     for i, y in enumerate(years):
-        mix = sorted(((k, round(v)) for k, v in data['years'][y]['mix'].items() if v >= 3), key=lambda x: -x[1])
+        mix = sorted(((k, pct(v)) for k, v in data['years'][y]['mix'].items() if v >= 3), key=lambda x: -x[1])
         text = f"{y}: what powered Britain, averaged over the whole year." + (' Swipe for each year since.' if i == 0 else '')
         pages.append({'look': 'flag', 'text': text, 'mix': [list(x) for x in mix]})
     moved = sorted((f for f in WHY if f != 'coal'), key=lambda f: -abs(share(last, f) - share(first, f)))[:2]
-    change = ' '.join(f"{NAME[f]} went from {round(share(first, f))}% to {round(share(last, f))}%." for f in moved)
+    change = ' '.join(f"{NAME[f]} went from {pct(share(first, f))}% to {pct(share(last, f))}%." for f in moved)
     why = ' '.join(WHY[f][1] for f in moved)
     caption = f"What powered Britain each year since {first}, averaged over the whole year. {change} {why}\n\nYearly averages from the NESO Carbon Intensity API."
     return [{'id': 'mix-years', 'type': 'mix-years', 'cat': 'history', 'art': 'pages', 'limit': 90, 'novelty': .6, 'pages': pages, 'shows': caption, 'caption': caption,
