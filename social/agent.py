@@ -243,6 +243,8 @@ def check_plan(plan, ideas, sheet, album):
         ids = {s['id'] for s in plan['slides']}
         if 'year-trend' in ids and any(x.startswith('fuel-') for x in ids):
             problems.append('year-trend shows yearly averages, so it cannot share an album with a right-now fuel-mix slide')
+        if any(x in ('demand-years', 'bills-years') for x in ids) and any(category_of(x) == 'now' for x in ids):
+            problems.append('demand-years and bills-years are whole-year figures, so they cannot share an album with right-now slides; tell that story on its own')
     elif len(plan['slides']) != 1:
         problems.append('a single post needs exactly one slide')
     if len(plan['caption']) > 1800:
@@ -571,7 +573,8 @@ def main():
             if ANTHROPIC_KEY and not DRY:
                 relay('telegram', text='Instagram agent used plain template wording today because the written version failed its checks.')
         else:
-            caption, alt = plan['caption'].strip() + signoff, plan['alt']
+            sources = [i['source'] for i in ideas if i.get('source') and i['id'] in {s['id'] for s in plan['slides']}]
+            caption, alt = plan['caption'].strip() + (signoff.replace('Estimates from the NESO Carbon Intensity forecast.', 'Figures: ' + '; '.join(sources) + '.') if sources else signoff), plan['alt']
             parts = [(s['id'], no_text(s)) for s in plan['slides']]
             if album:
                 parts = [('hook', {'text': plan['hook'], 'eyebrow': plan['hook_kicker'].upper(), 'cat': cat})] + [(a, {**(o or {}), 'cat': cat}) for a, o in parts] + [('closing', {'text': plan['closing'], 'cat': cat})]
