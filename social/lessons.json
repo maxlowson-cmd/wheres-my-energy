@@ -1,56 +1,62 @@
 [
- {
-  "date": "2026-11-09",
-  "area": "writing",
-  "source": "owner feedback",
-  "lesson": "Say the plain thing. Readers stumble on figures of speech such as \"gas is doing more of the work\" or \"the timing is yours to play with\"."
- },
- {
-  "date": "2026-11-09",
-  "area": "writing",
-  "source": "owner feedback",
-  "lesson": "Compare places fairly. A low renewable share means little without saying what the place is running on, such as nuclear or imports."
- },
- {
-  "date": "2026-11-09",
-  "area": "visuals",
-  "source": "owner feedback",
-  "lesson": "A grid of repeated dark rectangles looks dull. Vary the covers and use real photos of power being generated."
- },
- {
-  "date": "2026-11-10",
-  "area": "writing",
-  "source": "owner feedback",
-  "lesson": "A post that is half story and half list feels broken. Either connect the parts properly, as batteries connect to prices by charging when power is cheap and selling when it is dear, or make it a clear round-up."
- },
- {
-  "date": "2026-11-10",
-  "area": "writing",
-  "source": "owner feedback",
-  "lesson": "Finishing on an invitation to look up your own area works well, because it sends people to the link in the bio."
- },
- {
-  "date": "2026-11-10",
-  "area": "planning",
-  "source": "owner feedback",
-  "lesson": "A little repetition is fine, but never the same pre-written post within a short window. When the first set of explainers runs out, review how posts have done before writing the next lot."
- },
- {
-  "date": "2026-11-11",
-  "area": "writing",
-  "source": "owner feedback",
-  "lesson": "Words under a big figure are read with it. Carry on from the figure in a plain sentence; never repeat it or write notes like \"All of Britain: gas around 57% now.\""
- },
- {
-  "date": "2026-11-11",
-  "area": "planning",
-  "source": "owner feedback",
-  "lesson": "Mix short posts (one main image, then a page inviting people to look up their area) with longer posts of a few pages. Every post ends on its own invite page. Stories fill the whole screen."
- },
- {
-  "date": "2026-11-11",
-  "area": "truth",
-  "source": "owner feedback",
-  "lesson": "Show change over time as yearly averages, year after year, so people see the trend. Never compare one day with one day from another year: that mostly shows the weather and looks like a figure picked to make a point. When numbers change a lot, say why, using only a published reason."
- }
+  {
+    "date": "2026-11-09",
+    "area": "writing",
+    "source": "owner feedback",
+    "lesson": "Say the plain thing. Readers stumble on figures of speech such as \"gas is doing more of the work\" or \"the timing is yours to play with\"."
+  },
+  {
+    "date": "2026-11-09",
+    "area": "writing",
+    "source": "owner feedback",
+    "lesson": "Compare places fairly. A low renewable share means little without saying what the place is running on, such as nuclear or imports."
+  },
+  {
+    "date": "2026-11-09",
+    "area": "visuals",
+    "source": "owner feedback",
+    "lesson": "A grid of repeated dark rectangles looks dull. Vary the covers and use real photos of power being generated."
+  },
+  {
+    "date": "2026-11-10",
+    "area": "writing",
+    "source": "owner feedback",
+    "lesson": "A post that is half story and half list feels broken. Either connect the parts properly, as batteries connect to prices by charging when power is cheap and selling when it is dear, or make it a clear round-up."
+  },
+  {
+    "date": "2026-11-10",
+    "area": "writing",
+    "source": "owner feedback",
+    "lesson": "Finishing on an invitation to look up your own area works well, because it sends people to the link in the bio."
+  },
+  {
+    "date": "2026-11-10",
+    "area": "planning",
+    "source": "owner feedback",
+    "lesson": "A little repetition is fine, but never the same pre-written post within a short window. When the first set of explainers runs out, review how posts have done before writing the next lot."
+  },
+  {
+    "date": "2026-11-11",
+    "area": "writing",
+    "source": "owner feedback",
+    "lesson": "Words under a big figure are read with it. Carry on from the figure in a plain sentence; never repeat it or write notes like \"All of Britain: gas around 57% now.\""
+  },
+  {
+    "date": "2026-11-11",
+    "area": "planning",
+    "source": "owner feedback",
+    "lesson": "Mix short posts (one main image, then a page inviting people to look up their area) with longer posts of a few pages. Every post ends on its own invite page. Stories fill the whole screen."
+  },
+  {
+    "date": "2026-11-11",
+    "area": "truth",
+    "source": "owner feedback",
+    "lesson": "Show change over time as yearly averages, year after year, so people see the trend. Never compare one day with one day from another year: that mostly shows the weather and looks like a figure picked to make a point. When numbers change a lot, say why, using only a published reason."
+  },
+  {
+    "date": "2026-11-12",
+    "area": "visuals",
+    "source": "owner feedback",
+    "lesson": "Real photo covers have had more views than graphics in the first nine posts (4 and 5 views against 0 to 4), so covers now lean towards photos, including how-it-works posts. Two how-it-works posts with the same lilac house picture looked like a repeat. Check views by cover look at the next review, since the numbers are still small."
+  }
 ]

@@ -10,7 +10,12 @@
       "It's an estimate from public data, because electricity all mixes on the grid. Nobody can trace it exactly."
     ],
     "closing": "It's free, with no account needed. Link in bio. Where's yours from?",
-    "caption": "Every time you boil the kettle, the power came from somewhere. A wind farm off the coast, a gas plant down the road, a cable under the sea from another country. Most of us never get to see that.\n\nSo we built a free site that shows you. Type in your postcode and you'll see what's powering your area right now, where your gas started out, and the cleanest time to put the washing on.\n\nWe'll be posting here most days: what's happening on the grid, how far things have come, what's just been built, and how all of this works. Each kind of post has its own colour, so you can find the ones you like.\n\nWhat would you most like to know about where your energy comes from?"
+    "caption": "Every time you boil the kettle, the power came from somewhere. A wind farm off the coast, a gas plant down the road, a cable under the sea from another country. Most of us never get to see that.\n\nSo we built a free site that shows you. Type in your postcode and you'll see what's powering your area right now, where your gas started out, and the cleanest time to put the washing on.\n\nWe'll be posting here most days: what's happening on the grid, how far things have come, what's just been built, and how all of this works. Each kind of post has its own colour, so you can find the ones you like.\n\nWhat would you most like to know about where your energy comes from?",
+    "photo_tags": [
+      "pylons",
+      "onshore",
+      "offshore"
+    ]
   },
   {
     "kicker": "HOW IT WORKS",
@@ -22,7 +27,11 @@
       "Then each fuel's share is split between its stations. Bigger and closer ones count for more."
     ],
     "closing": "It's the most likely answer, not a certainty. Want to see yours?",
-    "caption": "Here's a slightly awkward truth about electricity: once it's on the grid, it's all mixed together. Nobody can trace the power in your socket back to one place.\n\nWhat we can do is work out what's most likely, using live public data and the real map of high-voltage lines.\n\nWhich power station would you guess is feeding your home right now?"
+    "caption": "Here's a slightly awkward truth about electricity: once it's on the grid, it's all mixed together. Nobody can trace the power in your socket back to one place.\n\nWhat we can do is work out what's most likely, using live public data and the real map of high-voltage lines.\n\nWhich power station would you guess is feeding your home right now?",
+    "photo_tags": [
+      "pylons",
+      "gas"
+    ]
   },
   {
     "kicker": "HOW IT WORKS",
@@ -34,7 +43,11 @@
       "Gas at Milford Haven and the Isle of Grain arrived on tankers."
     ],
     "closing": "Gas mixes in the pipes too, so it's a best estimate. Curious where yours started out?",
-    "caption": "Gas doesn't come with a label on it. It all mixes in the pipes on its way to your boiler.\n\nBut Britain's entry points are public, so we can work out where the gas near you most likely started, whether that's a North Sea field, Norway or a tanker from across the ocean.\n\nWhere do you think yours came from today?"
+    "caption": "Gas doesn't come with a label on it. It all mixes in the pipes on its way to your boiler.\n\nBut Britain's entry points are public, so we can work out where the gas near you most likely started, whether that's a North Sea field, Norway or a tanker from across the ocean.\n\nWhere do you think yours came from today?",
+    "photo_tags": [
+      "gas_import",
+      "gas"
+    ]
   },
   {
     "kicker": "HOW IT WORKS",
@@ -46,7 +59,12 @@
       "A car gets a 6 hour charge, between 19:00 and 07:00."
     ],
     "closing": "Same wash, different hour, different carbon. When's your best time today?",
-    "caption": "The cleanest hour of the day is no use if it's 3am and you're asleep.\n\nSo when we pick your best time, we only look at hours when you'd realistically press the button: daytime and evening for washing, overnight for the car.\n\nWhat's the one job you'd happily move to a cleaner time?"
+    "caption": "The cleanest hour of the day is no use if it's 3am and you're asleep.\n\nSo when we pick your best time, we only look at hours when you'd realistically press the button: daytime and evening for washing, overnight for the car.\n\nWhat's the one job you'd happily move to a cleaner time?",
+    "photo_tags": [
+      "onshore",
+      "solar",
+      "offshore"
+    ]
   },
   {
     "kicker": "HOW IT WORKS",
@@ -58,7 +76,13 @@
       "Britain is split into 14 regions, so your figure is for your whole region."
     ],
     "closing": "Now you know how we count. How renewable is your region right now?",
-    "caption": "Percentages only mean something if you know what's being counted.\n\nSo here's exactly what goes into our renewable figure, and what doesn't. We'd rather you knew than took our word for it.\n\nDoes anything on that list surprise you?"
+    "caption": "Percentages only mean something if you know what's being counted.\n\nSo here's exactly what goes into our renewable figure, and what doesn't. We'd rather you knew than took our word for it.\n\nDoes anything on that list surprise you?",
+    "photo_tags": [
+      "offshore",
+      "onshore",
+      "solar",
+      "hydro"
+    ]
   },
   {
     "kicker": "HOW IT WORKS",
@@ -70,7 +94,10 @@
       "Your location on the map is the middle of your postcode district, not your home."
     ],
     "closing": "No accounts. No tracking cookies. Just where your energy comes from.",
-    "caption": "A site that asks for your address should be able to say exactly what it does with it.\n\nThe short version: it stays on your device. We only ever use the first half of your postcode.\n\nIs there anything else you'd like us to explain about how this works?"
+    "caption": "A site that asks for your address should be able to say exactly what it does with it.\n\nThe short version: it stays on your device. We only ever use the first half of your postcode.\n\nIs there anything else you'd like us to explain about how this works?",
+    "photo_tags": [
+      "pylons"
+    ]
   },
   {
     "kicker": "HOW IT WORKS",
@@ -82,6 +109,11 @@
       "Power lines and pipeline routes are mapped by OpenStreetMap contributors."
     ],
     "closing": "All public. All free for anyone to check. We just put it in one place for you.",
-    "caption": "None of this is secret. Britain publishes a remarkable amount of information about its energy system. It's just scattered around and hard to read.\n\nWe pull it together so you can type in a postcode and actually see it.\n\nWhat would you most like to know about your energy that you can't find out?"
+    "caption": "None of this is secret. Britain publishes a remarkable amount of information about its energy system. It's just scattered around and hard to read.\n\nWe pull it together so you can type in a postcode and actually see it.\n\nWhat would you most like to know about your energy that you can't find out?",
+    "photo_tags": [
+      "pylons",
+      "offshore",
+      "nuclear"
+    ]
   }
 ]

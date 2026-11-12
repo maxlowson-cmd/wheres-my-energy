@@ -326,7 +326,8 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
 
 PHOTOS = json.loads((pathlib.Path(__file__).resolve().parent / 'photos.json').read_text(encoding='utf8'))
 POSTER_COLOURS = {'now': ['sun', 'mint', 'blue'], 'history': ['sun', 'paper', 'mint'], 'new': ['blue', 'mint'], 'explain': ['lilac'], 'fact': ['coral', 'paper']}
-LOOK_WEIGHT = {'photo': 0, 'flag': .1, 'price': .1, 'battery': .1, 'scene': .2, 'poster': .6}
+LOOK_WEIGHT = {'photo': -1,  # real photos have had more views than graphics so far, so they win unless two of the last three covers were photos
+                'flag': .1, 'price': .1, 'battery': .1, 'scene': .2, 'poster': .6}
 SUBJECTS = {'fuel-wind': ('wind', ['offshore', 'onshore']), 'fuel-solar': ('solar', ['solar']), 'fuel-gas': ('gas', ['gas']), 'fuel-nuclear': ('nuclear', ['nuclear']), 'fuel-imports': ('pylons', ['pylons']), 'gas-origin': ('hob', ['gas_import']), 'day': ('wash', []), 'prices': ('pylons', ['pylons']), 'league': ('wind', ['pylons']), 'divide': ('pylons', ['pylons']), 'year-trend': ('pylons', ['pylons']), 'growth-battery': (None, []), 'growth-solar-photovoltaics': ('solar', ['solar']), 'growth-wind-offshore': ('wind', ['offshore']), 'growth-wind-onshore': ('wind', ['onshore'])}
 FACT_SUBJECTS = [(r'hydro|\bdam\b|reservoir|Cruachan|Dinorwig|pumped', ('hydro', ['hydro'])), (r'nuclear|Sizewell|Calder Hall|Torness', ('nuclear', ['nuclear'])), (r'wind|turbine', ('wind', ['offshore', 'onshore'])), (r'solar', ('solar', ['solar'])), (r'\bgas\b|North Sea|LNG', ('hob', ['gas_import']))]
 
@@ -357,12 +358,12 @@ def data_cover(pick, spec, sheet):
     return None
 
 
-def choose_cover(pick, spec, sheet, history, is_hook, explainer, seed):
+def choose_cover(pick, spec, sheet, history, is_hook, explainer, seed, explain_tags=()):
     """Picks the look least used lately, so neighbouring squares on the grid differ. Returns (cover, label, caption credit)."""
     rng = random.Random(seed)
     past = [part.split(':', 1)[1] for row in sorted(history, key=lambda r: r['posted'], reverse=True) for part in row['type'].split('|') if part.startswith('cover:')]
     recent = [p.split(':')[0] for p in past[:3]]
-    scene, tags = (('explain', []) if explainer else cover_subject(pick, spec))
+    scene, tags = (('explain', list(explain_tags)) if explainer else cover_subject(pick, spec))
     cat = 'explain' if explainer else pick.get('cat', 'now')
     colours = POSTER_COLOURS[cat]
     fresh = [c for c in colours if f'poster:{c}' not in past[:2]] or colours
@@ -371,7 +372,9 @@ def choose_cover(pick, spec, sheet, history, is_hook, explainer, seed):
         options['scene'] = {'look': 'scene', 'scene': scene}
     photos = [p for p in PHOTOS if p['tag'] in tags]
     fresher = [p for p in photos if f"photo:{p['file']}" not in past[:12]] or photos
-    if fresher and not explainer:
+    if explainer:  # how-it-works posts aren't about one fuel, so any photo not used lately will do
+        fresher = [p for p in fresher if f"photo:{p['file']}" not in past[:12]] or [p for p in PHOTOS if f"photo:{p['file']}" not in past[:12]]
+    if fresher:
         named = [p for p in fresher if p['place'].split(',')[0] in str(spec.get('text', ''))]
         options['photo'] = {'look': 'photo', 'chosen': rng.choice(named or fresher)}
     extra = None if is_hook or explainer else data_cover(pick, spec, sheet)
@@ -551,6 +554,7 @@ def main():
             caption, alt = item['caption'] + signoff, item['hook']
             parts = [('explain', {'text': item['hook'], 'eyebrow': item['kicker'], 'swipe': True})] + [('explain', {'text': s, 'eyebrow': item['kicker']}) for s in item['slides']] + ([('key', {'eyebrow': item['kicker']})] if item.get('colour_key') else []) + [('closing', {'text': item['closing'], 'eyebrow': item['kicker'], 'cat': 'explain'})]
             kind = f'explainer|album|explain{number}'
+            explain_tags = item.get('photo_tags', [])
             plan = {'explainer': number}
         elif plan is None:
             album = False
@@ -569,7 +573,7 @@ def main():
         explainer = kind.startswith('explainer')
         lead_part = next((p for p in parts if p[0] not in ('cover', 'hook', 'closing')), parts[0])
         story_over = {k: v for k, v in (lead_part[1] or {}).items() if k not in ('cover', 'swipe')} or None
-        cover, label, credit = choose_cover(pick, spec, sheet, history, album, explainer, f'{today}{slot}cover')
+        cover, label, credit = choose_cover(pick, spec, sheet, history, album, explainer, f'{today}{slot}cover', explain_tags if explainer else ())
         if album:
             first = parts[0][1]
             parts[0] = (parts[0][0], {**first, 'cover': {**cover, 'text': first['text'], 'eyebrow': first['eyebrow'], 'swipe': True}})
