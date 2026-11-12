@@ -515,7 +515,7 @@ def main():
             ideas += more
         used = {part for r in history if r['posted'] >= repeat_cutoff() for part in r['type'].split('|')}
         ideas = [i for i in ideas if i['id'] != 'fact' or fact_tag(i) not in used]
-        ideas = [i for i in ideas if i['id'] not in ('mix-years', 'demand-years', 'bills-years') or i['type'] not in used]  # yearly figures don't change, so each of these waits {REPEAT_DAYS} days
+        ideas = [i for i in ideas if i['id'] not in ('mix-years', 'demand-years', 'bills-years') or i['type'] not in used]  # yearly figures don't change, so each of these waits REPEAT_DAYS days
         print('ideas', [(i['id'], round(i['novelty'], 2)) for i in ideas])
         if not ideas:
             if not DRY:
@@ -613,7 +613,7 @@ def main():
             OUT.mkdir(exist_ok=True)
             for n, (a, over) in enumerate(parts):
                 (OUT / f'post_{n:02d}_{a}.jpg').write_bytes(base64.b64decode(image(a, 'feed', over).split(',', 1)[1]))
-            for idea in ideas:
+            for idea in (i for i in ideas if not i.get('pages')):  # a ready-made post of pages has no single chart to draw
                 (OUT / f"{idea['id']}_feed.jpg").write_bytes(base64.b64decode(image(idea['id'], 'feed').split(',', 1)[1]))
             (OUT / 'story.jpg').write_bytes(base64.b64decode(image(lead_part[0], 'story', story_over).split(',', 1)[1]))
             (OUT / 'ideas.json').write_text(json.dumps({'pick': pick['id'], 'kind': kind, 'album': album, 'plan': plan, 'facts': sheet, 'caption': caption}, indent=1, ensure_ascii=False), encoding='utf8')
