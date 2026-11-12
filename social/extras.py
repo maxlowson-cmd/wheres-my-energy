@@ -97,6 +97,76 @@ def year_trend(now):
                       'rows': [[f'{first} average', fmt(a)], [f'{last} average', fmt(b)]], 'note': why, 'foot': ['Yearly averages. NESO Carbon Intensity API.']}}]
 
 
+def money(v):
+    return f'£{v:,}'
+
+
+def demand_years(now):
+    """How much electricity the UK uses each year since 2005, with the published reasons it changed."""
+    d = json.loads((HERE / 'social' / 'annual_stats.json').read_text(encoding='utf8'))['demand']
+    years = sorted(d['years'])
+    first, last = years[0], years[-1]
+    a, b = d['years'][first], d['years'][last]
+    fall = round((1 - b / a) * 100)
+    share = 'about a fifth' if 17 <= fall <= 23 else f'{fall}%'
+    headline = f"The UK uses {share} less electricity than it did in {first}."
+    why = ("Homes, appliances and lighting have become far more efficient, such as LED bulbs replacing old ones, and industry uses less: "
+           f"industrial use in {last} was the lowest since 1983. Use dropped sharply in 2022 after high prices and a warm year, and has crept up since.")
+    yearly = ', '.join(f'{y} {round(d["years"][y])} TWh' for y in years)
+    words = f"{headline} Yearly totals: {yearly}. Why: {why} Source: {d['source']}."
+    return [{'id': 'demand-years', 'type': 'demand-years', 'cat': 'history', 'art': 'bars', 'limit': 90, 'novelty': .55, 'source': d['source'], 'shows': words,
+             'caption': f"{headline} In {first} the UK used {round(a)} TWh of electricity. In {last}: {round(b)} TWh. {why}\n\nYearly totals, {d['source']}.",
+             'alt': f"Bar chart of electricity used in the UK each year from {first} to {last}, falling from {round(a)} TWh to {round(b)} TWh.",
+             'spec': {'art': 'bars', 'eyebrow': f'{first} TO {last}, YEAR BY YEAR', 'headline': headline, 'bars': [[y if i % 10 == 0 or y == last else '', d['years'][y]] for i, y in enumerate(years)], 'fuel': 'wind',
+                      'rows': [[f'{first}, whole year', f'{round(a)} TWh'], [f'{last}, whole year', f'{round(b)} TWh']], 'note': 'More efficient homes, appliances and lighting, and less heavy industry.', 'foot': ['Yearly totals. DESNZ, DUKES table 5.1.2.']}}]
+
+
+BILL_WHY = {
+    'electricity': "Gas prices soared as economies reopened after Covid and again after Russia invaded Ukraine in 2022. Gas sets the price of much of our electricity, so electricity bills rose too. Lower wholesale prices have brought them down since, but not back to where they were.",
+    'gas': "Gas prices soared as economies reopened after Covid and again after Russia invaded Ukraine in 2022. Lower wholesale prices have brought bills down since, but not back to where they were.",
+}
+
+
+def bills_years(now):
+    """A typical household's yearly electricity or gas bill since 2014, with the published reasons it changed."""
+    data = json.loads((HERE / 'social' / 'annual_stats.json').read_text(encoding='utf8'))
+    kind = random.Random(f'{now.date()}bills').choice(['electricity', 'gas'])
+    d = data[f'{kind}_bill']
+    years = sorted(d['years'])[-10:]  # ten bars leave room for each bar's £ figure
+    v = d['years']
+    peak = max(years, key=lambda y: v[y])
+    first, last = years[0], years[-1]
+    kwh = '3,400' if kind == 'electricity' else '11,200'
+    headline = f"A typical {kind} bill: {money(v['2019'])} in 2019, {money(v[peak])} in {peak}, {money(v[last])} in {last}."
+    why = BILL_WHY[kind]
+    yearly = ', '.join(f'{y} {money(v[y])}' for y in years)
+    words = f"{headline} Average yearly household {kind} bill for {kwh} kWh, not adjusted for inflation: {yearly}. Why: {why} Source: {d['source']}."
+    return [{'id': 'bills-years', 'type': 'bills-years', 'cat': 'history', 'art': 'bars', 'limit': 90, 'novelty': .55, 'source': d['source'], 'shows': words,
+             'caption': f"{headline} {why}\n\nAverage yearly household bill using {kwh} kWh, not adjusted for inflation. {d['source']}.",
+             'alt': f"Bar chart of the average yearly household {kind} bill from {first} to {last}: {yearly}.",
+             'spec': {'art': 'bars', 'eyebrow': f'{kind.upper()} BILLS, YEAR BY YEAR', 'headline': headline, 'bars': [[y, v[y]] for y in years], 'values': True, 'unit': '£', 'fuel': 'gas' if kind == 'gas' else 'solar',
+                      'rows': [['2019', money(v['2019'])], [f'{last}', money(v[last])]], 'note': 'Gas prices soared after Covid and the invasion of Ukraine.', 'foot': [f'Typical bill, {kwh} kWh, not adjusted for inflation. DESNZ.']}}]
+
+
+def mix_years(now):
+    """What powered Britain in each full year, one bold page per year, with the published reasons for the change."""
+    data = json.loads((HERE / 'social' / 'annual_mix.json').read_text(encoding='utf8'))
+    years = sorted(data['years'])
+    first, last = years[0], years[-1]
+    share = lambda y, f: data['years'][y]['mix'].get(f, 0)
+    pages = []
+    for i, y in enumerate(years):
+        mix = sorted(((k, round(v)) for k, v in data['years'][y]['mix'].items() if v >= 3), key=lambda x: -x[1])
+        text = f"{y}: what powered Britain, averaged over the whole year." + (' Swipe for each year since.' if i == 0 else '')
+        pages.append({'look': 'flag', 'text': text, 'mix': [list(x) for x in mix]})
+    moved = sorted((f for f in WHY if f != 'coal'), key=lambda f: -abs(share(last, f) - share(first, f)))[:2]
+    change = ' '.join(f"{NAME[f]} went from {round(share(first, f))}% to {round(share(last, f))}%." for f in moved)
+    why = ' '.join(WHY[f][1] for f in moved)
+    caption = f"What powered Britain each year since {first}, averaged over the whole year. {change} {why}\n\nYearly averages from the NESO Carbon Intensity API."
+    return [{'id': 'mix-years', 'type': 'mix-years', 'cat': 'history', 'art': 'pages', 'limit': 90, 'novelty': .6, 'pages': pages, 'shows': caption, 'caption': caption,
+             'alt': f"One page per year from {first} to {last}, each showing Britain's yearly average power mix. " + change, 'spec': {'art': 'pages'}}]
+
+
 def repd_rows():
     rows = []
     for r in csv.DictReader(open(HERE / 'data' / 'repd.csv', encoding='latin-1')):
@@ -155,7 +225,7 @@ def new_sites(rows, posted):
 def build(now, posted):
     """Each source is optional: if one fails the agent simply has fewer ideas that day."""
     out = []
-    for name, fn in (('year trend', lambda: year_trend(now)), ('growth', lambda: growth(repd_rows(), now)), ('new sites', lambda: new_sites(repd_rows(), posted))):
+    for name, fn in (('year trend', lambda: year_trend(now)), ('mix years', lambda: mix_years(now)), ('demand years', lambda: demand_years(now)), ('bills years', lambda: bills_years(now)), ('growth', lambda: growth(repd_rows(), now)), ('new sites', lambda: new_sites(repd_rows(), posted))):
         try:
             out += fn()
         except Exception as e:

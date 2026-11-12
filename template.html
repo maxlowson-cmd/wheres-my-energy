@@ -1265,7 +1265,7 @@
       s.bars.forEach(([label, v], i) => {
         const bar = Math.max(10, h * v / max), last = i === s.bars.length - 1;
         c.save(); c.shadowColor = col; c.shadowBlur = last ? 34 : 12; c.fillStyle = last ? col : col + '99'; c.beginPath(); c.roundRect(M + i * step + 5, top + h - bar, step - 10, bar, 10); c.fill(); c.restore();
-        if (s.values) { setFont(c, 30, 700, BODY); c.fillStyle = DK.ink; c.textAlign = 'center'; c.fillText(v < 2 ? `${v}%` : `${Math.round(v)}%`, M + i * step + step / 2, top + h - bar - 16); c.textAlign = 'left'; }
+        if (s.values) { setFont(c, s.unit ? 26 : 30, 700, BODY); c.fillStyle = DK.ink; c.textAlign = 'center'; c.fillText(s.unit ? `${s.unit}${Math.round(v).toLocaleString('en-GB')}` : v < 2 ? `${v}%` : `${Math.round(v)}%`,M + i * step + step / 2, top + h - bar - 16); c.textAlign = 'left'; }
         if (i % 2 === 0 || last || s.values) { setFont(c, 28, 600, BODY); c.fillStyle = DK.muted; c.textAlign = 'center'; c.fillText(label, M + i * step + step / 2, top + h + 46); c.textAlign = 'left'; }
       });
       colourList(c, s.rows.map(([a, b], i) => [i ? col : col + '88', a, b]), M, 1370, W - 2 * M, 38, 64);

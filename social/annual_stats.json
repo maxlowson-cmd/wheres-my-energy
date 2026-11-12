@@ -1,0 +1,75 @@
+{
+ "demand": {
+  "what": "Total electricity consumed in the UK each year, in TWh",
+  "source": "DESNZ, Digest of UK Energy Statistics 2026, table 5.1.2",
+  "url": "https://www.gov.uk/government/statistics/electricity-chapter-5-digest-of-united-kingdom-energy-statistics-dukes",
+  "years": {
+   "2005": 357.2,
+   "2006": 353.9,
+   "2007": 351.4,
+   "2008": 350.1,
+   "2009": 330.0,
+   "2010": 337.5,
+   "2011": 325.9,
+   "2012": 325.5,
+   "2013": 324.4,
+   "2014": 310.8,
+   "2015": 311.4,
+   "2016": 311.3,
+   "2017": 306.4,
+   "2018": 307.4,
+   "2019": 304.4,
+   "2020": 286.9,
+   "2021": 290.9,
+   "2022": 276.6,
+   "2023": 275.4,
+   "2024": 275.6,
+   "2025": 280.2
+  }
+ },
+ "electricity_bill": {
+  "what": "Average yearly UK household electricity bill, all payment types, 3,400 kWh a year, cash terms (not adjusted for inflation)",
+  "source": "DESNZ, Quarterly Energy Prices table 2.2.1",
+  "url": "https://www.gov.uk/government/statistical-data-sets/annual-domestic-energy-price-statistics",
+  "years": {
+   "2014": 548,
+   "2015": 540,
+   "2016": 531,
+   "2017": 565,
+   "2018": 610,
+   "2019": 664,
+   "2020": 671,
+   "2021": 731,
+   "2022": 1103,
+   "2023": 1213,
+   "2024": 1083,
+   "2025": 1069
+  }
+ },
+ "gas_bill": {
+  "what": "Average yearly household gas bill, all payment types, 11,200 kWh a year, cash terms (not adjusted for inflation)",
+  "source": "DESNZ, Quarterly Energy Prices table 2.3.1",
+  "url": "https://www.gov.uk/government/statistical-data-sets/annual-domestic-energy-price-statistics",
+  "years": {
+   "2014": 585,
+   "2015": 555,
+   "2016": 507,
+   "2017": 494,
+   "2018": 504,
+   "2019": 519,
+   "2020": 496,
+   "2021": 482,
+   "2022": 952,
+   "2023": 1094,
+   "2024": 846,
+   "2025": 834
+  }
+ },
+ "reasons_sources": [
+  "DESNZ, DUKES 2026 Chapter 5 (2022 fall: high energy prices and warm temperatures; 2025 rise: cooler first quarter; industrial use lowest since 1983)",
+  "Our World in Data, UK electricity per person (LED lighting and appliance efficiency standards)",
+  "Drax Electric Insights, 2024 demand (efficiency of homes, appliances and lighting; less industrial use)",
+  "Institute for Government, domestic energy bills (gas prices set much of the electricity price; Russia's invasion of Ukraine)",
+  "House of Commons Library, domestic energy prices (lower wholesale prices brought bills down from their peak)"
+ ]
+}

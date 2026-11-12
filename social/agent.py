@@ -75,7 +75,7 @@ def score_posts(history):
 
 def category_of(kind):
     lead = kind.split('|')[0]
-    return 'explain' if lead == 'explainer' else 'new' if lead == 'new-site' else 'history' if lead in ('year-trend', 'growth') else 'fact' if lead == 'fact' else 'now'
+    return 'explain' if lead == 'explainer' else 'new' if lead == 'new-site' else 'history' if lead in ('year-trend', 'growth', 'mix-years', 'demand-years', 'bills-years') else 'fact' if lead == 'fact' else 'now'
 
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -180,6 +180,7 @@ Truth rules, which matter more than being catchy:
 - "lessons_so_far" lists what we have learned from earlier posts. Apply every one of them, but they never override the truth rules.
 - "Renewable" only means wind, solar, hydro and biomass. A low renewable share doesn't mean a place is dirty or doing badly: it may be running on nuclear or imports. Never quote a region's low renewable share on its own. Say what it is mainly running on, using "mainly_running_on" in the data, and compare places only in a way that is fair to both.
 - Mention an occasion only if the data names one under "occasion_today".
+- The demand-years and bills-years slides show whole-year figures. Say so, explain changes only with the reasons in their "shows" text, and say bills are not adjusted for inflation.
 - The year-trend slide shows yearly averages. Always say they are yearly averages, never mix them with a "right now" figure for the same fuel, and explain the change only with the reason given in its "shows" text (it comes from published sources). Never compare a single day with another single day.
 - The figures are forecasts and estimates, so say "right now" or "around" rather than sounding exact to the kilowatt.
 
@@ -509,11 +510,12 @@ def main():
             more = extras.build(uk, [r.get('caption', '') for r in history])
             page.evaluate('(x) => WMESocial.addExtras(x)', more)
             for x in more:
-                x['caption'] += signoff
+                x['caption'] += signoff.replace('Estimates from the NESO Carbon Intensity forecast.', f"Figures: {x['source']}.") if x.get('source') else signoff
                 x.pop('spec')
             ideas += more
         used = {part for r in history if r['posted'] >= repeat_cutoff() for part in r['type'].split('|')}
         ideas = [i for i in ideas if i['id'] != 'fact' or fact_tag(i) not in used]
+        ideas = [i for i in ideas if i['id'] not in ('mix-years', 'demand-years', 'bills-years') or i['type'] not in used]  # yearly figures don't change, so each of these waits {REPEAT_DAYS} days
         print('ideas', [(i['id'], round(i['novelty'], 2)) for i in ideas])
         if not ideas:
             if not DRY:
@@ -535,7 +537,7 @@ def main():
         print('format', 'album' if album else 'single', 'angle', angle)
         for idea, (big, eyebrow) in zip(ideas, page.evaluate('ids => ids.map((id) => [String((WMESocial.spec(id) || {}).big || ""), String((WMESocial.spec(id) || {}).eyebrow || "")])', [i['id'] for i in ideas])):
             idea['big'], idea['eyebrow'] = big, eyebrow
-        plan = None if explainer_due(history) or os.environ.get('MOCK_ALBUM') == 'explain' else write_plan(pick, ideas, sheet, angle, album, [r.get('caption', '')[:200] for r in history[:7]], day)
+        plan = None if explainer_due(history) or os.environ.get('MOCK_ALBUM') == 'explain' else None if pick.get('pages') else write_plan(pick, [i for i in ideas if not i.get('pages')], sheet, angle, album, [r.get('caption', '')[:200] for r in history[:7]], day)
         if plan is None and DRY and os.environ.get('MOCK_ALBUM') == '1':
             lead = [pick['id']] + [i['id'] for i in ideas if i['id'] != pick['id'] and i['type'] != 'fact'][:3]
             plan = {'hook_kicker': 'TEST KICKER', 'hook': 'Test hook: this slide opens the story without giving it away.', 'slides': [{'id': x, 'text': 'Test wording for this slide.'} for x in lead], 'closing': 'Test closing that brings the story back to the reader.', 'caption': 'Test caption.', 'alt': 'Test.'}
@@ -556,6 +558,11 @@ def main():
             kind = f'explainer|album|explain{number}'
             explain_tags = item.get('photo_tags', [])
             plan = {'explainer': number}
+        elif pick.get('pages'):  # a ready-made post of several pages, such as each year's mix, one page per year
+            album = True
+            caption, alt = pick['caption'], pick['alt']
+            parts = [('cover', {'cover': {**pg, 'swipe': i == 0}}) for i, pg in enumerate(pick['pages'])] + [('closing', {'text': "What's powering your area right now? Look it up in seconds.", 'label': 'NOW FOR YOUR AREA'})]
+            kind = f"{pick['type']}|album|pages"
         elif plan is None:
             album = False
             caption, alt = pick['caption'], pick['alt']
@@ -573,8 +580,12 @@ def main():
         explainer = kind.startswith('explainer')
         lead_part = next((p for p in parts if p[0] not in ('cover', 'hook', 'closing')), parts[0])
         story_over = {k: v for k, v in (lead_part[1] or {}).items() if k not in ('cover', 'swipe')} or None
+        if kind.endswith('|pages'):
+            lead_part, story_over = parts[-2], parts[-2][1]  # the story shows the latest year's page
         cover, label, credit = choose_cover(pick, spec, sheet, history, album, explainer, f'{today}{slot}cover', explain_tags if explainer else ())
-        if album:
+        if pick.get('pages') and kind.endswith('|pages'):
+            label, credit = 'flag-years', ''
+        elif album:
             first = parts[0][1]
             parts[0] = (parts[0][0], {**first, 'cover': {**cover, 'text': first['text'], 'eyebrow': first['eyebrow'], 'swipe': True}})
         else:
