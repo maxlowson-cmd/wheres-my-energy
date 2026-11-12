@@ -326,8 +326,8 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
 
 PHOTOS = json.loads((pathlib.Path(__file__).resolve().parent / 'photos.json').read_text(encoding='utf8'))
 POSTER_COLOURS = {'now': ['sun', 'mint', 'blue'], 'history': ['sun', 'paper', 'mint'], 'new': ['blue', 'mint'], 'explain': ['lilac'], 'fact': ['coral', 'paper']}
-LOOK_WEIGHT = {'photo': -1,  # real photos have had more views than graphics so far, so they win unless two of the last three covers were photos
-                'flag': .1, 'price': .1, 'battery': .1, 'scene': .2, 'poster': .6}
+LOOK_WEIGHT = {'photo': -1,  # real photos have had more views than graphics so far; the owner's favourite is the bold fuel-share bars ('flag'), so those two lead
+                'flag': -1, 'price': .1, 'battery': .1, 'scene': .2, 'poster': .6}
 SUBJECTS = {'fuel-wind': ('wind', ['offshore', 'onshore']), 'fuel-solar': ('solar', ['solar']), 'fuel-gas': ('gas', ['gas']), 'fuel-nuclear': ('nuclear', ['nuclear']), 'fuel-imports': ('pylons', ['pylons']), 'gas-origin': ('hob', ['gas_import']), 'day': ('wash', []), 'prices': ('pylons', ['pylons']), 'league': ('wind', ['pylons']), 'divide': ('pylons', ['pylons']), 'year-trend': ('pylons', ['pylons']), 'growth-battery': (None, []), 'growth-solar-photovoltaics': ('solar', ['solar']), 'growth-wind-offshore': ('wind', ['offshore']), 'growth-wind-onshore': ('wind', ['onshore'])}
 FACT_SUBJECTS = [(r'hydro|\bdam\b|reservoir|Cruachan|Dinorwig|pumped', ('hydro', ['hydro'])), (r'nuclear|Sizewell|Calder Hall|Torness', ('nuclear', ['nuclear'])), (r'wind|turbine', ('wind', ['offshore', 'onshore'])), (r'solar', ('solar', ['solar'])), (r'\bgas\b|North Sea|LNG', ('hob', ['gas_import']))]
 
