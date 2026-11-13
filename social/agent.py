@@ -425,7 +425,7 @@ def photo_pages(pages, history, seed):
         raw = (pathlib.Path(__file__).resolve().parent / 'photos' / x['file']).read_bytes()
         credit = f"Photo: {x['place']}. {x['artist']}, {x['license']}"
         out.append({**{k: v for k, v in pg.items() if k != 'photo_tag'}, 'look': 'photo', 'photo': 'data:image/jpeg;base64,' + base64.b64encode(raw).decode(), 'credit': credit})
-        credits.append(credit)
+        credits.append(f"{x['place']} ({x['artist']}, {x['license']})")
         label = label or f"photo:{x['file']}"
     return out, credits, label
 
@@ -619,7 +619,7 @@ def main():
             lead_part, story_over = parts[-2], parts[-2][1]  # the story shows the latest year's page
         cover, label, credit = choose_cover(pick, spec, sheet, history, album, explainer, f'{today}{slot}cover', explain_tags if explainer else ())
         if pick.get('pages') and kind.endswith('|pages'):
-            label, credit = (page_label, '. '.join(page_credits) + ', cropped. All photo credits: wheresmyenergyfrom.co.uk/credits') if page_credits else ('flag-years', '')
+            label, credit = (page_label, ('Photos: ' if len(page_credits) > 1 else 'Photo: ') + '; '.join(page_credits) + ', cropped. All photo credits: wheresmyenergyfrom.co.uk/credits') if page_credits else ('flag-years', '')
         elif album:
             first = parts[0][1]
             parts[0] = (parts[0][0], {**first, 'cover': {**cover, 'text': first['text'], 'eyebrow': first['eyebrow'], 'swipe': True}})
