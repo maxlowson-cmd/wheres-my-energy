@@ -1,0 +1,27 @@
+{
+  "homes": {
+    "kwh_per_home": 2500,
+    "home_source": "Ofgem typical domestic consumption value for electricity (medium), 2,500 kWh a year from 1 July 2026",
+    "home_url": "https://www.ofgem.gov.uk/information-consumers/energy-advice-households/average-gas-and-electricity-use-explained",
+    "load_factors": {"Wind Onshore": 0.241, "Wind Offshore": 0.364, "Solar Photovoltaics": 0.102},
+    "load_factor_source": "DESNZ, Digest of UK Energy Statistics 2026, chapter 6: onshore wind 24.1% and offshore wind 36.4% in 2025. Solar uses the average of 2024 (9.2%) and 2025 (11.1%), because 2025 was the sunniest year on record.",
+    "load_factor_url": "https://assets.publishing.service.gov.uk/media/6a6a27478319ab05f7caa1ce/DUKES_2026_Chapter_6.pdf",
+    "refresh": "Each August with the new DUKES chapter 6; check Ofgem's typical use figure at the same time."
+  },
+  "milestones": [
+    {"key": "calder-hall", "date": "1956-10-17", "photo_tag": "nuclear", "then": "since Calder Hall in Cumbria opened, the world's first full-scale commercial nuclear power station.", "source": "Guinness World Records", "url": "https://www.guinnessworldrecords.com/world-records/100509-first-commercial-nuclear-power-station"},
+    {"key": "delabole", "date": "1991-12-21", "photo_tag": "onshore", "now_tech": "Wind Onshore", "then": "since Britain's first wind farm was switched on, at Delabole in Cornwall.", "source": "Energy Voice; Wikipedia", "url": "https://en.wikipedia.org/wiki/Delabole_wind_farm"},
+    {"key": "blyth", "date": "2000-12-07", "photo_tag": "offshore", "now_tech": "Wind Offshore", "then": "since Britain's first offshore wind farm opened, off Blyth in Northumberland.", "source": "Ember, 25 years of British offshore wind", "url": "https://ember-energy.org/latest-insights/25-years-of-british-offshore-wind/"},
+    {"key": "coal-free-day", "date": "2017-04-21", "photo_tag": "pylons", "then": "since Britain first ran a whole day without coal power, the first time since the 1880s.", "now": "Now Britain doesn't use coal for power at all: its last coal power station closed in September 2024.", "source": "National Grid, reported by Bloomberg; Uniper", "url": "https://www.uniper.energy/united-kingdom/power-plants-united-kingdom/ratcliffe-soar"},
+    {"key": "ratcliffe", "date": "2024-09-30", "photo_tag": "pylons", "then": "since Ratcliffe-on-Soar in Nottinghamshire, Britain's last coal power station, shut down after more than 140 years of coal power.", "source": "Uniper", "url": "https://www.uniper.energy/united-kingdom/power-plants-united-kingdom/ratcliffe-soar"}
+  ],
+  "savings": [
+    {"key": "hormuz-2026", "expires": "2027-01-31", "photo_tag": "offshore", "source": "Carbon Brief analysis, 30 September 2026", "url": "https://www.carbonbrief.org/analysis-wind-and-solar-save-uk-from-gas-imports-worth-5-9bn-during-hormuz-crisis",
+     "pages": [
+       {"eyebrow": "WIND AND SOLAR", "big": "£5.9bn", "text": "of gas imports Britain didn't need, thanks to wind and solar, since the Hormuz crisis began in February 2026."},
+       {"photo_tag": "gas_import", "eyebrow": "WIND AND SOLAR", "big": "100+", "text": "tanker deliveries of liquefied gas that would otherwise have been needed."},
+       {"photo_tag": "solar", "eyebrow": "WIND AND SOLAR", "big": "41%", "text": "of the UK's electricity came from wind and solar in 2026 up to late September. Gas made **25%**."}
+     ],
+     "caption": "Wind and solar have kept Britain from needing gas imports worth £5.9bn since the Hormuz crisis began in February 2026, according to Carbon Brief. Bringing that gas in would have taken more than 100 extra tanker deliveries of liquefied gas.\n\nIn 2026 up to late September, wind and solar made a record 41% of the UK's electricity, and gas made 25%. The more wind and solar make, the less gas needs burning for power, and this year gas has been expensive.\n\nThe £5.9bn is the value of the gas imports avoided at this year's prices, as worked out by Carbon Brief."}
+  ]
+}

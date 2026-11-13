@@ -172,6 +172,20 @@ def mix_years(now):
              'alt': f"One page per year from {first} to {last}, each showing Britain's yearly average power mix. " + change, 'spec': {'art': 'pages'}}]
 
 
+FACTS = json.loads((HERE / 'social' / 'facts.json').read_text(encoding='utf8'))
+HOMES_SOURCE = 'homes estimate from DESNZ 2025 load factors and Ofgem typical use of 2,500 kWh a year'
+
+
+def homes(mw, tech):
+    """How many typical homes' electricity a site of this size makes over a year, from how often that kind of site actually runs (DESNZ load factors)."""
+    h = FACTS['homes']
+    lf = h['load_factors'].get(tech)
+    if not lf:
+        return None
+    n = mw * 8760 * lf * 1000 / h['kwh_per_home']
+    return f'{n / 1e6:.1f}'.removesuffix('.0') + ' million' if n >= 1e6 else f'{round(n, -3):,.0f}' if n >= 10000 else f'{round(n, -2):,.0f}'
+
+
 def repd_rows():
     rows = []
     for r in csv.DictReader(open(HERE / 'data' / 'repd.csv', encoding='latin-1')):
@@ -203,7 +217,11 @@ def growth(rows, now):
         grown = 'gone from almost nothing' if then < 100 else f'grown about {round(ratio)} times over' if ratio >= 4 else 'more than tripled' if ratio >= 3 else 'more than doubled' if ratio >= 2 else 'grown by over half' if ratio >= 1.5 else 'kept growing'
         have = 'have' if name.endswith('s') else 'has'
         words = f"In {back} years, Britain's {name} {have} {grown}: from {round(then):,} MW to {round(latest):,} MW."
+        n = homes(latest, tech)
+        if n:
+            words += f" Between them, these sites can make enough electricity for around {n} homes over a year."
         out.append({'id': 'growth-' + tech.lower().replace(' ', '-'), 'type': 'growth', 'cat': 'history', 'art': 'bars', 'limit': 85, 'novelty': .45 + (.2 if ratio >= 3 else 0), 'shows': words, 'caption': words, 'alt': words,
+                    **({'source': f'government planning database (REPD); {HOMES_SOURCE}'} if n else {}),
                     'spec': {'art': 'bars', 'eyebrow': f'{back} YEARS OF CHANGE', 'headline': f"Britain's {name} {have} {grown} in {back} years." if then >= 100 else f"Britain's {name}: from almost nothing to {round(latest):,} MW in {back} years.", 'bars': bars, 'fuel': fuel, 'rows': [[f'{then_day:%B %Y}', f'{round(then):,} MW'], [f'{newest:%B %Y}', f'{round(latest):,} MW']], 'foot': ['Large-scale operating sites, government planning database.']}})
     return out
 
@@ -222,15 +240,59 @@ def new_sites(rows, posted):
         kind, fuel = {'Solar Photovoltaics': ('solar farm', 'solar'), 'Wind Onshore': ('wind farm', 'wind'), 'Wind Offshore': ('offshore wind farm', 'wind'), 'Battery': ('battery site', 'hydro')}[r['Technology Type']]
         place = (r.get('County') or r.get('Region') or '').strip()
         words = f"{name}, a new {kind}{' in ' + place if place else ''}, started operating in {when:%B %Y}. It can make up to {round(mw)} MW of power."
+        n = homes(mw, r['Technology Type'])
+        if n:
+            words += f" Over a year, that's enough electricity for around {n} homes."
         return [{'id': 'new-site', 'type': 'new-site', 'cat': 'new', 'art': 'map', 'limit': 60, 'novelty': .8, 'shows': words, 'caption': words, 'alt': words,
+                 **({'source': f'government planning database (REPD); {HOMES_SOURCE}'} if n else {}),
                  'spec': {'art': 'map', 'glow': None, 'fuelGlow': fuel, 'eyebrow': 'NEW ON THE GRID', 'big': f'Up to {round(mw)} MW', 'sub': f'New {kind} now running: {name}.', 'list': [], 'spot': to_xy(lat, lon), 'spotFuel': fuel, 'spotLabel': name, 'foot': [f'Started operating {when:%B %Y}. Government planning database.']}}]
     return []
+
+
+def plain(s):
+    return s.replace('**', '')
+
+
+def milestones(now):
+    """On the anniversary of a turning point in Britain's power, a post saying how long ago it was and, where we can, what there is now."""
+    out = []
+    for m in FACTS['milestones']:
+        when = dt.date.fromisoformat(m['date'])
+        years = now.year - when.year
+        if (now.month, now.day) != (when.month, when.day) or years < 1:
+            continue
+        ago = f"{years} year{'s' if years > 1 else ''}"
+        pages = [{'photo_tag': m['photo_tag'], 'eyebrow': f'ON THIS DAY IN {when.year}', 'big': ago, 'text': m['then']}]
+        now_words, source = m.get('now'), m['source']
+        if m.get('now_tech'):
+            total = sum(mw for w, mw, r in repd_rows() if r.get('Technology Type') == m['now_tech'])
+            now_words = f"Today Britain's {TECH[m['now_tech']][0]} farms can make up to **{round(total):,} MW**, enough electricity for around **{homes(total, m['now_tech'])} homes** over a year."
+            source += f'; government planning database (REPD); {HOMES_SOURCE}'
+        if now_words:
+            pages.append({'photo_tag': m['photo_tag'], 'eyebrow': 'AND NOW', 'text': now_words})
+        event = m['then'].removeprefix('since ')
+        caption = f"{ago} ago today, {event}" + (f"\n\n{plain(now_words)}" if now_words else '')
+        out.append({'id': 'milestone', 'type': f"milestone-{m['key']}", 'cat': 'history', 'art': 'pages', 'limit': 90, 'novelty': 1, 'must': True, 'pages': pages, 'source': source,
+                    'shows': caption, 'caption': caption, 'alt': caption, 'spec': {'art': 'pages'}})
+    return out[:1]
+
+
+def savings(now):
+    """What wind and solar are saving Britain, quoted from published analysis. Each set of figures stops being used after its expiry date."""
+    out = []
+    for s in FACTS['savings']:
+        if now.date() > dt.date.fromisoformat(s['expires']):
+            continue
+        pages = [{'photo_tag': s['photo_tag'], **pg} for pg in s['pages']]
+        out.append({'id': 'savings', 'type': f"savings-{s['key']}", 'cat': 'history', 'art': 'pages', 'limit': 90, 'novelty': .7, 'pages': pages, 'source': s['source'],
+                    'shows': s['caption'], 'caption': s['caption'], 'alt': ' '.join(plain(f"{pg['big']} {pg['text']}") for pg in s['pages']), 'spec': {'art': 'pages'}})
+    return out[:1]
 
 
 def build(now, posted):
     """Each source is optional: if one fails the agent simply has fewer ideas that day."""
     out = []
-    for name, fn in (('year trend', lambda: year_trend(now)), ('mix years', lambda: mix_years(now)), ('demand years', lambda: demand_years(now)), ('bills years', lambda: bills_years(now)), ('growth', lambda: growth(repd_rows(), now)), ('new sites', lambda: new_sites(repd_rows(), posted))):
+    for name, fn in (('year trend', lambda: year_trend(now)), ('mix years', lambda: mix_years(now)), ('demand years', lambda: demand_years(now)), ('bills years', lambda: bills_years(now)), ('growth', lambda: growth(repd_rows(), now)), ('new sites', lambda: new_sites(repd_rows(), posted)), ('milestones', lambda: milestones(now)), ('savings', lambda: savings(now))):
         try:
             out += fn()
         except Exception as e:

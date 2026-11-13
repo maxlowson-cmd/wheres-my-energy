@@ -75,7 +75,7 @@ def score_posts(history):
 
 def category_of(kind):
     lead = kind.split('|')[0]
-    return 'explain' if lead == 'explainer' else 'new' if lead == 'new-site' else 'history' if lead in ('year-trend', 'growth', 'mix-years', 'demand-years', 'bills-years') else 'fact' if lead == 'fact' else 'now'
+    return 'explain' if lead == 'explainer' else 'new' if lead == 'new-site' else 'history' if lead in ('year-trend', 'growth', 'mix-years', 'demand-years', 'bills-years') or lead.startswith(('milestone-', 'savings-')) else 'fact' if lead == 'fact' else 'now'
 
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -408,6 +408,28 @@ def choose_cover(pick, spec, sheet, history, is_hook, explainer, seed, explain_t
     return cover, label, credit
 
 
+def photo_pages(pages, history, seed):
+    """Pages that name a photo subject get a real photo of it, each one different and not used lately. Returns the pages, the caption credits and the first photo's label."""
+    rng = random.Random(seed)
+    past = [part.split(':', 1)[1] for row in sorted(history, key=lambda r: r['posted'], reverse=True) for part in row['type'].split('|') if part.startswith('cover:photo:')]
+    taken, credits, out, label = set(), [], [], ''
+    for pg in pages:
+        tag = pg.get('photo_tag')
+        if not tag:
+            out.append(pg)
+            continue
+        pool = [x for x in PHOTOS if x['tag'] == tag and x['file'] not in taken]
+        pool = [x for x in pool if x['file'] not in past[:12]] or pool or [x for x in PHOTOS if x['file'] not in taken]
+        x = rng.choice(pool)
+        taken.add(x['file'])
+        raw = (pathlib.Path(__file__).resolve().parent / 'photos' / x['file']).read_bytes()
+        credit = f"Photo: {x['place']}. {x['artist']}, {x['license']}"
+        out.append({**{k: v for k, v in pg.items() if k != 'photo_tag'}, 'look': 'photo', 'photo': 'data:image/jpeg;base64,' + base64.b64encode(raw).decode(), 'credit': credit})
+        credits.append(credit)
+        label = label or f"photo:{x['file']}"
+    return out, credits, label
+
+
 def with_credit(caption, credit):
     """Puts the photo credit above the hashtags."""
     if not credit:
@@ -525,13 +547,13 @@ def main():
             ideas += more
         used = {part for r in history if r['posted'] >= repeat_cutoff() for part in r['type'].split('|')}
         ideas = [i for i in ideas if i['id'] != 'fact' or fact_tag(i) not in used]
-        ideas = [i for i in ideas if i['id'] not in ('mix-years', 'demand-years', 'bills-years') or i['type'] not in used]  # yearly figures don't change, so each of these waits REPEAT_DAYS days
+        ideas = [i for i in ideas if not (i.get('pages') or i['id'] in ('demand-years', 'bills-years')) or i['type'] not in used]  # ready-made posts and yearly figures don't change, so each waits REPEAT_DAYS days
         print('ideas', [(i['id'], round(i['novelty'], 2)) for i in ideas])
         if not ideas:
             if not DRY:
                 relay('telegram', text='Instagram agent skipped today: the site data is too old to post.')
             return
-        pick = choose(ideas, history, f'{today}{slot}')
+        pick = next((i for i in ideas if i.get('must')), None) or choose(ideas, history, f'{today}{slot}')  # an anniversary goes out on its day
         test_pick = os.environ.get('MOCK_ALBUM', '').partition(':')[2] if DRY else ''  # a no-post test can name the story to try
         if test_pick:
             pick = next(i for i in ideas if i['id'] == test_pick)
@@ -571,7 +593,8 @@ def main():
         elif pick.get('pages'):  # a ready-made post of several pages, such as each year's mix, one page per year
             album = True
             caption, alt = pick['caption'], pick['alt']
-            parts = [('cover', {'cover': {**pg, 'swipe': i == 0}}) for i, pg in enumerate(pick['pages'])] + [('closing', {'text': "What's powering your area right now? Look it up in seconds.", 'label': 'NOW FOR YOUR AREA'})]
+            pages, page_credits, page_label = photo_pages(pick['pages'], history, f'{today}{slot}pages')
+            parts = [('cover', {'cover': {**pg, 'swipe': i == 0}}) for i, pg in enumerate(pages)] + [('closing', {'text': "What's powering your area right now? Look it up in seconds.", 'label': 'NOW FOR YOUR AREA'})]
             kind = f"{pick['type']}|album|pages"
         elif plan is None:
             album = False
@@ -595,7 +618,7 @@ def main():
             lead_part, story_over = parts[-2], parts[-2][1]  # the story shows the latest year's page
         cover, label, credit = choose_cover(pick, spec, sheet, history, album, explainer, f'{today}{slot}cover', explain_tags if explainer else ())
         if pick.get('pages') and kind.endswith('|pages'):
-            label, credit = 'flag-years', ''
+            label, credit = (page_label, '. '.join(page_credits) + ', cropped. All photo credits: wheresmyenergyfrom.co.uk/credits') if page_credits else ('flag-years', '')
         elif album:
             first = parts[0][1]
             parts[0] = (parts[0][0], {**first, 'cover': {**cover, 'text': first['text'], 'eyebrow': first['eyebrow'], 'swipe': True}})
