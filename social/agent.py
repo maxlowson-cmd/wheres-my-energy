@@ -147,13 +147,18 @@ def choose(ideas, history, today):
     return next(i for i in ideas if i['id'] == table[0][1])
 
 
+ASKING = ('guess', 'question')  # the angles that open with a question
+
+
 def pick_angle(history, today):
     rng = random.Random(today + 'angle')
     perf = score_posts(history)
     def draw(name):
         got = perf.get(name, [])
         return rng.gauss(sum(got) / len(got) if got else .5, .35 / math.sqrt(len(got) + 1))
-    return max(ANGLES, key=draw)
+    # a bold statement is the normal opener; a question at most one post in three, so the feed isn't question after question
+    asked = any(r.get('kind', '').rsplit('|', 1)[-1] in ASKING for r in history[:2])
+    return max((a for a in ANGLES if not (asked and a in ASKING)), key=draw)
 
 
 def moment_today(d):
@@ -191,7 +196,7 @@ Shape, which matters as much as clarity: every post is one of two shapes, and ne
 - "bulletin": a plain run-through of today's facts, like a news round-up. Say so from the first line, such as "Today on the grid: three things worth knowing", and in "story" write what the round-up covers. Each slide is its own fact and needs no link to the next, so don't invent links or build up to anything. Don't open like a story and then turn into a list.
 Pick "story" when the facts really connect, and "bulletin" when they don't.
 
-Slides: one thought per slide. In a story, the opening slide is a hook that opens a question and doesn't give the answer away, and each slide makes you want the next. In a bulletin, the opening slide says what the round-up is. The closing slide always ends by inviting the reader to look up their own area on the site, using the words "your area", "your postcode" or "your region". Only promise what the site shows: what's powering their area right now, where their gas started out and the cleanest time to run the washing. If there's room, wrap up the post's subject first in one short line. Keep to the character limit given for each slide. A slide's text sits beside the chart or map it describes, so it must match that slide's figures.
+Slides: one thought per slide. In a story, the opening slide is a hook that makes people want to swipe without giving the whole story away, and each slide makes you want the next. Open with a bold, clear statement, such as \"Gas is making over half of Britain's power tonight.\", not a question: a plain striking fact pulls people in better than a rhetorical question. Only the guess and question angles open with a question. In a bulletin, the opening slide says what the round-up is. The closing slide always ends by inviting the reader to look up their own area on the site, using the words "your area", "your postcode" or "your region". Only promise what the site shows: what's powering their area right now, where their gas started out and the cleanest time to run the washing. If there's room, wrap up the post's subject first in one short line. Keep to the character limit given for each slide. A slide's text sits beside the chart or map it describes, so it must match that slide's figures.
 Some slides show a big figure in large type with your words straight underneath it ("big_figure_above_your_words"). People read the two together, so carry on from the figure and never repeat it. Under "57%", for example: "of Britain's power is coming from gas right now. Over the last year it averaged 25%." Some slides also have a small header label at the top ("header_label"), such as "2019 TO 2025, YEAR BY YEAR". It is only a label: your words must make complete sense without it, so never start or finish a sentence from it, and say any year, place or time your sentence needs. Write every slide in plain sentences, never as notes or labels such as "All of Britain: gas around 57% now."
 
 Angles:
@@ -216,9 +221,12 @@ def allowed_numbers(sheet, ideas):
     return {n.strip('.,:').replace(',', '') for n in NUMBER.findall(text)} | {'24', '12'}
 
 
-def check_plan(plan, ideas, sheet, album):
+def check_plan(plan, ideas, sheet, album, angle=''):
     """Returns the problems found. The model's wording only goes out if this comes back empty."""
     problems = []
+    opener = plan['hook'] if album else (plan['slides'][0]['text'] if plan['slides'] else '')
+    if angle and angle not in ASKING and '?' in opener:
+        problems.append('the opening is a question; open with a bold, clear statement instead')
     by_id = {i['id']: i for i in ideas}
     allowed = allowed_numbers(sheet, ideas)
     fields = [plan['caption'], plan['alt']]
@@ -314,7 +322,7 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
             return None
         text = next(b.text for b in response.content if b.type == 'text')
         plan = json.loads(text)
-        problems = check_plan(plan, ideas, sheet, album) + ([] if any(s['id'] == lead['id'] for s in plan['slides']) else [f"the post must include the lead slide {lead['id']}"])
+        problems = check_plan(plan, ideas, sheet, album, angle) + ([] if any(s['id'] == lead['id'] for s in plan['slides']) else [f"the post must include the lead slide {lead['id']}"])
         if not problems:
             big, head = {i['id']: i.get('big') for i in ideas}, {i['id']: i.get('eyebrow') for i in ideas}
             shown = {**plan, 'slides': [{**s, 'text': (f"(header label: {head[s['id']]}) " if head.get(s['id']) else '') + (f"[{big[s['id']]} in large type] {s['text']}" if big.get(s['id']) else s['text'])} for s in plan['slides']]}

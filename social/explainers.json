@@ -2,7 +2,7 @@
   {
     "kicker": "START HERE",
     "colour_key": true,
-    "hook": "Where does your electricity actually come from? Now you can find out.",
+    "hook": "See what's powering your area right now, from just your postcode.",
     "slides": [
       "Type in your postcode and we'll show you what's powering your area right now.",
       "You'll see the power stations it's likely coming from, and where your gas started out.",
@@ -19,7 +19,7 @@
   },
   {
     "kicker": "HOW IT WORKS",
-    "hook": "Nobody can tell you which power station boils your kettle. So how do we do it?",
+    "hook": "Nobody can trace which power station boils your kettle. Here's how we work it out anyway.",
     "slides": [
       "Electricity all mixes together once it's on the grid. There's no way to follow it to one home.",
       "So we make an informed estimate, using public data on what's running right now.",
@@ -35,7 +35,7 @@
   },
   {
     "kicker": "HOW IT WORKS",
-    "hook": "How can we possibly know where your gas came from?",
+    "hook": "Your gas came into Britain somewhere. Here's how we work out where.",
     "slides": [
       "National Gas publishes how much gas is entering Britain at each terminal.",
       "We give every terminal a share based on how much is flowing, and how far away it is from you.",
@@ -51,7 +51,7 @@
   },
   {
     "kicker": "HOW IT WORKS",
-    "hook": "How do we pick the best time to put your washing on?",
+    "hook": "There's a cleanest time to put your washing on. Here's how we find it.",
     "slides": [
       "We read the carbon forecast for your region, up to 24 hours ahead.",
       "Then we hunt for the cleanest stretch that actually suits real life.",
@@ -68,7 +68,7 @@
   },
   {
     "kicker": "HOW IT WORKS",
-    "hook": "When we say 'renewable', what do we actually mean?",
+    "hook": "'Renewable' can mean different things. Here's exactly what we count.",
     "slides": [
       "We count four things: wind, solar, hydro and biomass.",
       "Biomass is included because that's how the official figures treat it, and we always say so.",
@@ -86,7 +86,7 @@
   },
   {
     "kicker": "HOW IT WORKS",
-    "hook": "You type in your address. What happens to it?",
+    "hook": "Your full address stays on your device. Here's what happens when you type it in.",
     "slides": [
       "Your full address and postcode stay in your browser.",
       "Only the first half of your postcode, like SW9, ever leaves your device.",
@@ -101,7 +101,7 @@
   },
   {
     "kicker": "HOW IT WORKS",
-    "hook": "Where does all this data actually come from?",
+    "hook": "Every figure on our site comes from free, public data. Here's whose.",
     "slides": [
       "The forecast comes from the Carbon Intensity API, run by NESO with the University of Oxford and partners.",
       "Which stations are running comes from Elexon's public data.",
