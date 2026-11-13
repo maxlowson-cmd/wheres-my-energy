@@ -569,7 +569,8 @@ def main():
         print('format', 'album' if album else 'single', 'angle', angle)
         for idea, (big, eyebrow) in zip(ideas, page.evaluate('ids => ids.map((id) => [String((WMESocial.spec(id) || {}).big || ""), String((WMESocial.spec(id) || {}).eyebrow || "")])', [i['id'] for i in ideas])):
             idea['big'], idea['eyebrow'] = big, eyebrow
-        plan = None if explainer_due(history) or os.environ.get('MOCK_ALBUM') == 'explain' else None if pick.get('pages') else write_plan(pick, [i for i in ideas if not i.get('pages')], sheet, angle, album, [r.get('caption', '')[:200] for r in history[:7]], day)
+        explain_now = explainer_due(history) and not pick.get('must') and not test_pick  # an anniversary, or a story named for a test, comes first
+        plan = None if explain_now or os.environ.get('MOCK_ALBUM') == 'explain' else None if pick.get('pages') else write_plan(pick, [i for i in ideas if not i.get('pages')], sheet, angle, album, [r.get('caption', '')[:200] for r in history[:7]], day)
         if plan is None and DRY and os.environ.get('MOCK_ALBUM') == '1':
             lead = [pick['id']] + [i['id'] for i in ideas if i['id'] != pick['id'] and i['type'] != 'fact'][:3]
             plan = {'hook_kicker': 'TEST KICKER', 'hook': 'Test hook: this slide opens the story without giving it away.', 'slides': [{'id': x, 'text': 'Test wording for this slide.'} for x in lead], 'closing': 'Test closing that brings the story back to the reader.', 'caption': 'Test caption.', 'alt': 'Test.'}
@@ -582,7 +583,7 @@ def main():
         no_text = lambda s: None if next(i for i in ideas if i['id'] == s['id'])['art'] == 'fact' else {'text': s['text']}
         cat = pick.get('cat', 'now')
         force = os.environ.get('MOCK_ALBUM') == 'explain'
-        if explainer_due(history) or force:
+        if explain_now or force:
             item, number = next_explainer(history)
             album, cat = True, 'explain'
             caption, alt = item['caption'] + signoff, item['hook']
