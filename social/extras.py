@@ -395,10 +395,118 @@ def homes_raw(mw, tech):
     return mw * 8760 * lf * 1000 / FACTS['homes']['kwh_per_home'] if lf else 0
 
 
+UA = {'User-Agent': 'wheresmyenergyfrom/1.0 (https://wheresmyenergyfrom.co.uk)'}
+LONDON = __import__('zoneinfo').ZoneInfo('Europe/London')
+FUEL_COL = {'gas': '#e0735c', 'wind': '#58a6da', 'solar': '#e8bb49', 'imports': '#cf93b9', 'nuclear': '#9a82d6', 'biomass': '#9dbb5f', 'hydro': '#4cc4ba'}
+CABLES = {'Eleclink': 'France', 'France(IFA)': 'France', 'IFA2': 'France', 'Netherlands': 'the Netherlands', 'Belgium': 'Belgium', 'North Sea Link': 'Norway',
+          'Denmark': 'Denmark', 'Ireland(East-West)': 'Ireland', 'Ireland (Greenlink)': 'Ireland', 'Northern Ireland': 'Northern Ireland'}
+
+
+def fetch(url):
+    return json.load(urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60))
+
+
+def local(iso):
+    return dt.datetime.fromisoformat(iso.replace('Z', '+00:00')).astimezone(LONDON)
+
+
+def cables(now):
+    """Which countries Britain is trading power with right now, through its undersea cables (Elexon interconnector flows)."""
+    rows = fetch('https://data.elexon.co.uk/bmrs/api/v1/generation/outturn/interconnectors?format=json')['data']
+    last = max(r['startTime'] for r in rows)
+    when = local(last)
+    if (now.astimezone(LONDON) - when).total_seconds() > 3 * 3600:
+        return []
+    flow = collections.Counter()
+    for r in rows:
+        if r['startTime'] == last:
+            country = next((v for k, v in CABLES.items() if r['interconnectorName'].startswith(k)), None)
+            if country:
+                flow[country] += r['generation']
+    imp = sum(v for v in flow.values() if v > 0)
+    exp = -sum(v for v in flow.values() if v < 0)
+    if imp + exp < 500:
+        return []
+    order = sorted(flow.items(), key=lambda x: -abs(x[1]))
+    biggest = max(abs(v) for _, v in order)
+    ins = [k for k, v in order if v > 50]
+    outs = [k for k, v in order if v < -50]
+    names = lambda xs: ', '.join(xs[:-1]) + ' and ' + xs[-1] if len(xs) > 1 else xs[0]
+    head = f"Right now Britain is bringing in {round(imp):,} MW of power through undersea cables, most of it from {ins[0]}." if ins else f"Right now Britain is sending {round(exp):,} MW of power abroad through undersea cables."
+    more = (f" At the same time it's sending {round(exp):,} MW to {names(outs)}." if ins and outs else '')
+    caption = head + more + f"\n\nBritain's grid is linked by cable to {names(sorted(set(CABLES.values()) - {'Northern Ireland'}))}, and to Northern Ireland. Power flows whichever way it's needed: in when we're short or it's cheaper abroad, out when we have plenty to spare."
+    rows_out = [[k, f"{abs(round(v)):,} MW {'in' if v > 0 else 'out'}", abs(v) / biggest, FUEL_COL['imports'] if v > 0 else '#14c4a8'] for k, v in order if abs(v) > 50][:7]
+    page = {'look': 'rows', 'colour': 'paper', 'eyebrow': f'UNDERSEA CABLES AT {when:%H:%M}', 'text': head, 'rows': rows_out, 'note': 'Pink: power coming in. Green: power going out.'}
+    return [{'id': 'cables', 'type': 'cables', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': .5 + min(.3, exp / 3000), 'pages': [page], 'subjects': ['cables', 'fuel-imports'],
+             'source': 'Elexon, interconnector flows', 'shows': caption, 'caption': caption, 'alt': head + more, 'spec': {'art': 'pages'}}]
+
+
+PLACES = [('Lerwick', 60.15, -1.15), ('Stornoway', 58.21, -6.39), ('Inverness', 57.48, -4.22), ('Aberdeen', 57.15, -2.09), ('Glasgow', 55.86, -4.25), ('Edinburgh', 55.95, -3.19),
+          ('Newcastle', 54.98, -1.61), ('Leeds', 53.80, -1.55), ('Manchester', 53.48, -2.24), ('Norwich', 52.63, 1.30), ('Birmingham', 52.49, -1.89), ('Aberystwyth', 52.42, -4.08),
+          ('Cardiff', 51.48, -3.18), ('London', 51.51, -0.13), ('Brighton', 50.82, -0.14), ('Plymouth', 50.38, -4.14), ('Penzance', 50.12, -5.54)]
+
+
+def weather_tomorrow(now):
+    """Tomorrow's windiest or sunniest places, from the Open-Meteo forecast."""
+    lat = ','.join(str(p[1]) for p in PLACES); lon = ','.join(str(p[2]) for p in PLACES)
+    d = fetch(f'https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&daily=wind_speed_10m_max,sunshine_duration&wind_speed_unit=mph&timezone=Europe%2FLondon&forecast_days=2')
+    tomorrow = (now.astimezone(LONDON) + dt.timedelta(days=1)).date().isoformat()
+    vals = []
+    for (name, _, _), x in zip(PLACES, d):
+        i = x['daily']['time'].index(tomorrow)
+        vals.append((name, x['daily']['wind_speed_10m_max'][i] or 0, (x['daily']['sunshine_duration'][i] or 0) / 3600))
+    day = (now.astimezone(LONDON) + dt.timedelta(days=1)).strftime('%A')
+    windy = sorted(vals, key=lambda v: -v[1])
+    sunny = sorted(vals, key=lambda v: -v[2])
+    out = []
+    if windy[0][1] >= 25:
+        top = windy[:6]
+        head = f"{day}'s windiest place: {top[0][0]}, with winds forecast up to {round(top[0][1])} mph."
+        caption = head + f"\n\nWindy weather usually means more power from Britain's wind farms. Here are the windiest places on {day}'s forecast: " + ', '.join(f'{n} {round(w)} mph' for n, w, _ in top) + '.'
+        page = {'look': 'rows', 'colour': 'blue', 'eyebrow': f"{day.upper()}'S FORECAST", 'text': head, 'rows': [[n, f'{round(w)} mph', w / top[0][1], FUEL_COL['wind']] for n, w, _ in top], 'note': "Windy weather usually means more power from Britain's wind farms."}
+        out.append({'id': 'weather-wind', 'type': 'weather-wind', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': min(.85, windy[0][1] / 60), 'pages': [page], 'subjects': ['weather'],
+                    'source': 'Open-Meteo weather forecast (open-meteo.com)', 'shows': caption, 'caption': caption, 'alt': head, 'spec': {'art': 'pages'}})
+    if sunny[0][2] >= 3:
+        top = sunny[:6]
+        hours = lambda h: f'{h:.1f}'.removesuffix('.0') + ' hours'
+        head = f"{day}'s sunniest place: {top[0][0]}, with about {hours(top[0][2])} of sunshine forecast."
+        caption = head + f"\n\nSunshine means more power from solar panels. Here are the sunniest places on {day}'s forecast: " + ', '.join(f'{n} {hours(h)}' for n, _, h in top) + '.'
+        page = {'look': 'rows', 'colour': 'sun', 'eyebrow': f"{day.upper()}'S FORECAST", 'text': head, 'rows': [[n, hours(h), h / top[0][2], '#e8a200'] for n, _, h in top], 'note': 'Sunshine means more power from solar panels.'}
+        out.append({'id': 'weather-sun', 'type': 'weather-sun', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': min(.8, sunny[0][2] / 10), 'pages': [page], 'subjects': ['weather'],
+                    'source': 'Open-Meteo weather forecast (open-meteo.com)', 'shows': caption, 'caption': caption, 'alt': head, 'spec': {'art': 'pages'}})
+    return out
+
+
+def week_review(now):
+    """The last seven days on Britain's grid: wind's best moment, solar's best, and the cleanest half hour (NESO generation mix)."""
+    if now.astimezone(LONDON).weekday() not in (6, 0):  # Sundays and Mondays
+        return []
+    end = dt.datetime.now(dt.timezone.utc).replace(minute=0, second=0, microsecond=0)
+    d = fetch(f"https://api.carbonintensity.org.uk/generation/{(end - dt.timedelta(days=7)):%Y-%m-%dT%H:%MZ}/{end:%Y-%m-%dT%H:%MZ}")['data']
+    if len(d) < 300:
+        return []
+    mix = [(local(x['from']), {m['fuel']: m['perc'] for m in x['generationmix']}) for x in d]
+    wind_avg = sum(m.get('wind', 0) for _, m in mix) / len(mix)
+    w_t, w = max(mix, key=lambda x: x[1].get('wind', 0))
+    s_t, s = max(mix, key=lambda x: x[1].get('solar', 0))
+    g_t, g = min(mix, key=lambda x: x[1].get('gas', 0) + x[1].get('coal', 0))
+    when = lambda t: f'{t:%a} {t.day} {t:%b}, {t:%H:%M}'
+    head = f"Britain's week on the grid: wind made {pct(wind_avg)}% of its power on average."
+    rows = [[f"Wind's best moment", f"{pct(w['wind'])}%", w['wind'] / 100, FUEL_COL['wind'], when(w_t)],
+            [f"Solar's best moment", f"{pct(s['solar'])}%", s['solar'] / 100, FUEL_COL['solar'], when(s_t)],
+            [f"Least gas", f"{pct(g.get('gas', 0))}%", g.get('gas', 0) / 100, FUEL_COL['gas'], when(g_t)],
+            [f"Wind, all week", f"{pct(wind_avg)}%", wind_avg / 100, FUEL_COL['wind'], 'average over 7 days']]
+    caption = (f"{head}\n\nWind's best moment was {when(w_t)}, when it made {pct(w['wind'])}% of Britain's electricity. Solar peaked at {pct(s['solar'])}% on {when(s_t)}. "
+               f"The least gas came on {when(g_t)}, at {pct(g.get('gas', 0))}%.")
+    page = {'look': 'rows', 'colour': 'mint', 'eyebrow': 'THE LAST 7 DAYS', 'text': head, 'rows': rows}
+    return [{'id': 'week', 'type': 'week', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': .7, 'pages': [page], 'subjects': ['week'],
+             'source': 'NESO Carbon Intensity API, Great Britain generation mix, last 7 days', 'shows': caption, 'caption': caption, 'alt': caption, 'spec': {'art': 'pages'}}]
+
+
 def build(now, posted):
     """Each source is optional: if one fails the agent simply has fewer ideas that day."""
     out = []
-    for name, fn in (('year trend', lambda: year_trend(now)), ('mix years', lambda: mix_years(now)), ('demand years', lambda: demand_years(now)), ('bills years', lambda: bills_years(now)), ('growth', lambda: growth(repd_rows(), now)), ('new sites', lambda: new_sites(repd_rows(), posted)), ('milestones', lambda: milestones(now)), ('savings', lambda: savings(now)), ('building', lambda: building_now(now)), ('biggest', lambda: biggest(now)), ('county', lambda: county(now))):
+    for name, fn in (('year trend', lambda: year_trend(now)), ('mix years', lambda: mix_years(now)), ('demand years', lambda: demand_years(now)), ('bills years', lambda: bills_years(now)), ('growth', lambda: growth(repd_rows(), now)), ('new sites', lambda: new_sites(repd_rows(), posted)), ('milestones', lambda: milestones(now)), ('savings', lambda: savings(now)), ('building', lambda: building_now(now)), ('biggest', lambda: biggest(now)), ('county', lambda: county(now)), ('cables', lambda: cables(now)), ('weather', lambda: weather_tomorrow(now)), ('week', lambda: week_review(now))):
         try:
             out += fn()
         except Exception as e:
