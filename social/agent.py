@@ -368,7 +368,7 @@ def cover_subject(pick, spec):
     """Which illustrated scene and which photos suit this post. Returns (scene or None, photo tags)."""
     if pick['id'] == 'fact':
         return next((v for pattern, v in FACT_SUBJECTS if re.search(pattern, spec.get('text', ''), re.I)), (None, []))
-    if pick['id'] == 'new-site':
+    if pick['id'] in ('new-site', 'biggest', 'county'):
         fuel = str(spec.get('spotFuel') or spec.get('fuelGlow') or '')
         return ('wind', ['offshore', 'onshore']) if fuel == 'wind' else ('solar', ['solar']) if fuel == 'solar' else (None, ['battery'])
     return SUBJECTS.get(pick['id'], ('pylons', ['pylons']))

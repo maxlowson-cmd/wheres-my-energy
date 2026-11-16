@@ -290,10 +290,115 @@ def savings(now):
     return out[:1]
 
 
+KIND = {'Solar Photovoltaics': ('solar farm', 'solar'), 'Wind Onshore': ('wind farm', 'wind'), 'Wind Offshore': ('offshore wind farm', 'wind'), 'Battery': ('battery site', 'hydro')}
+REPD_SOURCE = 'government Renewable Energy Planning Database (REPD)'
+
+
+def repd_all():
+    """Every Great Britain row in the planning database, with its status, size and place."""
+    out = []
+    for r in csv.DictReader(open(HERE / 'data' / 'repd.csv', encoding='latin-1')):
+        if r.get('Country') == 'Northern Ireland':
+            continue
+        try:
+            mw = float((r.get('Installed Capacity (MWelec)') or '0').replace(',', '') or 0)
+        except ValueError:
+            continue
+        out.append((r.get('Development Status (short)', '').strip(), mw, r))
+    return out
+
+
+def site_name(r):
+    return re.sub(r'\s*\(.*?\)', '', (r.get('Site Name') or '').split(' - ')[0]).strip()
+
+
+def spot(r):
+    try:
+        return to_xy(*bng_to_ll(float(r['X-coordinate'].replace(',', '')), float(r['Y-coordinate'].replace(',', ''))))
+    except (ValueError, KeyError):
+        return None
+
+
+def building_now(now):
+    """What is being built right now: wind, solar and batteries under construction, and the biggest single project."""
+    rows = [(mw, r) for s, mw, r in repd_all() if s == 'Under Construction' and r.get('Technology Type') in KIND]
+    gen = [(mw, r) for mw, r in rows if r['Technology Type'] != 'Battery']
+    total = sum(mw for mw, _ in gen)
+    if total < 500:
+        return []
+    homes_n = sum(mw * 8760 * FACTS['homes']['load_factors'][r['Technology Type']] * 1000 / FACTS['homes']['kwh_per_home'] for mw, r in gen)
+    homes_txt = f'{homes_n / 1e6:.1f}'.removesuffix('.0') + ' million'
+    big_mw, big = max(gen, key=lambda x: x[0])
+    batt = sum(mw for mw, r in rows if r['Technology Type'] == 'Battery')
+    pages = [{'photo_tag': 'building', 'eyebrow': 'BEING BUILT RIGHT NOW', 'big': f'{round(total):,} MW', 'text': f"of new wind and solar farms are being built across Britain, enough for around **{homes_txt} homes** once they're running."},
+             {'photo_tag': 'offshore' if big['Technology Type'] == 'Wind Offshore' else KIND[big['Technology Type']][1], 'eyebrow': 'THE BIGGEST', 'big': site_name(big), 'text': f"a new {KIND[big['Technology Type']][0]}, will be able to make up to **{round(big_mw):,} MW** on its own."}]
+    if batt >= 500:
+        pages.append({'photo_tag': 'battery', 'eyebrow': 'AND TO STORE IT', 'big': f'{round(batt):,} MW', 'text': 'of grid batteries are being built too, to save power for when it is needed.'})
+    caption = (f"Right now, {round(total):,} MW of new wind and solar farms are being built across Britain. Once they're running, that's enough electricity for around {homes_txt} homes over a year.\n\n"
+               f"The biggest is {site_name(big)}, {'an' if KIND[big['Technology Type']][0][0] in 'aeiou' else 'a'} {KIND[big['Technology Type']][0]} that will be able to make up to {round(big_mw):,} MW on its own."
+               + (f" Alongside them, {round(batt):,} MW of grid batteries are being built to store power for when it's needed." if batt >= 500 else ''))
+    return [{'id': 'building', 'type': 'building', 'cat': 'new', 'art': 'pages', 'limit': 90, 'novelty': .75, 'pages': pages, 'subjects': ['building'],
+             'source': f'{REPD_SOURCE}, sites under construction; {HOMES_SOURCE}', 'shows': caption, 'caption': caption, 'alt': caption, 'spec': {'art': 'pages'}}]
+
+
+def biggest(now):
+    """Britain's biggest running site of one kind, a different kind on different days."""
+    tech = random.Random(f'{now.date()}big').choice(['Wind Offshore', 'Wind Onshore', 'Solar Photovoltaics', 'Battery'])
+    rows = [(mw, r) for s, mw, r in repd_all() if s == 'Operational' and r.get('Technology Type') == tech]
+    if not rows:
+        return []
+    mw, r = max(rows, key=lambda x: x[0])
+    kind, fuel = KIND[tech]
+    name, xy, n = site_name(r), spot(r), homes(mw, tech)
+    place = (r.get('County') or '').strip()
+    where = '' if not place or place.lower() == 'offshore' else f' in {place}'
+    words = f"Britain's biggest {kind} running today is {name}{where}. It can {'deliver' if tech == 'Battery' else 'make'} up to {round(mw):,} MW." + (f" Over a year, that's enough electricity for around {n} homes." if n else ' It stores power when there is plenty and gives it back when it is needed.')
+    if not xy:
+        return []
+    return [{'id': 'biggest', 'type': 'biggest', 'cat': 'new', 'art': 'map', 'limit': 60, 'novelty': .6, 'subjects': [f'site:{name.lower()}', 'biggest'], 'shows': words, 'caption': words, 'alt': words,
+             'source': f'{REPD_SOURCE}' + (f'; {HOMES_SOURCE}' if n else ''),
+             'spec': {'art': 'map', 'glow': None, 'fuelGlow': fuel, 'eyebrow': f"BRITAIN'S BIGGEST {kind.upper()}", 'big': f'Up to {round(mw):,} MW', 'sub': f'{name}{where}.', 'list': [], 'spot': xy, 'spotFuel': fuel, 'spotLabel': name, 'foot': ['Biggest operating site of its kind. Government planning database.']}}]
+
+
+def county(now):
+    """A spotlight on one county's large wind, solar and battery sites, a different county each time."""
+    by = collections.defaultdict(list)
+    for s, mw, r in repd_all():
+        if s == 'Operational' and r.get('Technology Type') in ('Wind Onshore', 'Solar Photovoltaics', 'Battery') and (r.get('County') or '').strip() not in ('', 'Offshore'):
+            by[r['County'].strip()].append((mw, r))
+    names = sorted(k for k, v in by.items() if sum(mw for mw, _ in v) >= 300)
+    if not names:
+        return []
+    name = names[(now.date() - dt.date(2026, 1, 1)).days // 3 % len(names)]
+    sites = by[name]
+    total = sum(mw for mw, _ in sites)
+    mix = collections.Counter()
+    for mw, r in sites:
+        mix[r['Technology Type']] += mw
+    top = mix.most_common(1)[0][0]
+    word = {'Wind Onshore': 'wind', 'Solar Photovoltaics': 'solar', 'Battery': 'batteries'}[top]
+    homes_n = sum(homes_raw(mw, r['Technology Type']) for mw, r in sites)
+    homes_txt = f'{homes_n / 1e6:.1f}'.removesuffix('.0') + ' million' if homes_n >= 1e6 else f'{round(homes_n, -3):,.0f}'
+    pts = [spot(r) for _, r in sites]
+    pts = [x for x in pts if x]
+    centre = [round(sum(x for x, _ in pts) / len(pts), 1), round(sum(y for _, y in pts) / len(pts), 1)] if pts else None
+    words = f"{name} has {len(sites)} large wind, solar and battery sites running. Between them they can make up to {round(total):,} MW, mostly from {word}. Over a year, the wind and solar farms make enough electricity for around {homes_txt} homes."
+    if not centre:
+        return []
+    return [{'id': 'county', 'type': 'county', 'cat': 'new', 'art': 'map', 'limit': 60, 'novelty': .6, 'subjects': [f'county:{name.lower()}', 'county'], 'shows': words, 'caption': words, 'alt': words,
+             'source': f'{REPD_SOURCE}; {HOMES_SOURCE}',
+             'spec': {'art': 'map', 'glow': None, 'fuelGlow': 'solar' if word == 'solar' else 'wind' if word == 'wind' else 'hydro', 'eyebrow': f'SPOTLIGHT: {name.upper()}', 'big': f'{round(total):,} MW', 'sub': f'from {len(sites)} large wind, solar and battery sites in {name}.', 'list': [], 'spot': centre, 'spotFuel': 'solar' if word == 'solar' else 'wind', 'spotLabel': name, 'foot': ['Operating sites over 1 MW. Government planning database.']}}]
+
+
+def homes_raw(mw, tech):
+    lf = FACTS['homes']['load_factors'].get(tech)
+    return mw * 8760 * lf * 1000 / FACTS['homes']['kwh_per_home'] if lf else 0
+
+
 def build(now, posted):
     """Each source is optional: if one fails the agent simply has fewer ideas that day."""
     out = []
-    for name, fn in (('year trend', lambda: year_trend(now)), ('mix years', lambda: mix_years(now)), ('demand years', lambda: demand_years(now)), ('bills years', lambda: bills_years(now)), ('growth', lambda: growth(repd_rows(), now)), ('new sites', lambda: new_sites(repd_rows(), posted)), ('milestones', lambda: milestones(now)), ('savings', lambda: savings(now))):
+    for name, fn in (('year trend', lambda: year_trend(now)), ('mix years', lambda: mix_years(now)), ('demand years', lambda: demand_years(now)), ('bills years', lambda: bills_years(now)), ('growth', lambda: growth(repd_rows(), now)), ('new sites', lambda: new_sites(repd_rows(), posted)), ('milestones', lambda: milestones(now)), ('savings', lambda: savings(now)), ('building', lambda: building_now(now)), ('biggest', lambda: biggest(now)), ('county', lambda: county(now))):
         try:
             out += fn()
         except Exception as e:
