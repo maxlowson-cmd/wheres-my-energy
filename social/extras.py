@@ -448,7 +448,7 @@ def cables(now):
     head = f"Right now Britain is bringing in {round(imp):,} MW of power through undersea cables, most of it from {ins[0]}." if ins else f"Right now Britain is sending {round(exp):,} MW of power abroad through undersea cables."
     more = (f" At the same time it's sending {round(exp):,} MW to {names(outs)}." if ins and outs else '')
     caption = head + more + f"\n\nBritain's grid is linked by cable to {names(sorted(set(CABLES.values()) - {'Northern Ireland'}))}, and to Northern Ireland. Power flows whichever way it's needed: in when we're short or it's cheaper abroad, out when we have plenty to spare."
-    rows_out = [[k, f"{abs(round(v)):,} MW {'in' if v > 0 else 'out'}", abs(v) / biggest, FUEL_COL['imports'] if v > 0 else '#14c4a8'] for k, v in order if abs(v) > 50][:7]
+    rows_out = [[k[0].upper() + k[1:], f"{abs(round(v)):,} MW {'in' if v > 0 else 'out'}", abs(v) / biggest, FUEL_COL['imports'] if v > 0 else '#14c4a8'] for k, v in order if abs(v) > 50][:7]
     page = {'look': 'rows', 'colour': 'paper', 'eyebrow': f'UNDERSEA CABLES AT {when:%H:%M}', 'text': head, 'rows': rows_out, 'note': 'Pink: power coming in. Green: power going out.'}
     return [{'id': 'cables', 'type': 'cables', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': .5 + min(.3, exp / 3000), 'pages': with_lead(page, 'Cable by cable, right now.', [('scene', 'cables'), ('photo', 'interconnector'), ('scene', 'sea'), ('photo', 'pylons')], now, 'cables', ('mint', 'coral', 'lilac')), 'subjects': ['cables', 'fuel-imports'],
              'source': 'Elexon, interconnector flows', 'shows': caption, 'caption': caption, 'alt': head + more, 'spec': {'art': 'pages'}}]
