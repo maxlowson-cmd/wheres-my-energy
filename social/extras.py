@@ -402,6 +402,19 @@ CABLES = {'Eleclink': 'France', 'France(IFA)': 'France', 'IFA2': 'France', 'Neth
           'Denmark': 'Denmark', 'Ireland(East-West)': 'Ireland', 'Ireland (Greenlink)': 'Ireland', 'Northern Ireland': 'Northern Ireland'}
 
 
+LIST_COLOURS = ['paper', 'sun', 'mint', 'blue', 'lilac', 'coral']
+
+
+def with_lead(page, title, options, now, salt, avoid=()):
+    """A list post opens on a picture (a photo or a drawing) carrying the headline, with the list on the next page in a colour that changes from post to post,
+    so these posts don't all look alike on the grid."""
+    rng = random.Random(f'{now.date()}{now.hour}{salt}')
+    kind, name = rng.choice(options)
+    lead = {'eyebrow': page['eyebrow'], 'text': page['text']}
+    lead.update({'look': 'scene', 'scene': name} if kind == 'scene' else {'photo_tag': name})
+    return [lead, {**page, 'text': title, 'colour': rng.choice([c for c in LIST_COLOURS if c not in avoid])}]  # never a background the bars would vanish into
+
+
 def fetch(url):
     return json.load(urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60))
 
@@ -437,7 +450,7 @@ def cables(now):
     caption = head + more + f"\n\nBritain's grid is linked by cable to {names(sorted(set(CABLES.values()) - {'Northern Ireland'}))}, and to Northern Ireland. Power flows whichever way it's needed: in when we're short or it's cheaper abroad, out when we have plenty to spare."
     rows_out = [[k, f"{abs(round(v)):,} MW {'in' if v > 0 else 'out'}", abs(v) / biggest, FUEL_COL['imports'] if v > 0 else '#14c4a8'] for k, v in order if abs(v) > 50][:7]
     page = {'look': 'rows', 'colour': 'paper', 'eyebrow': f'UNDERSEA CABLES AT {when:%H:%M}', 'text': head, 'rows': rows_out, 'note': 'Pink: power coming in. Green: power going out.'}
-    return [{'id': 'cables', 'type': 'cables', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': .5 + min(.3, exp / 3000), 'pages': [page], 'subjects': ['cables', 'fuel-imports'],
+    return [{'id': 'cables', 'type': 'cables', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': .5 + min(.3, exp / 3000), 'pages': with_lead(page, 'Cable by cable, right now.', [('scene', 'cables'), ('photo', 'interconnector'), ('scene', 'sea'), ('photo', 'pylons')], now, 'cables', ('mint', 'coral', 'lilac')), 'subjects': ['cables', 'fuel-imports'],
              'source': 'Elexon, interconnector flows', 'shows': caption, 'caption': caption, 'alt': head + more, 'spec': {'art': 'pages'}}]
 
 
@@ -464,7 +477,7 @@ def weather_tomorrow(now):
         head = f"{day}'s windiest place: {top[0][0]}, with winds forecast up to {round(top[0][1])} mph."
         caption = head + f"\n\nWindy weather usually means more power from Britain's wind farms. Here are the windiest places on {day}'s forecast: " + ', '.join(f'{n} {round(w)} mph' for n, w, _ in top) + '.'
         page = {'look': 'rows', 'colour': 'blue', 'eyebrow': f"{day.upper()}'S FORECAST", 'text': head, 'rows': [[n, f'{round(w)} mph', w / top[0][1], FUEL_COL['wind']] for n, w, _ in top], 'note': "Windy weather usually means more power from Britain's wind farms."}
-        out.append({'id': 'weather-wind', 'type': 'weather-wind', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': min(.85, windy[0][1] / 60), 'pages': [page], 'subjects': ['weather'],
+        out.append({'id': 'weather-wind', 'type': 'weather-wind', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': min(.85, windy[0][1] / 60), 'pages': with_lead(page, 'The windiest places on the forecast.', [('scene', 'storm'), ('photo', 'storm'), ('scene', 'hills'), ('photo', 'onshore')], now, 'wind', ('blue',)), 'subjects': ['weather'],
                     'source': 'Open-Meteo weather forecast (open-meteo.com)', 'shows': caption, 'caption': caption, 'alt': head, 'spec': {'art': 'pages'}})
     if sunny[0][2] >= 3:
         top = sunny[:6]
@@ -472,7 +485,7 @@ def weather_tomorrow(now):
         head = f"{day}'s sunniest place: {top[0][0]}, with about {hours(top[0][2])} of sunshine forecast."
         caption = head + f"\n\nSunshine means more power from solar panels. Here are the sunniest places on {day}'s forecast: " + ', '.join(f'{n} {hours(h)}' for n, _, h in top) + '.'
         page = {'look': 'rows', 'colour': 'sun', 'eyebrow': f"{day.upper()}'S FORECAST", 'text': head, 'rows': [[n, hours(h), h / top[0][2], '#e8a200'] for n, _, h in top], 'note': 'Sunshine means more power from solar panels.'}
-        out.append({'id': 'weather-sun', 'type': 'weather-sun', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': min(.8, sunny[0][2] / 10), 'pages': [page], 'subjects': ['weather'],
+        out.append({'id': 'weather-sun', 'type': 'weather-sun', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': min(.8, sunny[0][2] / 10), 'pages': with_lead(page, 'The sunniest places on the forecast.', [('scene', 'sunrise'), ('photo', 'solar'), ('scene', 'roof'), ('scene', 'solar')], now, 'sun', ('sun', 'coral')), 'subjects': ['weather'],
                     'source': 'Open-Meteo weather forecast (open-meteo.com)', 'shows': caption, 'caption': caption, 'alt': head, 'spec': {'art': 'pages'}})
     return out
 
@@ -499,7 +512,7 @@ def week_review(now):
     caption = (f"{head}\n\nWind's best moment was {when(w_t)}, when it made {pct(w['wind'])}% of Britain's electricity. Solar peaked at {pct(s['solar'])}% on {when(s_t)}. "
                f"The least gas came on {when(g_t)}, at {pct(g.get('gas', 0))}%.")
     page = {'look': 'rows', 'colour': 'mint', 'eyebrow': 'THE LAST 7 DAYS', 'text': head, 'rows': rows}
-    return [{'id': 'week', 'type': 'week', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': .7, 'pages': [page], 'subjects': ['week'],
+    return [{'id': 'week', 'type': 'week', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': .7, 'pages': with_lead(page, 'The week in four numbers.', [('scene', 'night'), ('photo', 'pylons'), ('scene', 'hills'), ('photo', 'offshore')], now, 'week', ('blue', 'sun', 'coral')), 'subjects': ['week'],
              'source': 'NESO Carbon Intensity API, Great Britain generation mix, last 7 days', 'shows': caption, 'caption': caption, 'alt': caption, 'spec': {'art': 'pages'}}]
 
 
@@ -527,7 +540,7 @@ def world_years(now):
                f"Of the countries shown, {name(leader[0])} was highest at {pct(leader[1])}%." + (' Renewables here include biomass, as in the official figures.' if metric == 'renewables' else ''))
     rows_out = [[name(k), f'{pct(c[k])}%', c[k] / top, UK_COL if k == 'United Kingdom' else OTHER_COL] for k in rows_in]
     page = {'look': 'rows', 'colour': 'paper', 'eyebrow': f'BRITAIN AND THE WORLD, {year}', 'text': head, 'rows': rows_out, 'note': f'Share of each country\'s electricity from {long}, whole year {year}.'}
-    return [{'id': 'world', 'type': f'world-{metric}', 'cat': 'history', 'art': 'pages', 'limit': 90, 'novelty': .65, 'pages': [page], 'subjects': ['world', f'world-{metric}'],
+    return [{'id': 'world', 'type': f'world-{metric}', 'cat': 'history', 'art': 'pages', 'limit': 90, 'novelty': .65, 'pages': with_lead(page, 'How countries compared over the whole year.', [('scene', 'globe'), ('photo', 'offshore'), ('photo', 'onshore'), ('scene', 'sea')], now, 'world', ('coral',)), 'subjects': ['world', f'world-{metric}'],
              'source': f"{w['source']}, {year}", 'shows': caption, 'caption': caption, 'alt': caption, 'spec': {'art': 'pages'}}]
 
 
@@ -566,7 +579,7 @@ def neighbours_now(now):
                + ', '.join(f'{k} {pct(v)}%' for k, v in order) + ". These change all day with the wind, the sun and how much each country is using.")
     rows_out = [[k[0].upper() + k[1:], f'{pct(v)}%', v / top, UK_COL if k == 'Britain' else OTHER_COL] for k, v in order][:8]
     page = {'look': 'rows', 'colour': 'mint', 'eyebrow': 'EUROPE RIGHT NOW', 'text': head, 'rows': rows_out, 'note': 'Low-carbon share of each country\'s power (renewables and nuclear), latest figures.'}
-    return [{'id': 'neighbours', 'type': 'neighbours', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': .6, 'pages': [page], 'subjects': ['world-now'],
+    return [{'id': 'neighbours', 'type': 'neighbours', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': .6, 'pages': with_lead(page, 'Low-carbon power across Europe, latest figures.', [('scene', 'globe'), ('scene', 'cables'), ('photo', 'pylons')], now, 'europe', ('coral',)), 'subjects': ['world-now'],
              'source': 'Energy-Charts (Fraunhofer ISE); Britain from the NESO Carbon Intensity API', 'shows': caption, 'caption': caption, 'alt': caption, 'spec': {'art': 'pages'}}]
 
 
