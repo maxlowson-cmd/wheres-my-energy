@@ -2,7 +2,7 @@
 
 Sources: Elexon generation records, and the government's Renewable Energy Planning Database (large-scale sites only).
 """
-import collections, csv, datetime as dt, json, math, pathlib, random, urllib.request
+import collections, csv, datetime as dt, json, math, pathlib, random, re, urllib.request
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 LAT0 = 54.0
@@ -97,7 +97,7 @@ def year_trend(now):
     headline = (f"{NAME[fuel]} made {fmt(a)} of Britain's power in {first}. In {last}: {fmt(b)}." if b >= .5 else f"{NAME[fuel]} made {fmt(a)} of Britain's power in {first}. By {last}, none.")
     yearly = ', '.join(f'{y} {fmt(share(y, fuel))}' for y in years)
     words = f"{headline} Yearly averages: {yearly}. Why: {why}"
-    return [{'id': 'year-trend', 'type': 'year-trend', 'cat': 'history', 'art': 'bars', 'limit': 90, 'novelty': .55, 'shows': words, 'caption': f'{headline} {why}', 'alt': f"Bar chart of {fuel} as a share of Britain's power each year: {yearly}.",
+    return [{'id': 'year-trend', 'type': 'year-trend', 'cat': 'history', 'subjects': [f'fuel-{fuel}', 'year-trend'], 'art': 'bars', 'limit': 90, 'novelty': .55, 'shows': words, 'caption': f'{headline} {why}', 'alt': f"Bar chart of {fuel} as a share of Britain's power each year: {yearly}.",
              'spec': {'art': 'bars', 'eyebrow': f'{first} TO {last}, YEAR BY YEAR', 'headline': headline, 'bars': bars, 'values': True, 'fuel': 'hydro' if fuel == 'imports' else fuel,
                       'rows': [[f'{first} average', fmt(a)], [f'{last} average', fmt(b)]], 'note': why, 'foot': ['Yearly averages. NESO Carbon Intensity API.']}}]
 
@@ -220,7 +220,7 @@ def growth(rows, now):
         n = homes(latest, tech)
         if n:
             words += f" Between them, these sites can make enough electricity for around {n} homes over a year."
-        out.append({'id': 'growth-' + tech.lower().replace(' ', '-'), 'type': 'growth', 'cat': 'history', 'art': 'bars', 'limit': 85, 'novelty': .45 + (.2 if ratio >= 3 else 0), 'shows': words, 'caption': words, 'alt': words,
+        out.append({'id': 'growth-' + tech.lower().replace(' ', '-'), 'type': 'growth', 'cat': 'history', 'subjects': [f'tech:{fuel}', 'growth'], 'art': 'bars', 'limit': 85, 'novelty': .45 + (.2 if ratio >= 3 else 0), 'shows': words, 'caption': words, 'alt': words,
                     **({'source': f'government planning database (REPD); {HOMES_SOURCE}'} if n else {}),
                     'spec': {'art': 'bars', 'eyebrow': f'{back} YEARS OF CHANGE', 'headline': f"Britain's {name} {have} {grown} in {back} years." if then >= 100 else f"Britain's {name}: from almost nothing to {round(latest):,} MW in {back} years.", 'bars': bars, 'fuel': fuel, 'rows': [[f'{then_day:%B %Y}', f'{round(then):,} MW'], [f'{newest:%B %Y}', f'{round(latest):,} MW']], 'foot': ['Large-scale operating sites, government planning database.']}})
     return out
@@ -231,7 +231,8 @@ def new_sites(rows, posted):
     picks = sorted((x for x in rows if x[0] >= newest - dt.timedelta(days=150) and x[1] >= 20 and x[2].get('Technology Type') in ('Solar Photovoltaics', 'Wind Onshore', 'Wind Offshore', 'Battery')), key=lambda x: x[1], reverse=True)
     for when, mw, r in picks:
         name = (r.get('Site Name') or '').split(' - ')[0].strip()
-        if not name or any(name in text for text in posted):
+        core = re.sub(r'\s+(solar|wind|battery|energy|storage|bess|park|farm|pv|extension|project|scheme|limited|ltd)\b.*$', '', name, flags=re.I).strip() or name
+        if not name or any(core.lower() in text.lower() for text in posted):
             continue
         try:
             lat, lon = bng_to_ll(float(r['X-coordinate'].replace(',', '')), float(r['Y-coordinate'].replace(',', '')))
@@ -243,7 +244,7 @@ def new_sites(rows, posted):
         n = homes(mw, r['Technology Type'])
         if n:
             words += f" Over a year, that's enough electricity for around {n} homes."
-        return [{'id': 'new-site', 'type': 'new-site', 'cat': 'new', 'art': 'map', 'limit': 60, 'novelty': .8, 'shows': words, 'caption': words, 'alt': words,
+        return [{'id': 'new-site', 'type': 'new-site', 'cat': 'new', 'subjects': [f'site:{core.lower()}', f'tech:{fuel}'], 'art': 'map', 'limit': 60, 'novelty': .8, 'shows': words, 'caption': words, 'alt': words,
                  **({'source': f'government planning database (REPD); {HOMES_SOURCE}'} if n else {}),
                  'spec': {'art': 'map', 'glow': None, 'fuelGlow': fuel, 'eyebrow': 'NEW ON THE GRID', 'big': f'Up to {round(mw)} MW', 'sub': f'New {kind} now running: {name}.', 'list': [], 'spot': to_xy(lat, lon), 'spotFuel': fuel, 'spotLabel': name, 'foot': [f'Started operating {when:%B %Y}. Government planning database.']}}]
     return []

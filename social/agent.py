@@ -117,6 +117,21 @@ def review_due(history):
     return done == len(EXPLAINERS) and since == 3
 
 
+SUBJECT_DAYS = 7  # the same subject (a site, a fuel, the regions, the day ahead) can't come back within this many days, whatever the post type
+SAME = {'divide': 'regions', 'league': 'regions'}
+
+
+def subjects(idea):
+    """What a post is about, so the feed doesn't keep coming back to the same thing in a different wrapper."""
+    return idea.get('subjects') or [SAME.get(idea['type'], idea['type'])]
+
+
+def stock_opener(text):
+    """Formula openings the feed has worn out."""
+    t = text.strip().lower()
+    return bool(re.match(r"(here'?s (a|something|your)|a quick (guess|one)|quick guess|guess what|did you know|ever wondered)", t)) or bool(re.search(r'\bfor your (monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b', t))
+
+
 def fact_tag(idea):
     """A short label recording which did-you-know fact a post used."""
     return 'fact:' + re.sub(r'\W+', '-', idea['shows'][:30]).strip('-').lower()
@@ -157,7 +172,7 @@ def pick_angle(history, today):
         got = perf.get(name, [])
         return rng.gauss(sum(got) / len(got) if got else .5, .35 / math.sqrt(len(got) + 1))
     # a bold statement is the normal opener; a question at most one post in three, so the feed isn't question after question
-    asked = any(r.get('kind', '').rsplit('|', 1)[-1] in ASKING for r in history[:2])
+    asked = any(part in ASKING for r in sorted(history, key=lambda r: r['posted'], reverse=True)[:4] for part in r['type'].split('|'))  # at most about one post in five
     return max((a for a in ANGLES if not (asked and a in ASKING)), key=draw)
 
 
@@ -176,7 +191,7 @@ VOICE = """You write daily Instagram posts for Where's My Energy From?, a free B
 
 Your job is to make someone stop scrolling and think "huh, that's interesting, I want to know more". Stats alone are boring. Find the human angle in today's figures: what it means for their washing, their car, their kettle, their part of the country, or their day. If the post has no natural link to home life, don't force one: the interesting fact is enough.
 
-Voice: warm, curious, a bit playful, plain British English. Talk to "you". Short sentences. No jargon, no hype, no exclamation-mark enthusiasm, at most one emoji in the caption and none on the slides. Never preachy: nobody gets told off for using electricity. No politics, no blaming companies or governments, and no knocking the people of any region. The people who follow us want to see the energy transition happening, so frame things by what is being built and what it can do, not by its limits: a site "can make up to 70 MW", never "70 MW is the most it can make". Stay honest, but look on the bright side.
+Voice: warm, curious, a bit playful, plain British English. Talk to "you". Short sentences. No jargon, no hype, no exclamation-mark enthusiasm, at most one emoji in the caption and none on the slides. Never preachy: nobody gets told off for using electricity. No politics, no blaming companies or governments, and no knocking the people of any region. Never bring up privacy, personal data, tracking, cookies or safety: nobody is asking, and raising it only makes people wonder. The people who follow us want to see the energy transition happening, so frame things by what is being built and what it can do, not by its limits: a site "can make up to 70 MW", never "70 MW is the most it can make". Stay honest, but look on the bright side.
 
 Truth rules, which matter more than being catchy:
 - Use only numbers that appear in the data you are given, exactly as given. Don't calculate new figures or round them differently. Loose words like "about a third" or "nearly three times" are fine where the data clearly supports them.
@@ -197,6 +212,7 @@ Shape, which matters as much as clarity: every post is one of two shapes, and ne
 Pick "story" when the facts really connect, and "bulletin" when they don't.
 
 Slides: one thought per slide. In a story, the opening slide is a hook that makes people want to swipe without giving the whole story away, and each slide makes you want the next. Open with a bold, clear statement, such as \"Gas is making over half of Britain's power tonight.\", not a question: a plain striking fact pulls people in better than a rhetorical question. Only the guess and question angles open with a question. In a bulletin, the opening slide says what the round-up is. The closing slide always ends by inviting the reader to look up their own area on the site, using the words "your area", "your postcode" or "your region". Only promise what the site shows: what's powering their area right now, where their gas started out and the cleanest time to run the washing. If there's room, wrap up the post's subject first in one short line. Keep to the character limit given for each slide. A slide's text sits beside the chart or map it describes, so it must match that slide's figures.
+Every post must feel new: don't reuse the opening words, structure or subject of any of the recent captions you are given, and never open with a stock line such as \"Here's a guess for your Monday morning\", \"Here's something you might not expect\" or a mention of the day of the week.
 Some slides show a big figure in large type with your words straight underneath it ("big_figure_above_your_words"). People read the two together, so carry on from the figure and never repeat it. Under "57%", for example: "of Britain's power is coming from gas right now. Over the last year it averaged 25%." Some slides also have a small header label at the top ("header_label"), such as "2019 TO 2025, YEAR BY YEAR". It is only a label: your words must make complete sense without it, so never start or finish a sentence from it, and say any year, place or time your sentence needs. Write every slide in plain sentences, never as notes or labels such as "All of Britain: gas around 57% now."
 
 Angles:
@@ -225,6 +241,8 @@ def check_plan(plan, ideas, sheet, album, angle=''):
     """Returns the problems found. The model's wording only goes out if this comes back empty."""
     problems = []
     opener = plan['hook'] if album else (plan['slides'][0]['text'] if plan['slides'] else '')
+    if stock_opener(opener) or stock_opener(plan['caption']):
+        problems.append('the post opens with a worn-out formula such as "Here\'s a guess for your Monday morning"; open with the most striking fact itself')
     if angle and angle not in ASKING and '?' in opener:
         problems.append('the opening is a question; open with a bold, clear statement instead')
     by_id = {i['id']: i for i in ideas}
@@ -547,6 +565,8 @@ def main():
             ideas += more
         used = {part for r in history if r['posted'] >= repeat_cutoff() for part in r['type'].split('|')}
         ideas = [i for i in ideas if i['id'] != 'fact' or fact_tag(i) not in used]
+        lately = {s for r in history if r['posted'] >= (time.time() - SUBJECT_DAYS * 86400) * 1000 for part in r['type'].split('|') if part.startswith('subj:') for s in part[5:].split(',')}
+        ideas = [i for i in ideas if not set(subjects(i)) & lately] or ideas  # nothing about the same subject within SUBJECT_DAYS days, unless that would leave nothing
         ideas = [i for i in ideas if not (i.get('pages') or i['id'] in ('demand-years', 'bills-years')) or i['type'] not in used]  # ready-made posts and yearly figures don't change, so each waits REPEAT_DAYS days
         print('ideas', [(i['id'], round(i['novelty'], 2)) for i in ideas])
         if not ideas:
@@ -570,7 +590,7 @@ def main():
         for idea, (big, eyebrow) in zip(ideas, page.evaluate('ids => ids.map((id) => [String((WMESocial.spec(id) || {}).big || ""), String((WMESocial.spec(id) || {}).eyebrow || "")])', [i['id'] for i in ideas])):
             idea['big'], idea['eyebrow'] = big, eyebrow
         explain_now = explainer_due(history) and not pick.get('must') and not test_pick  # an anniversary, or a story named for a test, comes first
-        plan = None if explain_now or os.environ.get('MOCK_ALBUM') == 'explain' else None if pick.get('pages') else write_plan(pick, [i for i in ideas if not i.get('pages')], sheet, angle, album, [r.get('caption', '')[:200] for r in history[:7]], day)
+        plan = None if explain_now or os.environ.get('MOCK_ALBUM') == 'explain' else None if pick.get('pages') else write_plan(pick, [i for i in ideas if not i.get('pages')], sheet, angle, album, [r.get('caption', '')[:200] for r in history[:14]], day)
         if plan is None and DRY and os.environ.get('MOCK_ALBUM') == '1':
             lead = [pick['id']] + [i['id'] for i in ideas if i['id'] != pick['id'] and i['type'] != 'fact'][:3]
             plan = {'hook_kicker': 'TEST KICKER', 'hook': 'Test hook: this slide opens the story without giving it away.', 'slides': [{'id': x, 'text': 'Test wording for this slide.'} for x in lead], 'closing': 'Test closing that brings the story back to the reader.', 'caption': 'Test caption.', 'alt': 'Test.'}
@@ -586,7 +606,7 @@ def main():
         if explain_now or force:
             item, number = next_explainer(history)
             album, cat = True, 'explain'
-            caption, alt = item['caption'] + signoff, item['hook']
+            caption, alt = item['caption'] + (signoff.replace('Estimates from the NESO Carbon Intensity forecast.', f"Figures: {item['source']}.") if item.get('source') else signoff), item['hook']
             parts = [('explain', {'text': item['hook'], 'eyebrow': item['kicker'], 'swipe': True})] + [('explain', {'text': s, 'eyebrow': item['kicker']}) for s in item['slides']] + ([('key', {'eyebrow': item['kicker']})] if item.get('colour_key') else []) + [('closing', {'text': item['closing'], 'eyebrow': item['kicker'], 'cat': 'explain'})]
             kind = f'explainer|album|explain{number}'
             explain_tags = item.get('photo_tags', [])
@@ -637,7 +657,7 @@ def main():
             shade = random.Random(f'{today}{slot}end').choice(POSTER_COLOURS[pick.get('cat', 'now')])
             parts[-1] = ('closing', {**parts[-1][1], 'cover': {'look': 'poster', 'colour': shade, 'text': parts[-1][1]['text'], 'eyebrow': parts[-1][1].get('label', 'WHAT IT MEANS FOR YOU'), 'note': 'Put in your postcode at the link in our bio.'}})
         caption = with_credit(caption, credit)
-        kind += f'|cover:{label}'
+        kind += f'|cover:{label}|subj:' + ','.join(subjects(pick))
         if plan and plan.get('shape'):
             kind += f"|shape:{plan['shape']}"  # so a review can compare stories with bulletins
         fact = next((i for i in ideas if i['id'] == 'fact'), None)

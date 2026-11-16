@@ -86,18 +86,20 @@
   },
   {
     "kicker": "HOW IT WORKS",
-    "hook": "Your full address stays on your device. Here's what happens when you type it in.",
+    "hook": "MW, GW, TWh: here's what the numbers in our posts actually mean.",
     "slides": [
-      "Your full address and postcode stay in your browser.",
-      "Only the first half of your postcode, like SW9, ever leaves your device.",
-      "That's enough to fetch your region's forecast and place you on the map.",
-      "Your location on the map is the middle of your postcode district, not your home."
+      "A megawatt (MW) is how much power something can make at any one moment. A gigawatt (GW) is 1,000 MW.",
+      "A terawatt hour (TWh) is energy: how much is made over time. The UK used about 280 TWh of electricity in 2025.",
+      "Wind farms don't run flat out all the time. Over 2025, onshore wind made about a quarter of its maximum.",
+      "So a 70 MW onshore wind farm makes enough electricity for around 59,000 homes over a year."
     ],
-    "closing": "No accounts. No tracking cookies. Just where your energy comes from.",
-    "caption": "A site that asks for your address should be able to say exactly what it does with it.\n\nThe short version: it stays on your device. We only ever use the first half of your postcode.\n\nIs there anything else you'd like us to explain about how this works?",
+    "closing": "Now the numbers make sense. See what's powering your area right now.",
+    "caption": "When we say a new wind farm can make up to 70 MW, that's how much power it can make at any one moment, flat out.\n\nOver a whole year it makes less, because the wind doesn't always blow. Government figures show onshore wind made about a quarter of its maximum in 2025. A typical home uses about 2,500 kWh of electricity a year, so a 70 MW onshore wind farm is enough for around 59,000 homes.\n\nWhich number would you like us to explain next?",
     "photo_tags": [
-      "pylons"
-    ]
+      "onshore",
+      "offshore"
+    ],
+    "source": "DESNZ, Digest of UK Energy Statistics 2026, chapters 5 and 6; Ofgem typical domestic consumption values"
   },
   {
     "kicker": "HOW IT WORKS",
