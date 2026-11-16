@@ -1,242 +1,652 @@
 [
- {
-  "file": "scroby-sands-norfolk-16.jpg",
-  "tag": "offshore",
-  "place": "Scroby Sands, Norfolk",
-  "artist": "Colin Smith",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Scroby_Sands_Wind_Farm_-_geograph.org.uk_-_6710090.jpg",
-  "title": "Scroby Sands Wind Farm - geograph.org.uk - 6710090"
- },
- {
-  "file": "scroby-sands-norfolk-17.jpg",
-  "tag": "offshore",
-  "place": "Scroby Sands, Norfolk",
-  "artist": "Colin Smith",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Scroby_Sands_Wind_Farm_-_geograph.org.uk_-_6709134.jpg",
-  "title": "Scroby Sands Wind Farm - geograph.org.uk - 6709134"
- },
- {
-  "file": "barrow-offshore-wind-farm-8.jpg",
-  "tag": "offshore",
-  "place": "Barrow Offshore Wind Farm",
-  "artist": "Andy Dingley",
-  "license": "CC BY-SA 3.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Barrow_Offshore_wind_turbines.jpg",
-  "title": "Barrow Offshore wind turbines"
- },
- {
-  "file": "scroby-sands-norfolk-15.jpg",
-  "tag": "offshore",
-  "place": "Scroby Sands, Norfolk",
-  "artist": "Colin Smith",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Scroby_Sands_Wind_Farm_-_geograph.org.uk_-_6710055.jpg",
-  "title": "Scroby Sands Wind Farm - geograph.org.uk - 6710055"
- },
- {
-  "file": "whitelee-wind-farm-scotland-24.jpg",
-  "tag": "onshore",
-  "place": "Whitelee Wind Farm, Scotland",
-  "artist": "rachelalienergy",
-  "license": "CC0",
-  "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-  "source": "https://commons.wikimedia.org/wiki/File:Whitelee_Wind_Farm_turbines.jpg",
-  "title": "Whitelee Wind Farm turbines"
- },
- {
-  "file": "scout-moor-lancashire-29.jpg",
-  "tag": "onshore",
-  "place": "Scout Moor, Lancashire",
-  "artist": "Peter McDermott",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Scout_Moor_Wind_Farm_-_geograph.org.uk_-_3937742.jpg",
-  "title": "Scout Moor Wind Farm - geograph.org.uk - 3937742"
- },
- {
-  "file": "lammermuir-hills-scotland-36.jpg",
-  "tag": "onshore",
-  "place": "Lammermuir Hills, Scotland",
-  "artist": "Richard Webb",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Wind_turbines,_Lammermuir_Hills_-_geograph.org.uk_-_7959341.jpg",
-  "title": "Wind turbines, Lammermuir Hills - geograph.org.uk - 7959341"
- },
- {
-  "file": "burgar-hill-orkney-34.jpg",
-  "tag": "onshore",
-  "place": "Burgar Hill, Orkney",
-  "artist": "Giorgio Galeotti",
-  "license": "CC BY 4.0",
-  "license_url": "https://creativecommons.org/licenses/by/4.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Wind_Turbines_-_Burgar_Hill,_Orkney,_Scotland,_UK_-_June_3,_1989_01.jpg",
-  "title": "Wind Turbines - Burgar Hill, Orkney, Scotland, UK - June 3, 1989 01"
- },
- {
-  "file": "east-devon-41.jpg",
-  "tag": "solar",
-  "place": "East Devon",
-  "artist": "Lewis Clarke",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:East_Devon_,_Solar_Panel_Farm_-_geograph.org.uk_-_3946973.jpg",
-  "title": "East Devon , Solar Panel Farm - geograph.org.uk - 3946973"
- },
- {
-  "file": "common-farm-42.jpg",
-  "tag": "solar",
-  "place": "Common Farm",
-  "artist": "Des Blenkinsopp",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Solar_Panels,_Common_Farm_-_geograph.org.uk_-_7389106.jpg",
-  "title": "Solar Panels, Common Farm - geograph.org.uk - 7389106"
- },
- {
-  "file": "sizewell-b-suffolk-44.jpg",
-  "tag": "nuclear",
-  "place": "Sizewell B, Suffolk",
-  "artist": "John Fielding",
-  "license": "CC BY 2.0",
-  "license_url": "https://creativecommons.org/licenses/by/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Aerial_photograph_of_Sizewell_B_Nuclear_Power_Station_2014_(John_Fielding).jpg",
-  "title": "Aerial photograph of Sizewell B Nuclear Power Station 2014 (John Fielding)"
- },
- {
-  "file": "torness-east-lothian-46.jpg",
-  "tag": "nuclear",
-  "place": "Torness, East Lothian",
-  "artist": "Taras Young",
-  "license": "CC BY-SA 4.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Torness_Nuclear_Power_Station_-_April_2016.jpg",
-  "title": "Torness Nuclear Power Station - April 2016"
- },
- {
-  "file": "heysham-lancashire-53.jpg",
-  "tag": "nuclear",
-  "place": "Heysham, Lancashire",
-  "artist": "Kevin Waterhouse",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Heysham_Nuclear_Power_Station_-_geograph.org.uk_-_7238873.jpg",
-  "title": "Heysham Nuclear Power Station - geograph.org.uk - 7238873"
- },
- {
-  "file": "hartlepool-59.jpg",
-  "tag": "nuclear",
-  "place": "Hartlepool",
-  "artist": "D Wells",
-  "license": "CC BY-SA 4.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Hartlepool_nuclear_reactor.jpg",
-  "title": "Hartlepool nuclear reactor"
- },
- {
-  "file": "staythorpe-nottinghamshire-73.jpg",
-  "tag": "gas",
-  "place": "Staythorpe, Nottinghamshire",
-  "artist": "Trevor Rickard",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Staythorpe_Power_Station_-_2_-_geograph.org.uk_-_2777952.jpg",
-  "title": "Staythorpe Power Station - 2 - geograph.org.uk - 2777952"
- },
- {
-  "file": "peterhead-scotland-66.jpg",
-  "tag": "gas",
-  "place": "Peterhead, Scotland",
-  "artist": "Bill Harrison",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Peterhead_Power_Station..._(geograph_7200003).jpg",
-  "title": "Peterhead Power Station... (geograph 7200003)"
- },
- {
-  "file": "peterhead-scotland-67.jpg",
-  "tag": "gas",
-  "place": "Peterhead, Scotland",
-  "artist": "James Allan",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Peterhead_power_station_-_geograph.org.uk_-_3973284.jpg",
-  "title": "Peterhead power station - geograph.org.uk - 3973284"
- },
- {
-  "file": "pitlochry-scotland-82.jpg",
-  "tag": "hydro",
-  "place": "Pitlochry, Scotland",
-  "artist": "xlibber",
-  "license": "CC BY 2.0",
-  "license_url": "https://creativecommons.org/licenses/by/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Hydro-electric_Dam_(3288329922).jpg",
-  "title": "Hydro-electric Dam (3288329922)"
- },
- {
-  "file": "loch-sloy-scotland-91.jpg",
-  "tag": "hydro",
-  "place": "Loch Sloy, Scotland",
-  "artist": "Euan Nelson",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Loch_Sloy_Dam_-_geograph.org.uk_-_6195119.jpg",
-  "title": "Loch Sloy Dam - geograph.org.uk - 6195119"
- },
- {
-  "file": "cruachan-scotland-78.jpg",
-  "tag": "hydro",
-  "place": "Cruachan, Scotland",
-  "artist": "John Ferguson",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Cruachan_Dam_-_geograph.org.uk_-_3343639.jpg",
-  "title": "Cruachan Dam - geograph.org.uk - 3343639"
- },
- {
-  "file": "dinorwig-wales-86.jpg",
-  "tag": "hydro",
-  "place": "Dinorwig, Wales",
-  "artist": "GeraintTudur2",
-  "license": "CC BY-SA 3.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Mynedfa_Gorsaf_B%C5%B5er_Dinorwig.jpg",
-  "title": "Mynedfa Gorsaf Bŵer Dinorwig"
- },
- {
-  "file": "pylons-in-england-99.jpg",
-  "tag": "pylons",
-  "place": "Pylons in England",
-  "artist": "Ben Harris",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Rape_and_pylons_-_geograph.org.uk_-_785046.jpg",
-  "title": "Rape and pylons - geograph.org.uk - 785046"
- },
- {
-  "file": "aust-gloucestershire-102.jpg",
-  "tag": "pylons",
-  "place": "Aust, Gloucestershire",
-  "artist": "Lewis Clarke",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Aust_,_Countryside_Scenery_-_geograph.org.uk_-_7756144.jpg",
-  "title": "Aust , Countryside Scenery - geograph.org.uk - 7756144"
- },
- {
-  "file": "south-hook-lng-milford-haven-104.jpg",
-  "tag": "gas_import",
-  "place": "South Hook LNG, Milford Haven",
-  "artist": "David P Howard",
-  "license": "CC BY-SA 2.0",
-  "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-  "source": "https://commons.wikimedia.org/wiki/File:Jetty_and_pipelines.jpg",
-  "title": "Jetty and pipelines"
- }
+  {
+    "file": "scroby-sands-norfolk-16.jpg",
+    "tag": "offshore",
+    "place": "Scroby Sands, Norfolk",
+    "artist": "Colin Smith",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Scroby_Sands_Wind_Farm_-_geograph.org.uk_-_6710090.jpg",
+    "title": "Scroby Sands Wind Farm - geograph.org.uk - 6710090"
+  },
+  {
+    "file": "scroby-sands-norfolk-17.jpg",
+    "tag": "offshore",
+    "place": "Scroby Sands, Norfolk",
+    "artist": "Colin Smith",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Scroby_Sands_Wind_Farm_-_geograph.org.uk_-_6709134.jpg",
+    "title": "Scroby Sands Wind Farm - geograph.org.uk - 6709134"
+  },
+  {
+    "file": "barrow-offshore-wind-farm-8.jpg",
+    "tag": "offshore",
+    "place": "Barrow Offshore Wind Farm",
+    "artist": "Andy Dingley",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Barrow_Offshore_wind_turbines.jpg",
+    "title": "Barrow Offshore wind turbines"
+  },
+  {
+    "file": "scroby-sands-norfolk-15.jpg",
+    "tag": "offshore",
+    "place": "Scroby Sands, Norfolk",
+    "artist": "Colin Smith",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Scroby_Sands_Wind_Farm_-_geograph.org.uk_-_6710055.jpg",
+    "title": "Scroby Sands Wind Farm - geograph.org.uk - 6710055"
+  },
+  {
+    "file": "whitelee-wind-farm-scotland-24.jpg",
+    "tag": "onshore",
+    "place": "Whitelee Wind Farm, Scotland",
+    "artist": "rachelalienergy",
+    "license": "CC0",
+    "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "source": "https://commons.wikimedia.org/wiki/File:Whitelee_Wind_Farm_turbines.jpg",
+    "title": "Whitelee Wind Farm turbines"
+  },
+  {
+    "file": "scout-moor-lancashire-29.jpg",
+    "tag": "onshore",
+    "place": "Scout Moor, Lancashire",
+    "artist": "Peter McDermott",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Scout_Moor_Wind_Farm_-_geograph.org.uk_-_3937742.jpg",
+    "title": "Scout Moor Wind Farm - geograph.org.uk - 3937742"
+  },
+  {
+    "file": "lammermuir-hills-scotland-36.jpg",
+    "tag": "onshore",
+    "place": "Lammermuir Hills, Scotland",
+    "artist": "Richard Webb",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Wind_turbines,_Lammermuir_Hills_-_geograph.org.uk_-_7959341.jpg",
+    "title": "Wind turbines, Lammermuir Hills - geograph.org.uk - 7959341"
+  },
+  {
+    "file": "burgar-hill-orkney-34.jpg",
+    "tag": "onshore",
+    "place": "Burgar Hill, Orkney",
+    "artist": "Giorgio Galeotti",
+    "license": "CC BY 4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Wind_Turbines_-_Burgar_Hill,_Orkney,_Scotland,_UK_-_June_3,_1989_01.jpg",
+    "title": "Wind Turbines - Burgar Hill, Orkney, Scotland, UK - June 3, 1989 01"
+  },
+  {
+    "file": "east-devon-41.jpg",
+    "tag": "solar",
+    "place": "East Devon",
+    "artist": "Lewis Clarke",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:East_Devon_,_Solar_Panel_Farm_-_geograph.org.uk_-_3946973.jpg",
+    "title": "East Devon , Solar Panel Farm - geograph.org.uk - 3946973"
+  },
+  {
+    "file": "common-farm-42.jpg",
+    "tag": "solar",
+    "place": "Common Farm",
+    "artist": "Des Blenkinsopp",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Solar_Panels,_Common_Farm_-_geograph.org.uk_-_7389106.jpg",
+    "title": "Solar Panels, Common Farm - geograph.org.uk - 7389106"
+  },
+  {
+    "file": "sizewell-b-suffolk-44.jpg",
+    "tag": "nuclear",
+    "place": "Sizewell B, Suffolk",
+    "artist": "John Fielding",
+    "license": "CC BY 2.0",
+    "license_url": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Aerial_photograph_of_Sizewell_B_Nuclear_Power_Station_2014_(John_Fielding).jpg",
+    "title": "Aerial photograph of Sizewell B Nuclear Power Station 2014 (John Fielding)"
+  },
+  {
+    "file": "torness-east-lothian-46.jpg",
+    "tag": "nuclear",
+    "place": "Torness, East Lothian",
+    "artist": "Taras Young",
+    "license": "CC BY-SA 4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Torness_Nuclear_Power_Station_-_April_2016.jpg",
+    "title": "Torness Nuclear Power Station - April 2016"
+  },
+  {
+    "file": "heysham-lancashire-53.jpg",
+    "tag": "nuclear",
+    "place": "Heysham, Lancashire",
+    "artist": "Kevin Waterhouse",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Heysham_Nuclear_Power_Station_-_geograph.org.uk_-_7238873.jpg",
+    "title": "Heysham Nuclear Power Station - geograph.org.uk - 7238873"
+  },
+  {
+    "file": "hartlepool-59.jpg",
+    "tag": "nuclear",
+    "place": "Hartlepool",
+    "artist": "D Wells",
+    "license": "CC BY-SA 4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Hartlepool_nuclear_reactor.jpg",
+    "title": "Hartlepool nuclear reactor"
+  },
+  {
+    "file": "staythorpe-nottinghamshire-73.jpg",
+    "tag": "gas",
+    "place": "Staythorpe, Nottinghamshire",
+    "artist": "Trevor Rickard",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Staythorpe_Power_Station_-_2_-_geograph.org.uk_-_2777952.jpg",
+    "title": "Staythorpe Power Station - 2 - geograph.org.uk - 2777952"
+  },
+  {
+    "file": "peterhead-scotland-66.jpg",
+    "tag": "gas",
+    "place": "Peterhead, Scotland",
+    "artist": "Bill Harrison",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Peterhead_Power_Station..._(geograph_7200003).jpg",
+    "title": "Peterhead Power Station... (geograph 7200003)"
+  },
+  {
+    "file": "peterhead-scotland-67.jpg",
+    "tag": "gas",
+    "place": "Peterhead, Scotland",
+    "artist": "James Allan",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Peterhead_power_station_-_geograph.org.uk_-_3973284.jpg",
+    "title": "Peterhead power station - geograph.org.uk - 3973284"
+  },
+  {
+    "file": "pitlochry-scotland-82.jpg",
+    "tag": "hydro",
+    "place": "Pitlochry, Scotland",
+    "artist": "xlibber",
+    "license": "CC BY 2.0",
+    "license_url": "https://creativecommons.org/licenses/by/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Hydro-electric_Dam_(3288329922).jpg",
+    "title": "Hydro-electric Dam (3288329922)"
+  },
+  {
+    "file": "loch-sloy-scotland-91.jpg",
+    "tag": "hydro",
+    "place": "Loch Sloy, Scotland",
+    "artist": "Euan Nelson",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Loch_Sloy_Dam_-_geograph.org.uk_-_6195119.jpg",
+    "title": "Loch Sloy Dam - geograph.org.uk - 6195119"
+  },
+  {
+    "file": "cruachan-scotland-78.jpg",
+    "tag": "hydro",
+    "place": "Cruachan, Scotland",
+    "artist": "John Ferguson",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Cruachan_Dam_-_geograph.org.uk_-_3343639.jpg",
+    "title": "Cruachan Dam - geograph.org.uk - 3343639"
+  },
+  {
+    "file": "dinorwig-wales-86.jpg",
+    "tag": "hydro",
+    "place": "Dinorwig, Wales",
+    "artist": "GeraintTudur2",
+    "license": "CC BY-SA 3.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Mynedfa_Gorsaf_B%C5%B5er_Dinorwig.jpg",
+    "title": "Mynedfa Gorsaf Bŵer Dinorwig"
+  },
+  {
+    "file": "pylons-in-england-99.jpg",
+    "tag": "pylons",
+    "place": "Pylons in England",
+    "artist": "Ben Harris",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Rape_and_pylons_-_geograph.org.uk_-_785046.jpg",
+    "title": "Rape and pylons - geograph.org.uk - 785046"
+  },
+  {
+    "file": "aust-gloucestershire-102.jpg",
+    "tag": "pylons",
+    "place": "Aust, Gloucestershire",
+    "artist": "Lewis Clarke",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Aust_,_Countryside_Scenery_-_geograph.org.uk_-_7756144.jpg",
+    "title": "Aust , Countryside Scenery - geograph.org.uk - 7756144"
+  },
+  {
+    "file": "south-hook-lng-milford-haven-104.jpg",
+    "tag": "gas_import",
+    "place": "South Hook LNG, Milford Haven",
+    "artist": "David P Howard",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Jetty_and_pipelines.jpg",
+    "title": "Jetty and pipelines"
+  },
+  {
+    "file": "solar-farm-near-waunarlwydd-geograph-6569675.jpg",
+    "tag": "solar",
+    "place": "Solar Farm near Waunarlwydd",
+    "artist": "john bristow",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Solar_Farm_near_Waunarlwydd_(geograph_6569675).jpg",
+    "title": "Solar Farm near Waunarlwydd (geograph 6569675)"
+  },
+  {
+    "file": "cleve-hill-solar-park-geograph-org-uk-8165970.jpg",
+    "tag": "solar",
+    "place": "Cleve Hill Solar Park",
+    "artist": "Des Blenkinsopp",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Cleve_Hill_Solar_Park_-_geograph.org.uk_-_8165970.jpg",
+    "title": "Cleve Hill Solar Park - geograph.org.uk - 8165970"
+  },
+  {
+    "file": "solar-park-geograph-org-uk-7353996.jpg",
+    "tag": "solar",
+    "place": "Solar Park",
+    "artist": "Peter Facey",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Solar_Park_-_geograph.org.uk_-_7353996.jpg",
+    "title": "Solar Park - geograph.org.uk - 7353996"
+  },
+  {
+    "file": "solar-panels-in-chalcroft-solar-park-geograph-org-uk-7362381.jpg",
+    "tag": "solar",
+    "place": "Solar panels in Chalcroft Solar Park",
+    "artist": "Peter Facey",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Solar_panels_in_Chalcroft_Solar_Park_-_geograph.org.uk_-_7362381.jpg",
+    "title": "Solar panels in Chalcroft Solar Park - geograph.org.uk - 7362381"
+  },
+  {
+    "file": "sheep-and-solar-farm-geograph-org-uk-4578065.jpg",
+    "tag": "solar",
+    "place": "Sheep and solar farm",
+    "artist": "Hugh Venables",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Sheep_and_solar_farm_-_geograph.org.uk_-_4578065.jpg",
+    "title": "Sheep and solar farm - geograph.org.uk - 4578065"
+  },
+  {
+    "file": "solar-farm-and-sheep-geograph-org-uk-5058803.jpg",
+    "tag": "solar",
+    "place": "Solar farm and sheep",
+    "artist": "Hugh Venables",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Solar_farm_and_sheep_-_geograph.org.uk_-_5058803.jpg",
+    "title": "Solar farm and sheep - geograph.org.uk - 5058803"
+  },
+  {
+    "file": "installation-of-solar-pv-panels-panels-in-place-geograph-org.jpg",
+    "tag": "home",
+    "place": "Installation of solar PV panels - panels in place",
+    "artist": "David Hawgood",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Installation_of_solar_PV_panels_-_panels_in_place_-_geograph.org.uk_-_2624288.jpg",
+    "title": "Installation of solar PV panels - panels in place - geograph.org.uk - 2624288"
+  },
+  {
+    "file": "terraced-houses-on-east-street-geograph-org-uk-8079595.jpg",
+    "tag": "home",
+    "place": "Terraced houses on East Street",
+    "artist": "Philip Jeffrey",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Terraced_houses_on_East_Street_-_geograph.org.uk_-_8079595.jpg",
+    "title": "Terraced houses on East Street - geograph.org.uk - 8079595"
+  },
+  {
+    "file": "terraced-houses-on-leicester-street-geograph-org-uk-6163279.jpg",
+    "tag": "home",
+    "place": "Terraced houses on Leicester Street",
+    "artist": "Christine Johnstone",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Terraced_houses_on_Leicester_Street_-_geograph.org.uk_-_6163279.jpg",
+    "title": "Terraced houses on Leicester Street - geograph.org.uk - 6163279"
+  },
+  {
+    "file": "terraced-houses-on-walton-street-geograph-org-uk-5233085.jpg",
+    "tag": "home",
+    "place": "Terraced houses on Walton Street",
+    "artist": "Steve Daniels",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Terraced_houses_on_Walton_Street_-_geograph.org.uk_-_5233085.jpg",
+    "title": "Terraced houses on Walton Street - geograph.org.uk - 5233085"
+  },
+  {
+    "file": "air-source-heat-pump-vailliant-arotherm-plus-on-a-terraced-h.jpg",
+    "tag": "home",
+    "place": "Air Source Heat Pump - Vailliant aroTherm Plus on a terraced house",
+    "artist": "Southend-on-Sea Borough Council, UK",
+    "license": "CC0",
+    "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+    "source": "https://commons.wikimedia.org/wiki/File:Air_Source_Heat_Pump_-_Vailliant_aroTherm_Plus_on_a_terraced_house.jpg",
+    "title": "Air Source Heat Pump - Vailliant aroTherm Plus on a terraced house"
+  },
+  {
+    "file": "heat-pumps-galashiels-geograph-org-uk-8098025.jpg",
+    "tag": "home",
+    "place": "Heat pumps, Galashiels",
+    "artist": "Jim Barton",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Heat_pumps,_Galashiels_-_geograph.org.uk_-_8098025.jpg",
+    "title": "Heat pumps, Galashiels - geograph.org.uk - 8098025"
+  },
+  {
+    "file": "camilla-battery-storage-facility-geograph-org-uk-7770751.jpg",
+    "tag": "battery",
+    "place": "Camilla Battery Storage facility",
+    "artist": "Bill Kasman",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Camilla_Battery_Storage_facility_-_geograph.org.uk_-_7770751.jpg",
+    "title": "Camilla Battery Storage facility - geograph.org.uk - 7770751"
+  },
+  {
+    "file": "camilla-battery-storage-facility-geograph-org-uk-7770754.jpg",
+    "tag": "battery",
+    "place": "Camilla Battery Storage facility",
+    "artist": "Bill Kasman",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Camilla_Battery_Storage_facility_-_geograph.org.uk_-_7770754.jpg",
+    "title": "Camilla Battery Storage facility - geograph.org.uk - 7770754"
+  },
+  {
+    "file": "camilla-battery-storage-facility-geograph-org-uk-7770755.jpg",
+    "tag": "battery",
+    "place": "Camilla Battery Storage facility",
+    "artist": "Bill Kasman",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Camilla_Battery_Storage_facility_-_geograph.org.uk_-_7770755.jpg",
+    "title": "Camilla Battery Storage facility - geograph.org.uk - 7770755"
+  },
+  {
+    "file": "electricity-pylons-geograph-org-uk-2257497.jpg",
+    "tag": "pylons",
+    "place": "Electricity Pylons",
+    "artist": "Geographer",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Electricity_Pylons_-_geograph.org.uk_-_2257497.jpg",
+    "title": "Electricity Pylons - geograph.org.uk - 2257497"
+  },
+  {
+    "file": "pylons-and-sunset-geograph-org-uk-2180770.jpg",
+    "tag": "pylons",
+    "place": "Pylons and Sunset",
+    "artist": "David Anstiss",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Pylons_and_Sunset_-_geograph.org.uk_-_2180770.jpg",
+    "title": "Pylons and Sunset - geograph.org.uk - 2180770"
+  },
+  {
+    "file": "pylons-at-sunset-geograph-org-uk-5652140.jpg",
+    "tag": "pylons",
+    "place": "Pylons at sunset",
+    "artist": "derek dye",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Pylons_at_sunset_-_geograph.org.uk_-_5652140.jpg",
+    "title": "Pylons at sunset - geograph.org.uk - 5652140"
+  },
+  {
+    "file": "pylons-in-the-sunset-geograph-org-uk-2463623.jpg",
+    "tag": "pylons",
+    "place": "Pylons in the sunset",
+    "artist": "Chris Holifield",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Pylons_in_the_sunset_-_geograph.org.uk_-_2463623.jpg",
+    "title": "Pylons in the sunset - geograph.org.uk - 2463623"
+  },
+  {
+    "file": "electricity-substation-osney-mead-geograph-org-uk-5863670.jpg",
+    "tag": "pylons",
+    "place": "Electricity substation, Osney Mead",
+    "artist": "Stuart Taylor",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Electricity_substation,_Osney_Mead_-_geograph.org.uk_-_5863670.jpg",
+    "title": "Electricity substation, Osney Mead - geograph.org.uk - 5863670"
+  },
+  {
+    "file": "power-lines-crossing-the-lincolnshire-countryside-geograph-o.jpg",
+    "tag": "pylons",
+    "place": "Power lines crossing the Lincolnshire countryside",
+    "artist": "Mat Fascione",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Power_lines_crossing_the_Lincolnshire_countryside_-_geograph.org.uk_-_4050728.jpg",
+    "title": "Power lines crossing the Lincolnshire countryside - geograph.org.uk - 4050728"
+  },
+  {
+    "file": "wind-farm-in-glenstockadale-geograph-org-uk-7284060.jpg",
+    "tag": "onshore",
+    "place": "Wind farm in Glenstockadale",
+    "artist": "Russel Wills",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Wind_farm_in_Glenstockadale_-_geograph.org.uk_-_7284060.jpg",
+    "title": "Wind farm in Glenstockadale - geograph.org.uk - 7284060"
+  },
+  {
+    "file": "tythegston-wind-turbines-geograph-6183484.jpg",
+    "tag": "onshore",
+    "place": "Tythegston Wind Turbines",
+    "artist": "Steve Barnes",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Tythegston_Wind_Turbines_(geograph_6183484).jpg",
+    "title": "Tythegston Wind Turbines (geograph 6183484)"
+  },
+  {
+    "file": "crook-hill-wind-farm-geograph-org-uk-7262458.jpg",
+    "tag": "onshore",
+    "place": "Crook Hill Wind Farm",
+    "artist": "Kevin Waterhouse",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Crook_Hill_Wind_Farm_-_geograph.org.uk_-_7262458.jpg",
+    "title": "Crook Hill Wind Farm - geograph.org.uk - 7262458"
+  },
+  {
+    "file": "wind-farm-on-spicer-hill-geograph-org-uk-6506389.jpg",
+    "tag": "onshore",
+    "place": "Wind farm on Spicer Hill",
+    "artist": "Chris Morgan",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Wind_farm_on_Spicer_Hill_-_geograph.org.uk_-_6506389.jpg",
+    "title": "Wind farm on Spicer Hill - geograph.org.uk - 6506389"
+  },
+  {
+    "file": "construction-of-crook-hill-wind-farm-geograph-org-uk-7124349.jpg",
+    "tag": "building",
+    "place": "Construction of Crook Hill Wind Farm",
+    "artist": "Kevin Waterhouse",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Construction_of_Crook_Hill_Wind_Farm_-_geograph.org.uk_-_7124349.jpg",
+    "title": "Construction of Crook Hill Wind Farm - geograph.org.uk - 7124349"
+  },
+  {
+    "file": "aberdeen-offshore-wind-farm-geograph-org-uk-7825257.jpg",
+    "tag": "offshore",
+    "place": "Aberdeen Offshore Wind Farm",
+    "artist": "Colin Smith",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Aberdeen_Offshore_Wind_Farm_-_geograph.org.uk_-_7825257.jpg",
+    "title": "Aberdeen Offshore Wind Farm - geograph.org.uk - 7825257"
+  },
+  {
+    "file": "lincs-offshore-wind-farm-geograph-org-uk-3802895.jpg",
+    "tag": "offshore",
+    "place": "Lincs Offshore Wind Farm",
+    "artist": "Mat Fascione",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Lincs_Offshore_Wind_Farm_-_geograph.org.uk_-_3802895.jpg",
+    "title": "Lincs Offshore Wind Farm - geograph.org.uk - 3802895"
+  },
+  {
+    "file": "rampion-offshore-wind-farm-geograph-org-uk-7818794.jpg",
+    "tag": "offshore",
+    "place": "Rampion Offshore Wind Farm",
+    "artist": "Mat Fascione",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Rampion_Offshore_Wind_Farm_-_geograph.org.uk_-_7818794.jpg",
+    "title": "Rampion Offshore Wind Farm - geograph.org.uk - 7818794"
+  },
+  {
+    "file": "wind-turbine-at-the-rampion-offshore-wind-farm-geograph-org-.jpg",
+    "tag": "offshore",
+    "place": "Wind turbine at the Rampion Offshore Wind Farm",
+    "artist": "Mat Fascione",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Wind_turbine_at_the_Rampion_Offshore_Wind_Farm_-_geograph.org.uk_-_7818785.jpg",
+    "title": "Wind turbine at the Rampion Offshore Wind Farm - geograph.org.uk - 7818785"
+  },
+  {
+    "file": "hydro-electric-power-station-at-head-of-loch-striven-geograp.jpg",
+    "tag": "hydro",
+    "place": "Hydro-electric power station at head of Loch Striven",
+    "artist": "Phil Champion",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Hydro-electric_power_station_at_head_of_Loch_Striven_(geograph_1649807).jpg",
+    "title": "Hydro-electric power station at head of Loch Striven (geograph 1649807)"
+  },
+  {
+    "file": "hydro-electric-power-station-geograph-org-uk-6217577.jpg",
+    "tag": "hydro",
+    "place": "Hydro Electric power station",
+    "artist": "Gordon Hatton",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Hydro_Electric_power_station_-_geograph.org.uk_-_6217577.jpg",
+    "title": "Hydro Electric power station - geograph.org.uk - 6217577"
+  },
+  {
+    "file": "sloy-hydro-electric-power-station-penstocks-geograph-org-uk-.jpg",
+    "tag": "hydro",
+    "place": "Sloy Hydro Electric Power Station Penstocks",
+    "artist": "James T M Towill",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Sloy_Hydro_Electric_Power_Station_Penstocks_-_geograph.org.uk_-_2611170.jpg",
+    "title": "Sloy Hydro Electric Power Station Penstocks - geograph.org.uk - 2611170"
+  },
+  {
+    "file": "hunterston-nuclear-power-station-geograph-org-uk-7133781.jpg",
+    "tag": "nuclear",
+    "place": "Hunterston Nuclear Power Station",
+    "artist": "Alan Reid",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Hunterston_Nuclear_Power_Station_-_geograph.org.uk_-_7133781.jpg",
+    "title": "Hunterston Nuclear Power Station - geograph.org.uk - 7133781"
+  },
+  {
+    "file": "sizewell-nuclear-power-station-geograph-org-uk-3334564.jpg",
+    "tag": "nuclear",
+    "place": "Sizewell Nuclear Power Station",
+    "artist": "Geographer",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Sizewell_Nuclear_Power_Station_-_geograph.org.uk_-_3334564.jpg",
+    "title": "Sizewell Nuclear Power Station - geograph.org.uk - 3334564"
+  },
+  {
+    "file": "uskmouth-gas-fired-power-station-geograph-org-uk-6945076.jpg",
+    "tag": "gas",
+    "place": "Uskmouth, gas-fired power station",
+    "artist": "M J Roscoe",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Uskmouth,_gas-fired_power_station_-_geograph.org.uk_-_6945076.jpg",
+    "title": "Uskmouth, gas-fired power station - geograph.org.uk - 6945076"
+  },
+  {
+    "file": "saltend-power-station-chimneys-geograph-org-uk-1796497.jpg",
+    "tag": "gas",
+    "place": "Saltend Power Station Chimneys",
+    "artist": "Andy Beecroft",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Saltend_Power_Station_Chimneys_-_geograph.org.uk_-_1796497.jpg",
+    "title": "Saltend Power Station Chimneys - geograph.org.uk - 1796497"
+  },
+  {
+    "file": "lng-terminal-jetty-at-milford-haven-geograph-org-uk-8005493.jpg",
+    "tag": "gas_import",
+    "place": "LNG terminal jetty at Milford Haven",
+    "artist": "Alan Hughes",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:LNG_terminal_jetty_at_Milford_Haven_-_geograph.org.uk_-_8005493.jpg",
+    "title": "LNG terminal jetty at Milford Haven - geograph.org.uk - 8005493"
+  },
+  {
+    "file": "barrow-gas-terminal-geograph-org-uk-2037801.jpg",
+    "tag": "gas_import",
+    "place": "Barrow Gas Terminal",
+    "artist": "Stephen Middlemiss",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Barrow_Gas_Terminal_-_geograph.org.uk_-_2037801.jpg",
+    "title": "Barrow Gas Terminal - geograph.org.uk - 2037801"
+  },
+  {
+    "file": "drax-power-station-geograph-org-uk-5313658.jpg",
+    "tag": "biomass",
+    "place": "Drax Power Station",
+    "artist": "Russel Wills",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Drax_Power_Station_-_geograph.org.uk_-_5313658.jpg",
+    "title": "Drax Power Station - geograph.org.uk - 5313658"
+  },
+  {
+    "file": "drax-power-station-geograph-org-uk-6215093.jpg",
+    "tag": "biomass",
+    "place": "Drax Power Station",
+    "artist": "Ian S",
+    "license": "CC BY-SA 2.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Drax_Power_Station_-_geograph.org.uk_-_6215093.jpg",
+    "title": "Drax Power Station - geograph.org.uk - 6215093"
+  }
 ]

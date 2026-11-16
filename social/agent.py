@@ -354,11 +354,14 @@ def write_plan(lead, ideas, sheet, angle, album, recent, today):
 
 
 PHOTOS = json.loads((pathlib.Path(__file__).resolve().parent / 'photos.json').read_text(encoding='utf8'))
+PHOTO_GAP, SCENE_GAP = 20, 12  # posts before the same photo or the same illustration can come back
+POSTER_ALL = ['sun', 'mint', 'blue', 'paper', 'coral', 'lilac']
+SPARE_SCENES = {'wind': ['sea', 'hills'], 'solar': ['sunrise', 'roof'], 'wash': ['kettle', 'car'], 'pylons': ['night', 'hills'], 'hob': ['kettle', 'night'], 'gas': ['night'], 'nuclear': ['night'], 'hydro': ['hills'], '': ['night', 'sunrise']}  # other drawings on the same theme, for when the usual one was used lately
 POSTER_COLOURS = {'now': ['sun', 'mint', 'blue'], 'history': ['sun', 'paper', 'mint'], 'new': ['blue', 'mint'], 'explain': ['lilac'], 'fact': ['coral', 'paper']}
 LOOK_WEIGHT = {'photo': -1,  # real photos have had more views than graphics so far, so they win unless two of the last three covers were photos
                 'flag': .1, 'price': .1, 'battery': .1, 'scene': .2, 'poster': .6}
-SUBJECTS = {'fuel-wind': ('wind', ['offshore', 'onshore']), 'fuel-solar': ('solar', ['solar']), 'fuel-gas': ('gas', ['gas']), 'fuel-nuclear': ('nuclear', ['nuclear']), 'fuel-imports': ('pylons', ['pylons']), 'gas-origin': ('hob', ['gas_import']), 'day': ('wash', []), 'prices': ('pylons', ['pylons']), 'league': ('wind', ['pylons']), 'divide': ('pylons', ['pylons']), 'year-trend': ('pylons', ['pylons']), 'growth-battery': (None, []), 'growth-solar-photovoltaics': ('solar', ['solar']), 'growth-wind-offshore': ('wind', ['offshore']), 'growth-wind-onshore': ('wind', ['onshore'])}
-FACT_SUBJECTS = [(r'hydro|\bdam\b|reservoir|Cruachan|Dinorwig|pumped', ('hydro', ['hydro'])), (r'nuclear|Sizewell|Calder Hall|Torness', ('nuclear', ['nuclear'])), (r'wind|turbine', ('wind', ['offshore', 'onshore'])), (r'solar', ('solar', ['solar'])), (r'\bgas\b|North Sea|LNG', ('hob', ['gas_import']))]
+SUBJECTS = {'fuel-wind': ('wind', ['offshore', 'onshore']), 'fuel-solar': ('solar', ['solar']), 'fuel-gas': ('gas', ['gas']), 'fuel-nuclear': ('nuclear', ['nuclear']), 'fuel-imports': ('pylons', ['pylons']), 'gas-origin': ('hob', ['gas_import']), 'day': ('wash', ['home']), 'prices': ('pylons', ['home', 'pylons']), 'league': ('wind', ['onshore', 'hydro', 'pylons']), 'divide': ('pylons', ['pylons', 'onshore', 'hydro']), 'year-trend': ('pylons', ['pylons', 'onshore', 'solar', 'offshore']), 'growth-battery': (None, ['battery']), 'growth-solar-photovoltaics': ('solar', ['solar']), 'growth-wind-offshore': ('wind', ['offshore']), 'growth-wind-onshore': ('wind', ['onshore'])}
+FACT_SUBJECTS = [(r'hydro|\bdam\b|reservoir|Cruachan|Dinorwig|pumped', ('hydro', ['hydro'])), (r'nuclear|Sizewell|Calder Hall|Torness', ('nuclear', ['nuclear'])), (r'wind|turbine', ('wind', ['offshore', 'onshore'])), (r'solar', ('solar', ['solar'])), (r'\bgas\b|North Sea|LNG', ('hob', ['gas_import'])), (r'biomass|Drax|wood pellet', (None, ['biomass'])), (r'battery|batteries', (None, ['battery'])), (r'home|house|kettle|heat pump', ('wash', ['home']))]
 
 
 def cover_subject(pick, spec):
@@ -367,7 +370,7 @@ def cover_subject(pick, spec):
         return next((v for pattern, v in FACT_SUBJECTS if re.search(pattern, spec.get('text', ''), re.I)), (None, []))
     if pick['id'] == 'new-site':
         fuel = str(spec.get('spotFuel') or spec.get('fuelGlow') or '')
-        return ('wind', ['offshore', 'onshore']) if fuel == 'wind' else ('solar', ['solar']) if fuel == 'solar' else (None, [])
+        return ('wind', ['offshore', 'onshore']) if fuel == 'wind' else ('solar', ['solar']) if fuel == 'solar' else (None, ['battery'])
     return SUBJECTS.get(pick['id'], ('pylons', ['pylons']))
 
 
@@ -395,14 +398,15 @@ def choose_cover(pick, spec, sheet, history, is_hook, explainer, seed, explain_t
     scene, tags = (('explain', list(explain_tags)) if explainer else cover_subject(pick, spec))
     cat = 'explain' if explainer else pick.get('cat', 'now')
     colours = POSTER_COLOURS[cat]
-    fresh = [c for c in colours if f'poster:{c}' not in past[:2]] or colours
+    fresh = [c for c in colours if f'poster:{c}' not in past[:6]] or [c for c in POSTER_ALL if f'poster:{c}' not in past[:6]] or colours
     options = {'poster': {'look': 'poster', 'colour': rng.choice(fresh)}}
+    scene = scene if scene and f'scene:{scene}' not in past[:SCENE_GAP] else next((s for s in SPARE_SCENES.get(scene or '', []) if f'scene:{s}' not in past[:SCENE_GAP]), None)
     if scene and (scene != 'wash' or not is_hook):
         options['scene'] = {'look': 'scene', 'scene': scene}
     photos = [p for p in PHOTOS if p['tag'] in tags]
-    fresher = [p for p in photos if f"photo:{p['file']}" not in past[:12]] or photos
+    fresher = [p for p in photos if f"photo:{p['file']}" not in past[:PHOTO_GAP]] or photos
     if explainer:  # how-it-works posts aren't about one fuel, so any photo not used lately will do
-        fresher = [p for p in fresher if f"photo:{p['file']}" not in past[:12]] or [p for p in PHOTOS if f"photo:{p['file']}" not in past[:12]]
+        fresher = [p for p in fresher if f"photo:{p['file']}" not in past[:PHOTO_GAP]] or [p for p in PHOTOS if f"photo:{p['file']}" not in past[:PHOTO_GAP]]
     if fresher:
         named = [p for p in fresher if p['place'].split(',')[0] in str(spec.get('text', ''))]
         options['photo'] = {'look': 'photo', 'chosen': rng.choice(named or fresher)}
@@ -437,7 +441,7 @@ def photo_pages(pages, history, seed):
             out.append(pg)
             continue
         pool = [x for x in PHOTOS if x['tag'] == tag and x['file'] not in taken]
-        pool = [x for x in pool if x['file'] not in past[:12]] or pool or [x for x in PHOTOS if x['file'] not in taken]
+        pool = [x for x in pool if f"photo:{x['file']}" not in past[:PHOTO_GAP]] or pool or [x for x in PHOTOS if x['file'] not in taken and f"photo:{x['file']}" not in past[:PHOTO_GAP]] or [x for x in PHOTOS if x['file'] not in taken]
         x = rng.choice(pool)
         taken.add(x['file'])
         raw = (pathlib.Path(__file__).resolve().parent / 'photos' / x['file']).read_bytes()
