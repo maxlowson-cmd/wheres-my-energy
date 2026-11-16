@@ -382,12 +382,12 @@ def county(now):
     pts = [spot(r) for _, r in sites]
     pts = [x for x in pts if x]
     centre = [round(sum(x for x, _ in pts) / len(pts), 1), round(sum(y for _, y in pts) / len(pts), 1)] if pts else None
-    words = f"{name} has {len(sites)} large wind, solar and battery sites running. Between them they can make up to {round(total):,} MW, mostly from {word}. Over a year, the wind and solar farms make enough electricity for around {homes_txt} homes."
+    words = f"{name} has {len(sites)} large wind, solar and battery sites running on land. Between them they can make up to {round(total):,} MW, mostly from {word}. Over a year, the wind and solar farms make enough electricity for around {homes_txt} homes."
     if not centre:
         return []
     return [{'id': 'county', 'type': 'county', 'cat': 'new', 'art': 'map', 'limit': 60, 'novelty': .6, 'subjects': [f'county:{name.lower()}', 'county'], 'shows': words, 'caption': words, 'alt': words,
              'source': f'{REPD_SOURCE}; {HOMES_SOURCE}',
-             'spec': {'art': 'map', 'glow': None, 'fuelGlow': 'solar' if word == 'solar' else 'wind' if word == 'wind' else 'hydro', 'eyebrow': f'SPOTLIGHT: {name.upper()}', 'big': f'{round(total):,} MW', 'sub': f'from {len(sites)} large wind, solar and battery sites in {name}.', 'list': [], 'spot': centre, 'spotFuel': 'solar' if word == 'solar' else 'wind', 'spotLabel': name, 'foot': ['Operating sites over 1 MW. Government planning database.']}}]
+             'spec': {'art': 'map', 'glow': None, 'fuelGlow': 'solar' if word == 'solar' else 'wind' if word == 'wind' else 'hydro', 'eyebrow': f'SPOTLIGHT: {name.upper()}', 'big': f'{round(total):,} MW', 'sub': f'from {len(sites)} large wind, solar and battery sites on land in {name}.', 'list': [], 'spot': centre, 'spotFuel': 'solar' if word == 'solar' else 'wind', 'spotLabel': name, 'foot': ['Operating sites over 1 MW. Government planning database.']}}]
 
 
 def homes_raw(mw, tech):
@@ -503,10 +503,77 @@ def week_review(now):
              'source': 'NESO Carbon Intensity API, Great Britain generation mix, last 7 days', 'shows': caption, 'caption': caption, 'alt': caption, 'spec': {'art': 'pages'}}]
 
 
+WORLD_METRIC = {'wind': ('Wind', 'wind'), 'renewables': ('Renewables', 'renewables'), 'low_carbon': ('Low-carbon power', 'low-carbon power (renewables and nuclear)')}
+UK_COL, OTHER_COL = '#e0735c', '#14231f55'
+
+
+def world_years(now):
+    """How Britain compares with other countries over a whole year (Our World in Data, built on Ember)."""
+    w = json.loads((HERE / 'social' / 'world.json').read_text(encoding='utf8'))
+    metric = random.Random(f'{now.date()}world').choice(list(WORLD_METRIC))
+    label, long = WORLD_METRIC[metric]
+    c = {k: v[metric] for k, v in w['countries'].items() if metric in v}
+    if 'United Kingdom' not in c or 'World' not in c:
+        return []
+    ranked = sorted(((k, v) for k, v in c.items() if k != 'World'), key=lambda x: -x[1])
+    pick = [k for k, _ in ranked[:3]] + ['United Kingdom', 'World', 'United States', 'China']
+    rows_in = sorted(dict.fromkeys(k for k in pick if k in c), key=lambda k: -c[k])
+    top = max(c[k] for k in rows_in)
+    name = lambda k: 'Britain' if k == 'United Kingdom' else 'The world' if k == 'World' else 'The US' if k == 'United States' else k
+    uk, world, year = c['United Kingdom'], c['World'], w['year']
+    head = f"{label} made {pct(uk)}% of Britain's electricity in {year}. Across the world: {pct(world)}%."
+    leader = ranked[0]
+    caption = (f"{head}\n\nOver the whole of {year}, {long} made {pct(uk)}% of Britain's electricity, compared with {pct(world)}% worldwide. "
+               f"Of the countries shown, {name(leader[0])} was highest at {pct(leader[1])}%." + (' Renewables here include biomass, as in the official figures.' if metric == 'renewables' else ''))
+    rows_out = [[name(k), f'{pct(c[k])}%', c[k] / top, UK_COL if k == 'United Kingdom' else OTHER_COL] for k in rows_in]
+    page = {'look': 'rows', 'colour': 'paper', 'eyebrow': f'BRITAIN AND THE WORLD, {year}', 'text': head, 'rows': rows_out, 'note': f'Share of each country\'s electricity from {long}, whole year {year}.'}
+    return [{'id': 'world', 'type': f'world-{metric}', 'cat': 'history', 'art': 'pages', 'limit': 90, 'novelty': .65, 'pages': [page], 'subjects': ['world', f'world-{metric}'],
+             'source': f"{w['source']}, {year}", 'shows': caption, 'caption': caption, 'alt': caption, 'spec': {'art': 'pages'}}]
+
+
+NEIGHBOURS = {'no': 'Norway', 'fr': 'France', 'ie': 'Ireland', 'nl': 'the Netherlands', 'be': 'Belgium', 'de': 'Germany', 'es': 'Spain', 'pl': 'Poland'}
+
+
+def neighbours_now(now):
+    """Britain's renewable share right now next to other European countries' (Energy-Charts, Fraunhofer ISE; Britain from NESO)."""
+    import time as _t
+    nowu = dt.datetime.now(dt.timezone.utc).timestamp()
+    got = {}
+    for code, name in NEIGHBOURS.items():
+        try:
+            x = fetch(f'https://api.energy-charts.info/public_power?country={code}')
+            types = {p['name']: p['data'] for p in x['production_types']}
+            s = types['Renewable share of generation']
+            i = max(j for j, v in enumerate(s) if v is not None)
+            made = sum(v[i] for k, v in types.items() if len(v) > i and v[i] and v[i] > 0 and not any(w in k.lower() for w in ('load', 'share', 'cross border', 'pumped storage')))
+            nuclear = (types.get('Nuclear') or [0] * (i + 1))[i] or 0
+            if nowu - x['unix_seconds'][i] < 3 * 3600 and made > 0:
+                got[name] = min(100, s[i] + 100 * nuclear / made)  # low-carbon: renewables plus nuclear, so nuclear-powered countries are judged fairly
+        except Exception:
+            pass
+        _t.sleep(1.2)  # the service limits how fast it can be asked
+    if len(got) < 4:
+        return []
+    g = fetch('https://api.carbonintensity.org.uk/generation')['data']
+    mix = {m['fuel']: m['perc'] for m in g['generationmix']}
+    gb = sum(mix.get(f, 0) for f in ('wind', 'solar', 'hydro', 'biomass', 'nuclear'))
+    got['Britain'] = gb
+    order = sorted(got.items(), key=lambda x: -x[1])
+    top = order[0][1] or 1
+    leader = order[0] if order[0][0] != 'Britain' else order[1]
+    head = f"Right now {pct(gb)}% of Britain's power is low-carbon. {leader[0][0].upper() + leader[0][1:]} is at {pct(leader[1])}%."
+    caption = (head + "\n\nHere's how Britain compares with other European countries at the moment, by the share of each country's electricity that is low-carbon, meaning renewables and nuclear: "
+               + ', '.join(f'{k} {pct(v)}%' for k, v in order) + ". These change all day with the wind, the sun and how much each country is using.")
+    rows_out = [[k[0].upper() + k[1:], f'{pct(v)}%', v / top, UK_COL if k == 'Britain' else OTHER_COL] for k, v in order][:8]
+    page = {'look': 'rows', 'colour': 'mint', 'eyebrow': 'EUROPE RIGHT NOW', 'text': head, 'rows': rows_out, 'note': 'Low-carbon share of each country\'s power (renewables and nuclear), latest figures.'}
+    return [{'id': 'neighbours', 'type': 'neighbours', 'cat': 'now', 'art': 'pages', 'limit': 90, 'novelty': .6, 'pages': [page], 'subjects': ['world-now'],
+             'source': 'Energy-Charts (Fraunhofer ISE); Britain from the NESO Carbon Intensity API', 'shows': caption, 'caption': caption, 'alt': caption, 'spec': {'art': 'pages'}}]
+
+
 def build(now, posted):
     """Each source is optional: if one fails the agent simply has fewer ideas that day."""
     out = []
-    for name, fn in (('year trend', lambda: year_trend(now)), ('mix years', lambda: mix_years(now)), ('demand years', lambda: demand_years(now)), ('bills years', lambda: bills_years(now)), ('growth', lambda: growth(repd_rows(), now)), ('new sites', lambda: new_sites(repd_rows(), posted)), ('milestones', lambda: milestones(now)), ('savings', lambda: savings(now)), ('building', lambda: building_now(now)), ('biggest', lambda: biggest(now)), ('county', lambda: county(now)), ('cables', lambda: cables(now)), ('weather', lambda: weather_tomorrow(now)), ('week', lambda: week_review(now))):
+    for name, fn in (('year trend', lambda: year_trend(now)), ('mix years', lambda: mix_years(now)), ('demand years', lambda: demand_years(now)), ('bills years', lambda: bills_years(now)), ('growth', lambda: growth(repd_rows(), now)), ('new sites', lambda: new_sites(repd_rows(), posted)), ('milestones', lambda: milestones(now)), ('savings', lambda: savings(now)), ('building', lambda: building_now(now)), ('biggest', lambda: biggest(now)), ('county', lambda: county(now)), ('cables', lambda: cables(now)), ('weather', lambda: weather_tomorrow(now)), ('week', lambda: week_review(now)), ('world', lambda: world_years(now)), ('neighbours', lambda: neighbours_now(now))):
         try:
             out += fn()
         except Exception as e:

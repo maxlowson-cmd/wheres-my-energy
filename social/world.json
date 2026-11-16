@@ -1,0 +1,154 @@
+{
+ "source": "Our World in Data, based on Ember's yearly electricity data",
+ "url": "https://ourworldindata.org/electricity-mix",
+ "year": 2025,
+ "countries": {
+  "Australia": {
+   "wind": 13.7,
+   "solar": 19.6,
+   "renewables": 38.6,
+   "low_carbon": 38.6,
+   "fossil": 61.4
+  },
+  "Belgium": {
+   "wind": 18.8,
+   "solar": 14.3,
+   "renewables": 38.9,
+   "low_carbon": 72.0,
+   "fossil": 28.0
+  },
+  "Brazil": {
+   "wind": 15.7,
+   "solar": 11.8,
+   "renewables": 86.6,
+   "low_carbon": 88.7,
+   "fossil": 11.3
+  },
+  "Canada": {
+   "wind": 7.9,
+   "solar": 1.6,
+   "renewables": 63.9,
+   "low_carbon": 77.0,
+   "fossil": 23.0
+  },
+  "China": {
+   "wind": 10.7,
+   "solar": 11.1,
+   "renewables": 37.0,
+   "low_carbon": 41.7,
+   "fossil": 58.3
+  },
+  "Denmark": {
+   "wind": 57.7,
+   "solar": 13.4,
+   "renewables": 91.2,
+   "low_carbon": 91.2,
+   "fossil": 8.8
+  },
+  "France": {
+   "wind": 8.2,
+   "solar": 5.6,
+   "renewables": 26.1,
+   "low_carbon": 94.9,
+   "fossil": 5.1
+  },
+  "Germany": {
+   "wind": 27.2,
+   "solar": 17.9,
+   "renewables": 59.1,
+   "low_carbon": 59.1,
+   "fossil": 40.9
+  },
+  "India": {
+   "wind": 5.0,
+   "solar": 9.4,
+   "renewables": 24.1,
+   "low_carbon": 26.7,
+   "fossil": 73.3
+  },
+  "Ireland": {
+   "wind": 38.0,
+   "solar": 4.8,
+   "renewables": 48.1,
+   "low_carbon": 48.1,
+   "fossil": 51.9
+  },
+  "Italy": {
+   "wind": 8.1,
+   "solar": 16.9,
+   "renewables": 48.8,
+   "low_carbon": 48.8,
+   "fossil": 51.2
+  },
+  "Japan": {
+   "wind": 1.2,
+   "solar": 9.8,
+   "renewables": 23.6,
+   "low_carbon": 32.7,
+   "fossil": 67.3
+  },
+  "Netherlands": {
+   "wind": 25.0,
+   "solar": 21.1,
+   "renewables": 51.2,
+   "low_carbon": 54.2,
+   "fossil": 45.8
+  },
+  "Norway": {
+   "wind": 8.4,
+   "solar": 0.3,
+   "renewables": 99.0,
+   "low_carbon": 99.0,
+   "fossil": 1.0
+  },
+  "Poland": {
+   "wind": 14.2,
+   "solar": 11.3,
+   "renewables": 31.5,
+   "low_carbon": 31.5,
+   "fossil": 68.5
+  },
+  "Portugal": {
+   "wind": 26.7,
+   "solar": 17.3,
+   "renewables": 81.0,
+   "low_carbon": 81.0,
+   "fossil": 19.0
+  },
+  "Spain": {
+   "wind": 20.4,
+   "solar": 21.8,
+   "renewables": 55.9,
+   "low_carbon": 74.6,
+   "fossil": 25.4
+  },
+  "Sweden": {
+   "wind": 22.8,
+   "solar": 2.6,
+   "renewables": 71.2,
+   "low_carbon": 98.8,
+   "fossil": 1.2
+  },
+  "United Kingdom": {
+   "wind": 29.4,
+   "solar": 6.6,
+   "renewables": 52.0,
+   "low_carbon": 64.4,
+   "fossil": 35.6
+  },
+  "United States": {
+   "wind": 10.3,
+   "solar": 8.6,
+   "renewables": 25.6,
+   "low_carbon": 43.0,
+   "fossil": 57.0
+  },
+  "World": {
+   "wind": 8.5,
+   "solar": 8.7,
+   "renewables": 33.8,
+   "low_carbon": 42.6,
+   "fossil": 57.4
+  }
+ }
+}
