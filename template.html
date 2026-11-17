@@ -255,6 +255,7 @@
   .primary.fit { align-self: flex-start; }
   .support { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; font-size: .92rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: .75rem; }
   .support span { flex: 1 1 14rem; min-width: 0; }
+  .support .next { flex: none; } /* keep the whole button label on phones */
   .factline { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: .8rem; margin-top: .8rem; }
   .factline .note { flex: 1 1 16rem; min-width: 0; margin: 0; }
   .factline b { color: var(--ink); font-weight: 600; }
@@ -352,7 +353,7 @@
             <li><button class="legbtn" type="button" data-f="other"><i style="background:var(--other)"></i>Battery and other</button></li>
           </ul>
             <div class="rows" id="likelyRows"></div>
-            <p class="note">The other <span id="likelyRest"></span> comes from stations further away, shown on the next page. The percentages are an estimate: each fuel's share of your area is split between its stations, and bigger, closer ones count for more.</p>
+            <p class="note">The other <span id="likelyRest"></span> comes from stations further away, shown on the Britain slide. The percentages are an estimate: each fuel's share of your area is split between its stations, and bigger, closer ones count for more.</p>
           </div>
           <div class="mapOff" id="mapOff" hidden>
             <h2>We couldn't place that postcode on the map.</h2>
@@ -436,7 +437,7 @@
           <p class="note" id="monthNote"></p>
         </section>
         <section class="block">
-          <p class="eyebrow" id="worldEyebrow">Britain and the world</p>
+          <p class="eyebrow" id="worldEyebrow">The UK and the world</p>
           <h3 id="worldLine"></h3>
           <div class="seg wide four" id="worldSeg" role="group" aria-label="Compare countries by">
             <button type="button" data-world="renewables" aria-pressed="true">Renewable</button>
@@ -450,7 +451,7 @@
       </article>
 
       <article class="card" data-name="Best times">
-      <section class="block">
+      <section class="block first">
           <p class="eyebrow">The next 24 hours</p>
           <h3 id="dayLine"></h3>
           <div class="bars" id="dayBars" aria-hidden="true"></div>
@@ -547,7 +548,7 @@
       <p>The fuel mix and carbon forecast for your area come from the Carbon Intensity API, which covers 14 regions of Great Britain. The stations on your map are the ones running right now, matched to the real high-voltage lines. Each fuel's share of your area is split between its stations, and bigger, closer ones count for more.</p>
       <p>Electricity mixes on the grid, so nobody can say which station reached a particular home. Treat the stations, routes and percentages as a reasonable estimate. The map uses the middle of your postcode district.</p>
       <p>Your address stays in your browser. Only the first half of your postcode is sent, to fetch the forecast and add to an anonymous count of areas looked up.</p>
-      <p>Tariff figures use Octopus Energy's published prices for your region and Ofgem's price cap. A car charge counts as 30 units and a typical home as 3,100 units a year.</p>
+      <p>Tariff figures use Octopus Energy's published prices for your region and Ofgem's price cap. A car charge counts as 30 units and a typical home as 2,500 units a year, Ofgem's typical figure.</p>
     </details>
     <details>
       <summary>Data sources</summary>
@@ -561,6 +562,8 @@
         <li>Station locations: <a href="https://github.com/OSUKED/Power-Station-Dictionary">Power Station Dictionary</a></li>
         <li>Postcode locations: <a href="https://postcodes.io/">postcodes.io</a>, contains OS and ONS data &copy; Crown copyright and database right, and Royal Mail data &copy; Royal Mail copyright and database right</li>
         <li>Coastlines: <a href="https://www.naturalearthdata.com/">Natural Earth</a></li>
+        <li>Countries compared: <a href="https://ourworldindata.org/electricity-mix">Our World in Data</a>, based on Ember's yearly electricity data, CC BY 4.0</li>
+        <li>Tariffs: <a href="https://developer.octopus.energy/">Octopus Energy</a>'s published prices. Price cap and typical use: <a href="https://www.ofgem.gov.uk/information-consumers/energy-advice-households/energy-price-cap">Ofgem</a></li>
       </ul>
     </details>
   </footer>
@@ -709,14 +712,14 @@
       bars.push(m);
     }
     barsEl.replaceChildren(...bars);
-    const shortDay = new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: TZ });
+    const shortDay = new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: TZ }), narrow = matchMedia('(max-width: 560px)').matches;
     const labels = [];
     const end = times[times.length - 1] + SLOT;
     [...times, end].forEach((t, i) => {
       const c = clock.format(new Date(t));
       if (c !== '00:00' && c !== '12:00') return;
       const atEnd = i === times.length;
-      const s = make('span', i === 0 ? 'first' : atEnd ? 'last' : '', c === '00:00' ? `${shortDay.format(new Date(t))} 00:00` : '12:00');
+      const s = make('span', i === 0 ? 'first' : atEnd ? 'last' : '', c === '00:00' ? (narrow ? shortDay.format(new Date(t)) : `${shortDay.format(new Date(t))} 00:00`) : '12:00');
       s.style.left = `${i / times.length * 100}%`;
       labels.push(s);
     });
@@ -800,7 +803,7 @@
       done[u] = true;
       ADJ[u].forEach(([v, L, w, rev]) => { if (dist[u] + L < dist[v]) { dist[v] = dist[u] + L; prev[v] = [u, w, rev]; } });
     }
-    const rows = STATIONS.filter((s) => s.gap <= 150 && Number.isFinite(dist[s.node])).map((s) => { const km = dist[s.node] + s.gap + startGap; return { ...s, km, score: s.mw / Math.max(km, 15) ** 2 }; });
+    const rows = STATIONS.filter((s) => s.gap <= 200 && Number.isFinite(dist[s.node])).map((s) => { const km = dist[s.node] + s.gap + startGap; return { ...s, km, score: s.mw / Math.max(km, 15) ** 2 }; });
     // each fuel's slice of your regional mix is shared between its stations: bigger and closer count for more
     const fuelTotal = {};
     rows.forEach((s) => { fuelTotal[s.f] = (fuelTotal[s.f] || 0) + s.score; });
@@ -829,10 +832,11 @@
   const baseUse = (v) => `<use href="#gridbase" transform="scale(${v.k.toFixed(5)}) translate(${(-v.x0).toFixed(2)},${v.y1.toFixed(2)})"/>`;
   function labeller() {
     const placed = [];
+    const big = matchMedia('(max-width: 560px)').matches, cw = big ? 14.5 : 8.2, lh = big ? 32 : 19; /* labels are drawn bigger on phones */
     return (x, y, text, cls) => {
-      const end = x > VIEW_W * .72, tx = end ? x - 13 : x + 13, w = text.length * 8.2, L = end ? tx - w : tx;
+      const end = x > VIEW_W * .72, tx = end ? x - 13 : x + 13, w = text.length * cw, L = end ? tx - w : tx;
       let ty = y + 5;
-      while (placed.some((b) => L < b[1] && L + w > b[0] && Math.abs(ty - b[2]) < 19)) ty += 19;
+      while (placed.some((b) => L < b[1] && L + w > b[0] && Math.abs(ty - b[2]) < lh)) ty += lh;
       placed.push([L, L + w, ty]);
       return `<text class="${cls}" x="${tx}" y="${ty}" text-anchor="${end ? 'end' : 'start'}">${esc(text)}</text>`;
     };
@@ -857,7 +861,7 @@
     picks.forEach((s) => {
       const [x, y] = v.P(s.xy);
       out.push(`<circle class="src" data-f="${s.f}" data-n="1" cx="${x}" cy="${y}" r="${(5 + s.share * 16).toFixed(1)}" style="fill:var(--${s.f})"><title>${esc(s.name)}, ${esc(s.fuel)}, ${Math.round(s.share * 100)}%</title></circle>`);
-      labels.push(label(x, y, s.short, 'lab'));
+      labels.push(label(x, y, s.f === 'imports' ? s.name : s.short, 'lab')); /* a cable's landing point reads 'Denmark by cable', not 'Denmark' */
     });
     out.push(youMark(tx, ty, 13, 6), ...labels, '</svg>');
     return out.join('');
@@ -970,7 +974,7 @@
     picks.forEach((s) => {
       const [x, y] = v.P(s.xy);
       out.push(`<circle class="src" cx="${x}" cy="${y}" r="8" style="fill:var(--${fuel})"><title>${esc(s.short)}, ${s.mw.toLocaleString('en-GB')} MW, ${Math.round(s.km * .621)} miles along the lines</title></circle>`);
-      labels.push(label(x, y, s.short, 'lab'));
+      labels.push(label(x, y, fuel === 'imports' ? s.name : s.short, 'lab'));
     });
     out.push(youMark(tx, ty, 13, 6), ...labels, '</svg>');
     return out.join('');
@@ -1034,7 +1038,7 @@
     const last24 = p.slice(-48);
     const vals = last24.map((x) => x.p);
     const lo = last24[vals.indexOf(Math.min(...vals))], hi = last24[vals.indexOf(Math.max(...vals))];
-    const gbp = (x) => '£' + Math.round(x);
+    const gbp = (x) => (Math.round(x) < 0 ? '−£' : '£') + Math.abs(Math.round(x));
     $('cheapAt').textContent = `${point(Date.parse(lo.t))} (${gbp(lo.p)})`;
     $('dearAt').textContent = `${point(Date.parse(hi.t))} (${gbp(hi.p)})`;
     const times = Array.from({ length: 96 }, (_, i) => start + i * SLOT);
@@ -1045,7 +1049,9 @@
       return { v, cls: v == null || t < cut ? 'dim' : t === Date.parse(lo.t) ? 'hi' : t === Date.parse(hi.t) ? 'bad' : '', title: v == null ? '' : `${clock.format(new Date(t))}: £${Math.round(v)} per MWh` };
     });
     drawBars($('priceBars'), $('priceTicks'), slots, times, p.length, 'Latest');
-    $('priceLine').textContent = `Per megawatt hour. The grey bars are outside the last 24 hours. A battery buying at the low and selling at the high would have earned ${gbp(hi.p - lo.p)}, before losses.`;
+    let low = Infinity, spread = 0;
+    last24.forEach((x) => { spread = Math.max(spread, x.p - low); low = Math.min(low, x.p); });
+    $('priceLine').textContent = `Per megawatt hour. The grey bars are outside the last 24 hours.${spread >= 1 ? ` A battery that bought at the cheapest time and sold at the dearest time after it would have earned ${gbp(spread)} per megawatt hour, before losses.` : ''}`;
   }
 
   /* regional map */
@@ -1117,10 +1123,10 @@
   /* the same four groups as the boxes on the Britain slide. Renewable, fossil and nuclear are shares of what each country
      generated; imports are net imports as a share of what it used (below zero means it sold more abroad than it bought). */
   const WORLD_WHAT = {
-    renewables: { head: (uk, w, y) => `Renewables made ${uk}% of Britain's electricity in ${y}. Across the world: ${w}%.`, what: 'renewables (including biomass, as in the official figures)' },
-    fossil: { head: (uk, w, y) => `Fossil fuels made ${uk}% of Britain's electricity in ${y}, against ${w}% across the world.`, what: 'fossil fuels (gas, coal and oil)', low: true },
-    nuclear: { head: (uk, w, y) => `Nuclear made ${uk}% of Britain's electricity in ${y}. Across the world: ${w}%.`, what: 'nuclear' },
-    imports: { head: (uk, w, y) => `In ${y}, ${uk}% of the electricity Britain used came in through undersea cables, after taking off what it sent out.`, what: 'net imports', used: true },
+    renewables: { head: (uk, w, y) => `Renewables made ${uk}% of the UK's electricity in ${y}. Across the world: ${w}%.`, what: 'renewables (including biomass, as in the official figures)' },
+    fossil: { head: (uk, w, y) => `Fossil fuels made ${uk}% of the UK's electricity in ${y}, against ${w}% across the world.`, what: 'fossil fuels (gas, coal and oil)', low: true },
+    nuclear: { head: (uk, w, y) => `Nuclear made ${uk}% of the UK's electricity in ${y}. Across the world: ${w}%.`, what: 'nuclear' },
+    imports: { head: (uk, w, y) => `In ${y}, ${uk}% of the electricity the UK used came in from abroad, after taking off what it sent out.`, what: 'net imports', used: true },
   };
   let worldMetric = 'renewables';
   function drawWorld() {
@@ -1128,20 +1134,20 @@
     if (!W) { $('worldLine').closest('.block').hidden = true; return; }
     const m = WORLD_WHAT[worldMetric];
     const c = Object.fromEntries(Object.entries(W.countries).filter(([, v]) => worldMetric in v).map(([k, v]) => [k, v[worldMetric]]));
-    const name = (k) => ({ 'United Kingdom': 'Britain', World: 'The world', 'United States': 'The US' })[k] || k;
+    const name = (k) => ({ 'United Kingdom': 'The UK', World: 'The world', 'United States': 'The US' })[k] || k;
     const ranked = Object.keys(c).filter((k) => k !== 'World').sort((a, b) => c[b] - c[a]);
     const pick = m.low ? ranked.slice(-3) : ranked.slice(0, 3);
     const shown = [...new Set([...pick, 'United Kingdom', 'World', 'United States', 'China'])].filter((k) => k in c).sort((a, b) => c[b] - c[a]);
     const uk = Math.round(c['United Kingdom']), place = m.low ? ranked.length - ranked.indexOf('United Kingdom') : ranked.indexOf('United Kingdom') + 1;
-    $('worldEyebrow').textContent = `Britain and the world, ${W.year}`;
+    $('worldEyebrow').textContent = `The UK and the world, ${W.year}`;
     $('worldLine').textContent = m.head(uk, Math.round(c.World), W.year);
     const top = Math.max(...shown.map((k) => c[k]));
     const val = (v) => (Math.round(v) < 0 ? `sold ${Math.round(-v)}%` : `${Math.max(0, Math.round(v))}%`);
     $('worldRows').innerHTML = shown.map((k) => `<div class="row${k === 'United Kingdom' ? ' uk' : ''}"><span class="name">${esc(name(k))}</span><span class="mw">${val(c[k])}</span><div class="track"><i style="width:${Math.max(0, Math.round(c[k] / top * 100))}%;background:${k === 'United Kingdom' ? 'var(--go)' : 'var(--muted)'}"></i></div></div>`).join('');
-    const rank = `Britain has the ${place === 1 ? '' : `${ordinal(place)} `}${m.low ? 'lowest' : 'highest'} share of the ${ranked.length} countries we compare.`;
+    const rank = `The UK has the ${place === 1 ? '' : `${ordinal(place)} `}${m.low ? 'lowest' : 'highest'} share of the ${ranked.length} countries we compare.`;
     $('worldNote').textContent = m.used
       ? `Electricity bought from abroad minus electricity sold abroad, as a share of what each country used, over the whole of ${W.year}. "Sold" means a country sent out more than it took in. ${rank} Source: ${W.source}.`
-      : `Share of each country's electricity from ${m.what}, over the whole of ${W.year}. ${rank} Source: ${W.source}.`;
+      : `Share of the electricity each country generated that came from ${m.what}, over the whole of ${W.year}. These are UK-wide figures, so they differ a little from the Great Britain figures above. ${rank} Source: ${W.source}.`;
     document.querySelectorAll('#worldSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.world === worldMetric)));
   }
   document.querySelectorAll('#worldSeg button').forEach((b) => b.addEventListener('click', () => { worldMetric = b.dataset.world; drawWorld(); fit(); }));
@@ -1600,7 +1606,7 @@
       if (!gb) return [];
       const ranked = fuelRows(gb), list5 = ranked.slice(0, 5).map(([k, p]) => [fuelDk(k), FUEL_NAME[k] || k, `${Math.round(p)}%`]), strip0 = fuelStrip(gb);
       const out = [];
-      const add = (id, type, novelty, spec, words) => { const cat = id === 'fact' ? 'fact' : 'now', s = { eyebrow: 'RIGHT NOW IN GREAT BRITAIN', foot: [`Estimate for Great Britain, ${time}.`], district: 'GB', key: id, cat, ...spec }; cache.set(id, s); out.push({ id, type, cat, art: s.art, limit: s.art === 'map' ? 60 : 85, novelty: clip(novelty), caption: words + sign, shows: words, alt: words.split('. ')[0] }); };
+      const add = (id, type, novelty, spec, words, source) => { const cat = id === 'fact' ? 'fact' : 'now', s = { eyebrow: 'RIGHT NOW IN GREAT BRITAIN', foot: [`Estimate for Great Britain, ${time}.`], district: 'GB', key: id, cat, ...spec }; cache.set(id, s); out.push({ id, type, cat, art: s.art, limit: s.art === 'map' ? 60 : 85, novelty: clip(novelty), caption: words + (source ? sign.replace('Estimates from the NESO Carbon Intensity forecast.', `Figures: ${source}.`) : sign), shows: words, alt: words.split('. ')[0], ...(source ? { source } : {}) }); };
       const fuelPost = (fuel, label, min, word = FUEL_NAME[fuel], verb = 'is') => {
         const v = Math.round(gb[fuel] || 0), y = Math.round(year[fuel] || 0);
         if (v < min) return;
@@ -1623,17 +1629,17 @@
       }
       const prices = SNAPSHOT.prices.slice(-48);
       if (prices.length >= 24) {
-        const vals = prices.map((x) => x.p), lo = prices[vals.indexOf(Math.min(...vals))], hi = prices[vals.indexOf(Math.max(...vals))], win = (x) => ({ from: Date.parse(x.t), to: Date.parse(x.t) + SLOT }), gbp = (x) => `£${Math.round(x)}`;
-        add('prices', 'prices', (hi.p - lo.p) / Math.max(hi.p, 1), { art: 'day', firstLabel: true, eyebrow: 'WHOLESALE POWER, LAST 24 HOURS', headline: `The same electricity cost ${gbp(lo.p)} and ${gbp(hi.p)} within a day.`, v: vals.map((x) => Math.max(x, 1)), t: prices.map((x) => Date.parse(x.t)), dish: win(lo), avoid: win(hi), rows: [[DK.go, 'Cheapest', `${clock.format(new Date(lo.t))} (${gbp(lo.p)})`], [DK.stop, 'Dearest', `${clock.format(new Date(hi.t))} (${gbp(hi.p)})`]], foot: [`Great Britain wholesale price per MWh, to ${time}.`] }, `In the last 24 hours, wholesale electricity in Britain ranged from ${gbp(lo.p)} to ${gbp(hi.p)} per megawatt hour.`);
+        const vals = prices.map((x) => x.p), lo = prices[vals.indexOf(Math.min(...vals))], hi = prices[vals.indexOf(Math.max(...vals))], win = (x) => ({ from: Date.parse(x.t), to: Date.parse(x.t) + SLOT }), gbp = (x) => `${Math.round(x) < 0 ? '−£' : '£'}${Math.abs(Math.round(x))}`;
+        add('prices', 'prices', (hi.p - lo.p) / Math.max(hi.p, 1), { art: 'day', firstLabel: true, eyebrow: 'WHOLESALE POWER, LAST 24 HOURS', headline: `The same electricity cost ${gbp(lo.p)} and ${gbp(hi.p)} within a day.`, v: vals.map((x) => Math.max(x, 1)), t: prices.map((x) => Date.parse(x.t)), dish: win(lo), avoid: win(hi), rows: [[DK.go, 'Cheapest', `${clock.format(new Date(lo.t))} (${gbp(lo.p)})`], [DK.stop, 'Dearest', `${clock.format(new Date(hi.t))} (${gbp(hi.p)})`]], foot: [`Great Britain wholesale price per MWh, to ${time}.`] }, `In the last 24 hours, wholesale electricity in Britain ranged from ${gbp(lo.p)} to ${gbp(hi.p)} per megawatt hour.`, 'Elexon wholesale market prices');
       }
       if (GAS && GAS.terminals.length && Date.now() - Date.parse(GAS.taken) < 6 * HOUR) {
         const totals = {};
         GAS.terminals.forEach((x) => Object.entries(x.mix).forEach(([k, v]) => { totals[k] = (totals[k] || 0) + v; }));
         const sum = Object.values(totals).reduce((a, b) => a + b, 0), COL = { uk: DK.wind, norway: DK.nuclear, lng: DK.gas, europe: DK.imports }, by = Object.entries(totals).sort((a, b) => b[1] - a[1]), share = (v) => Math.round(v / sum * 100), place = { uk: 'the UK North Sea', norway: 'Norway', lng: 'LNG tankers', europe: 'Europe' }[by[0][0]];
-        add('gas-origin', 'gas-origin', .4, { art: 'map', glow: DK.gas, eyebrow: 'WHERE BRITAIN\'S GAS IS FROM', big: `${share(by[0][1])}%`, sub: `of the gas landing in Britain is from ${place}.`, listTitle: 'Right now', list: by.slice(0, 4).map(([k, v]) => [COL[k], GAS_NAME[k], `${share(v)}%`]), strip: by.map(([k, v]) => [COL[k], v]), foot: ['An estimate from National Gas entry flows.'] }, `About ${share(by[0][1])}% of the gas landing in Britain right now is from ${place}.`);
+        add('gas-origin', 'gas-origin', .4, { art: 'map', glow: DK.gas, eyebrow: 'WHERE BRITAIN\'S GAS IS FROM', big: `${share(by[0][1])}%`, sub: `of the gas landing in Britain is from ${place}.`, listTitle: 'Right now', list: by.slice(0, 4).map(([k, v]) => [COL[k], GAS_NAME[k], `${share(v)}%`]), strip: by.map(([k, v]) => [COL[k], v]), foot: ['An estimate from National Gas entry flows.'] }, `About ${share(by[0][1])}% of the gas landing in Britain right now is from ${place}.`, 'National Gas entry flows; tanker gas by country from the government\'s Energy Trends');
       }
       const x = FACTS[Math.floor(Date.now() / 864e5) % FACTS.length];
-      add('fact', 'fact', .35, { art: 'fact', eyebrow: 'DID YOU KNOW?', text: x.t, foot: [`Source: ${x.s}`] }, `${x.t}\n\nSource: ${x.s}.`);
+      add('fact', 'fact', .35, { art: 'fact', eyebrow: 'DID YOU KNOW?', text: x.t, foot: [`Source: ${x.s}`] }, x.t, x.s);
       cache.set('hook', { art: 'fact', eyebrow: 'TODAY', text: '', foot: [], key: 'hook', district: 'GB', swipe: true });
       cache.set('closing', { art: 'fact', eyebrow: 'WHAT IT MEANS FOR YOU', text: '', foot: ['Put in your postcode at the link in our bio.'], key: 'closing', district: 'GB' });
       cache.set('key', { art: 'legend', eyebrow: 'START HERE', foot: [], key: 'key', district: 'GB', cat: 'explain' });
@@ -1839,7 +1845,7 @@
   $('prev').addEventListener('click', () => go(current - 1));
   $('next').addEventListener('click', () => go(current === cards.length - 1 ? 0 : current + 1));
   document.addEventListener('keydown', (e) => {
-    if (e.target.closest('input')) return;
+    if (e.target.closest('input, textarea, select, [contenteditable]') || $('answer').hidden || e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.key === 'ArrowRight' && current < cards.length - 1) { go(current + 1); e.preventDefault(); }
     if (e.key === 'ArrowLeft' && current > 0) { go(current - 1); e.preventDefault(); }
   });
@@ -1866,7 +1872,9 @@
 
   /* v2: free and member views. The plan switch stands in for a real sign-in. */
   const MEMBER = /*MEMBER*/null/*END*/;
-  const KWH = { wash: 1, car: 30 }, CAP = 26.32, HOME_MONTH = 3100 / 12;
+  /* Ofgem's price cap (GB average, direct debit) for 1 Oct to 31 Dec 2026, and its typical home of 2,500 kWh a year from 1 July 2026.
+     When the cap runs out, the comparisons that need it drop away rather than show an old figure. */
+  const KWH = { wash: 1, car: 30 }, CAP = 26.32, CAP_UNTIL = Date.parse('2027-01-01T00:00:00Z'), HOME_MONTH = 2500 / 12;
   const S = (() => { const d = { tariff: null, car: null }; try { return { ...d, ...JSON.parse(localStorage.getItem('wme3') || '{}') }; } catch (e) { return d; } })();
   const save = () => { try { localStorage.setItem('wme3', JSON.stringify(S)); } catch (e) {} };
   let lastF = null;
@@ -1922,11 +1930,12 @@
     const p1 = (v) => `${v.toFixed(1)}p`;
     const charge = (CAP - go.night) * KWH.car;
     const times = Math.max(1, Math.round(HOME_MONTH * (go.day - CAP) / charge));
+    const capOk = Date.now() < CAP_UNTIL, onCap = capOk ? `, against about ${Math.round(CAP)}p on the price cap` : '';
     let head, body, catchLine = '', link = false;
     if (S.car === 'yes' && (S.tariff === 'flat' || S.tariff === 'unsure')) {
       head = 'An overnight tariff could cut what you pay to charge.';
-      body = `On Octopus Go in your area, power costs ${p1(go.night)} a unit from 00:30 to 05:30, against about 26p on the price cap. That's about ${money(charge)} off a typical charge.`;
-      catchLine = `The catch is that everything else costs ${p1(go.day)} a unit. It tends to pay off if you charge at home more than about ${times} ${times === 1 ? 'time' : 'times'} a month. You'll need a smart meter.${S.tariff === 'unsure' ? ' Check your bill first, in case you already pay less at night.' : ''}`;
+      body = `On Octopus Go in your area, power costs ${p1(go.night)} a unit from 00:30 to 05:30${onCap}.${capOk ? ` That's about ${money(charge)} off a typical charge.` : ''}`;
+      catchLine = `The catch is that everything else costs ${p1(go.day)} a unit.${capOk ? ` It tends to pay off if you charge at home more than about ${times} ${times === 1 ? 'time' : 'times'} a month.` : ''} You'll need a smart meter.${S.tariff === 'unsure' ? ' Check your bill first, in case you already pay less at night.' : ''}`;
       link = true;
     } else if (S.car === 'yes' && S.tariff === 'night') {
       head = "You're already on the right kind of tariff.";
@@ -1941,10 +1950,10 @@
       body = "Night-rate tariffs usually cost more during the day. If you don't use much power overnight, a single price may suit you better.";
     } else if (S.tariff === 'agile') {
       head = 'Keep an eye on what Agile is costing you.';
-      body = `Agile averaged ${p1(agile)} a unit in your area over the last 30 days, against about 26p on the price cap. It suits homes that can move a lot of their use to cheap hours.`;
+      body = `Agile averaged ${p1(agile)} a unit in your area over the last 30 days${onCap}. It suits homes that can move a lot of their use to cheap hours.`;
     } else {
       head = "There's probably no reason to switch.";
-      body = `Without a car to charge, there's usually little to gain. Agile averaged ${p1(agile)} a unit in your area over the last 30 days, against about 26p on the price cap.`;
+      body = `Without a car to charge, there's usually little to gain. Agile averaged ${p1(agile)} a unit in your area over the last 30 days${onCap}.`;
     }
     $('payHead').textContent = head; $('payBody').textContent = body;
     $('payCatch').textContent = catchLine; $('payCatch').hidden = !catchLine;

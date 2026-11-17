@@ -9,6 +9,29 @@ LAT0 = 54.0
 def xy(lat, lon): return ((lon + 2.0) * 111.32 * math.cos(math.radians(LAT0)), (lat - 54.0) * 110.57)
 def km(a, b): return math.hypot(a[0] - b[0], a[1] - b[1])
 
+
+def bng_to_ll(E, N):
+    """British National Grid to approximate lat/lon (OSGB36, close enough for a map dot)."""
+    a, b, F0, lat0, lon0, N0, E0 = 6377563.396, 6356256.909, 0.9996012717, math.radians(49), math.radians(-2), -100000, 400000
+    e2 = 1 - b * b / (a * a); n = (a - b) / (a + b)
+    lat, M = lat0, 0
+    while True:
+        lat = (N - N0 - M) / (a * F0) + lat
+        Ma = (1 + n + 5 / 4 * n ** 2 + 5 / 4 * n ** 3) * (lat - lat0)
+        Mb = (3 * n + 3 * n ** 2 + 21 / 8 * n ** 3) * math.sin(lat - lat0) * math.cos(lat + lat0)
+        Mc = (15 / 8 * n ** 2 + 15 / 8 * n ** 3) * math.sin(2 * (lat - lat0)) * math.cos(2 * (lat + lat0))
+        Md = 35 / 24 * n ** 3 * math.sin(3 * (lat - lat0)) * math.cos(3 * (lat + lat0))
+        M = b * F0 * (Ma - Mb + Mc - Md)
+        if abs(N - N0 - M) < 0.01: break
+    s, c, t = math.sin(lat), math.cos(lat), math.tan(lat)
+    nu = a * F0 / math.sqrt(1 - e2 * s * s); rho = a * F0 * (1 - e2) / (1 - e2 * s * s) ** 1.5; eta2 = nu / rho - 1
+    d = E - E0
+    VII = t / (2 * rho * nu); VIII = t / (24 * rho * nu ** 3) * (5 + 3 * t * t + eta2 - 9 * t * t * eta2)
+    X = 1 / (c * nu); XI = 1 / (c * 6 * nu ** 3) * (nu / rho + 2 * t * t)
+    return math.degrees(lat - VII * d ** 2 + VIII * d ** 4), math.degrees(lon0 + X * d - XI * d ** 3)
+
+
+
 # --- network
 ways = [w for w in json.load(open(D / 'lines.json', encoding='utf8'))['elements'] if w.get('geometry')]
 geoms = [[xy(p['lat'], p['lon']) for p in w['geometry']] for w in ways]
@@ -88,6 +111,52 @@ for m in grid['mix_now']:
         lat, lon = LAND[m['fuel']]
         stations['I:' + m['fuel']] = {'name': m['fuel'].split(' (')[0] + ' by cable', 'cable': m['fuel'], 'lat': lat, 'lon': lon, 'mw': m['mw'], 'fuels': collections.Counter({'Imports': m['mw']})}
 
+# --- running units the dictionary can't place, mostly the newest offshore wind farms (Seagreen, Dogger Bank, Moray West,
+# Neart na Gaoithe): find them by name in the government's renewables database, so their output isn't credited to older farms
+REPD_TECH = {'Wind': ('Wind Offshore', 'Wind Onshore'), 'Hydro': ('Large Hydro', 'Small Hydro', 'Pumped Storage Hydroelectricity'),
+             'Biomass': ('Biomass (dedicated)', 'EfW Incineration', 'Advanced Conversion Technologies', 'Landfill Gas', 'Anaerobic Digestion')}
+NOISE = re.compile(r'\b(offshore|onshore|wind ?farm|windfarm|wf|owf|wind|project|phase|extension|ltd|limited|main|unit|gen|generation|plant|power|station)\b')
+
+
+def name_words(s):
+    s = re.sub(r'\(.*?\)', ' ', s.lower())
+    return re.sub(r'[^a-z]+', ' ', NOISE.sub(' ', re.sub(r'\d+', ' ', s))).split()
+
+
+repd_sites = []
+for r in csv.DictReader(open(D / 'repd.csv', encoding='latin-1')):
+    if (r.get('Development Status (short)') or '').strip() not in ('Operational', 'Under Construction'):
+        continue
+    try:
+        e_, n_ = float(r['X-coordinate'].replace(',', '')), float(r['Y-coordinate'].replace(',', ''))
+    except ValueError:
+        continue
+    repd_sites.append((set(name_words(r['Site Name'] or '')), r['Technology Type'], (e_, n_), (r['Site Name'] or '').strip()))
+# the database's point for Dogger Bank A & B is far north of the farms; use the wind farm's published position (Wikipedia, 54°45'N 1°55'E)
+SITE_FIX = {'Dogger Bank A & B (was Creyke Beck A & B)': (54.75, 1.917)}
+from_repd = 0
+for u in units:
+    if u['mw'] <= 0 or u['fuel'] not in REPD_TECH or u['unit'] in MANUAL:
+        continue
+    k = code2id.get(u['unit']) or stem2id.get(re.sub(r'[-\d]+[A-Z]?$', '', u['unit']))
+    if k in loc:
+        continue
+    words = name_words(u['name'])
+    if len(''.join(words[:2])) < 6:
+        continue
+    for want in (words[:3], words[:2]):
+        hits = {x[2]: x for x in repd_sites if x[1] in REPD_TECH[u['fuel']] and set(want) <= x[0]}
+        if len(hits) == 1:
+            break
+    if len(hits) != 1:
+        continue  # no match, or more than one place: leave it out rather than guess
+    _, _, (e_, n_), site = next(iter(hits.values()))
+    lat, lon = SITE_FIX.get(site) or bng_to_ll(e_, n_)
+    label = re.sub(r'\s*\(.*?\)', '', site).replace(' Project', '').strip()  # 'Dogger Bank A & B (was Creyke Beck A & B)' -> 'Dogger Bank A & B'
+    s = stations.setdefault('R:' + site, {'name': label, 'lat': lat, 'lon': lon, 'mw': 0, 'fuels': collections.Counter()})
+    s['mw'] += u['mw']; s['fuels'][u['fuel']] += u['mw']
+    matched += u['mw']; from_repd += u['mw']
+
 # --- route
 start_xy = xy(TARGET[1], TARGET[2])
 start, start_gap = nearest(start_xy)
@@ -104,7 +173,7 @@ rows = []
 for s in stations.values():
     p = xy(s['lat'], s['lon'])
     n, gap = nearest(p)
-    if n not in dist or gap > 150: continue
+    if n not in dist or gap > 200: continue  # the furthest offshore farms (Dogger Bank) are about 180 km out
     total = dist[n] + gap + start_gap
     s.update(node=n, gap=gap, km=total, xy=p, score=s['mw'] / max(total, MIN_KM) ** ALPHA, fuel=s['fuels'].most_common(1)[0][0])
     rows.append(s)
@@ -142,27 +211,6 @@ def simplify_ring(r, tol):
     # a closed ring starts and ends on one point, which the line simplifier can't split, so simplify it in two halves
     half = len(r) // 2
     return simplify(r[:half + 1], tol) + simplify(r[half:], tol)[1:]
-
-
-def bng_to_ll(E, N):
-    """British National Grid to approximate lat/lon (OSGB36, close enough for a map dot)."""
-    a, b, F0, lat0, lon0, N0, E0 = 6377563.396, 6356256.909, 0.9996012717, math.radians(49), math.radians(-2), -100000, 400000
-    e2 = 1 - b * b / (a * a); n = (a - b) / (a + b)
-    lat, M = lat0, 0
-    while True:
-        lat = (N - N0 - M) / (a * F0) + lat
-        Ma = (1 + n + 5 / 4 * n ** 2 + 5 / 4 * n ** 3) * (lat - lat0)
-        Mb = (3 * n + 3 * n ** 2 + 21 / 8 * n ** 3) * math.sin(lat - lat0) * math.cos(lat + lat0)
-        Mc = (15 / 8 * n ** 2 + 15 / 8 * n ** 3) * math.sin(2 * (lat - lat0)) * math.cos(2 * (lat + lat0))
-        Md = 35 / 24 * n ** 3 * math.sin(3 * (lat - lat0)) * math.cos(3 * (lat + lat0))
-        M = b * F0 * (Ma - Mb + Mc - Md)
-        if abs(N - N0 - M) < 0.01: break
-    s, c, t = math.sin(lat), math.cos(lat), math.tan(lat)
-    nu = a * F0 / math.sqrt(1 - e2 * s * s); rho = a * F0 * (1 - e2) / (1 - e2 * s * s) ** 1.5; eta2 = nu / rho - 1
-    d = E - E0
-    VII = t / (2 * rho * nu); VIII = t / (24 * rho * nu ** 3) * (5 + 3 * t * t + eta2 - 9 * t * t * eta2)
-    X = 1 / (c * nu); XI = 1 / (c * 6 * nu ** 3) * (nu / rho + 2 * t * t)
-    return math.degrees(lat - VII * d ** 2 + VIII * d ** 4), math.degrees(lon0 + X * d - XI * d ** 3)
 
 
 REPD_GROUP = {'Solar Photovoltaics': 'solar', 'Wind Onshore': 'wind', 'Wind Offshore': 'wind', 'Small Hydro': 'hydro', 'Large Hydro': 'hydro', 'Pumped Storage Hydroelectricity': 'hydro',

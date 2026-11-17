@@ -561,6 +561,9 @@ def main():
         if ideas:
             signoff = page.evaluate('WMESocial.signoff')
             uk = dt.datetime.now(ZoneInfo('Europe/London'))
+            cap_until = page.evaluate('typeof CAP_UNTIL === "number" ? CAP_UNTIL : null')
+            if cap_until and time.time() * 1000 >= cap_until and uk.hour < 11 and not DRY:
+                relay('telegram', text="The site's price cap figure has run out, so the 'Could you pay less?' comparisons are hidden. Put Ofgem's new figure and end date in CAP and CAP_UNTIL in template.html.")
             more = extras.build(uk, [r.get('caption', '') for r in history])
             page.evaluate('(x) => WMESocial.addExtras(x)', more)
             for x in more:
@@ -610,7 +613,7 @@ def main():
         if explain_now or force:
             item, number = next_explainer(history)
             album, cat = True, 'explain'
-            caption, alt = item['caption'] + (signoff.replace('Estimates from the NESO Carbon Intensity forecast.', f"Figures: {item['source']}.") if item.get('source') else signoff), item['hook']
+            caption, alt = item['caption'] + (signoff.replace('Estimates from the NESO Carbon Intensity forecast.', f"Figures: {item['source']}.") if item.get('source') else signoff.replace('Estimates from the NESO Carbon Intensity forecast.\n\n', '')), item['hook']
             parts = [('explain', {'text': item['hook'], 'eyebrow': item['kicker'], 'swipe': True})] + [('explain', {'text': s, 'eyebrow': item['kicker']}) for s in item['slides']] + ([('key', {'eyebrow': item['kicker']})] if item.get('colour_key') else []) + [('closing', {'text': item['closing'], 'eyebrow': item['kicker'], 'cat': 'explain'})]
             kind = f'explainer|album|explain{number}'
             explain_tags = item.get('photo_tags', [])
