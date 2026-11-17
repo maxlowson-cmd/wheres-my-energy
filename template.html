@@ -1782,8 +1782,15 @@
     $('dots').replaceChildren(...cards.map((c, i) => { const b = make('button', 'dot'); b.type = 'button'; b.setAttribute('aria-label', c.dataset.name); b.addEventListener('click', () => go(i)); return b; }));
   }
   let moving = null;
+  /* a new slide starts at its top: if you'd scrolled down the last one, bring the top of the slides back into view */
+  function toTop() {
+    const y = deck.getBoundingClientRect().top;
+    if (y < 0) scrollTo({ top: scrollY + y - 12, behavior: reduce ? 'instant' : 'smooth' });
+  }
   function go(i, instant) {
+    const moved = i !== current;
     current = i; sync();
+    if (moved) toTop();
     clearTimeout(moving); moving = setTimeout(() => { moving = null; }, 900);
     deck.scrollTo({ left: i * deck.clientWidth, behavior: instant || reduce ? 'instant' : 'smooth' });
   }
@@ -1796,7 +1803,7 @@
     $('next').textContent = current === cards.length - 1 ? 'Back to the start' : `Next: ${cards[current + 1].dataset.name}`;
     gbFloat();
   }
-  deck.addEventListener('scroll', () => { if (moving) return; const i = Math.round(deck.scrollLeft / deck.clientWidth); if (i !== current) { current = i; sync(); } }, { passive: true });
+  deck.addEventListener('scroll', () => { if (moving) return; const i = Math.round(deck.scrollLeft / deck.clientWidth); if (i !== current) { current = i; sync(); toTop(); } }, { passive: true });
   /* finger swipes: the browser's own snapping can stop halfway on phones (the card height changes mid-swipe), so a sideways
      swipe is handled here. The card follows the finger, and letting go always lands on a whole card: past 15% of the
      width, or a quick flick, moves one card; anything less springs back. Up-and-down scrolling is left to the browser. */
