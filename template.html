@@ -95,7 +95,6 @@
   .block { display: flex; flex-direction: column; gap: .5rem; border-top: 1px solid var(--line); padding-top: .7rem; }
   .block.first { border-top: 0; padding-top: 0; }
   .note { margin: 0; font-size: .88rem; color: var(--muted); }
-  .pair .bars { height: 7.5rem; }
   .legend { display: flex; flex-wrap: wrap; gap: .3rem 1.1rem; font-size: .95rem; list-style: none; margin: 0; padding: 0; }
   .legend li { display: inline-flex; align-items: center; gap: .4rem; font-variant-numeric: tabular-nums; }
   .legend i { width: .75rem; height: .75rem; border-radius: 3px; display: inline-block; }
@@ -154,6 +153,9 @@
   .detail { display: flex; flex-direction: column; gap: .4rem; border-top: 1px solid var(--line); padding-top: .6rem; }
   .seg.wide { display: grid; grid-template-columns: 1fr 1fr; align-self: stretch; }
   .seg.wide button { text-align: center; }
+  .seg.wide.three { grid-template-columns: repeat(3, 1fr); }
+  .gbpane { display: flex; flex-direction: column; gap: .65rem; }
+  .row.uk .name, .row.uk .mw { color: var(--ink); font-weight: 700; }
   .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; }
   .stats button { font: inherit; display: flex; flex-direction: column; align-items: center; gap: .1rem; padding: .5rem .15rem; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; min-width: 0; }
   .stats span { font-size: .74rem; color: var(--muted); }
@@ -360,7 +362,12 @@
         <p class="note">An estimate from where gas is landing right now. Gas mixes in the pipes, so these are likely routes. Pipelines &copy; OpenStreetMap contributors. <span id="gasTime"></span></p>
       </article>
 
-      <article class="card" data-name="The whole country">
+      <article class="card" data-name="Britain">
+        <div class="seg wide" id="gbView" role="group" aria-label="What to show for Britain">
+          <button type="button" data-view="stations" aria-pressed="true">Power stations</button>
+          <button type="button" data-view="regions" aria-pressed="false">Regions</button>
+        </div>
+        <div class="gbpane" id="paneStations">
         <p class="eyebrow">The whole country</p>
         <h2>Across Great Britain, the biggest source right now is <em id="gbFuel"></em>.</h2>
         <div class="strip thin" id="gbStrip"></div>
@@ -384,9 +391,8 @@
             <p class="note">Bigger dots are stations running now. The smallest dots are every renewable site over 1 MW on the government's register. They show where sites are, not what they're generating right now.</p>
           </div>
         </div>
-      </article>
-
-      <article class="card" data-name="Across Britain">
+        </div>
+        <div class="gbpane" id="paneRegions" hidden>
         <p class="eyebrow">Across Britain</p>
         <div class="regionwrap">
           <!--REGIONS_SVG-->
@@ -405,27 +411,10 @@
             <p class="note">Tap a region to see its split, or tap away from it for Great Britain. Tap a box to colour the map by it. Renewable includes biomass. Estimates only, and Northern Ireland isn't covered.</p>
           </div>
         </div>
+        </div>
       </article>
 
-      <article class="card pair" data-name="Cost and next 24 hours">
-        <section class="block first">
-          <p class="eyebrow">What it costs</p>
-          <h3>Wholesale power was cheapest at <em id="cheapAt"></em> and dearest at <em id="dearAt"></em>.</h3>
-          <div class="bars" id="priceBars" aria-hidden="true"></div>
-          <div class="ticks" id="priceTicks" aria-hidden="true"></div>
-          <p class="note"><span id="priceLine"></span> Most fixed tariffs don't follow these prices hour by hour.</p>
-        </section>
-        <section class="block">
-          <p class="eyebrow">The next 24 hours</p>
-          <h3 id="dayLine"></h3>
-          <div class="bars" id="dayBars" aria-hidden="true"></div>
-          <div class="ticks" id="dayTicks" aria-hidden="true"></div>
-          <div class="key" id="dayKey"><span><i style="background:var(--go)"></i>Cleanest 2.5 hours</span><span><i style="background:var(--stop)"></i>Try to avoid</span><span><i style="background:color-mix(in srgb, var(--bar) 38%, transparent)"></i>Outside the next 24 hours</span></div>
-          <p class="note">Taller bars mean more CO<sub>2</sub> for each unit of electricity. It doesn't change your bill unless your tariff varies by the hour.</p>
-        </section>
-      </article>
-
-      <article class="card" data-name="Your area's history">
+      <article class="card" data-name="Your area and the world">
         <section class="block first">
           <p class="eyebrow">Your area, last 12 months</p>
           <h3><span id="yearName"></span> against Great Britain</h3>
@@ -438,30 +427,50 @@
           <div class="ticks" id="monthTicks" aria-hidden="true"></div>
           <p class="note" id="monthNote"></p>
         </section>
+        <section class="block">
+          <p class="eyebrow" id="worldEyebrow">Britain and the world</p>
+          <h3 id="worldLine"></h3>
+          <div class="seg wide three" id="worldSeg" role="group" aria-label="Compare countries by">
+            <button type="button" data-world="wind" aria-pressed="true">Wind</button>
+            <button type="button" data-world="renewables" aria-pressed="false">Renewables</button>
+            <button type="button" data-world="low_carbon" aria-pressed="false">Low-carbon</button>
+          </div>
+          <div class="rows" id="worldRows"></div>
+          <p class="note" id="worldNote"></p>
+        </section>
       </article>
 
       <article class="card" data-name="Best times">
-        <p class="eyebrow" id="dayBasis"></p>
-        <div class="slot"><span class="what">Washing <span>2.5 hour cycle</span></span><span class="when" id="myWashWhen"></span><span class="gain" id="myWashGain"></span></div>
-        <div class="slot"><span class="what">Electric car <span>6 hour charge</span></span><span class="when" id="myCarWhen"></span><span class="gain" id="myCarGain"></span></div>
-        <p class="note" id="priceNote" hidden>Tonight's exact prices arrive about 4pm. Until then this is our best guess.</p>
-        <p class="avoid" id="avoidLine"><b>Try to avoid:</b> <span id="avoidWhen"></span></p>
-      </article>
-
-      <article class="card" data-name="Free alerts" hidden>
-        <p class="eyebrow">Free alerts</p>
-        <h2>We'll tell you when.</h2>
-        <p class="lead">One email each morning with the cleanest time to run the washing or charge the car around your area. Unsubscribe in one click.</p>
-        <form id="alertForm" novalidate>
-          <label for="alertEmail">Your email</label>
-          <div class="field">
-            <input id="alertEmail" type="email" autocomplete="email" placeholder="you@example.com">
-            <button class="primary" type="submit">Turn on alerts</button>
-          </div>
-          <input id="alertSite" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
-          <p class="note">We only use your email for these alerts. <a href="privacy.html">Privacy</a></p>
-          <p class="note" id="alertMsg" role="status"></p>
-        </form>
+      <section class="block">
+          <p class="eyebrow">The next 24 hours</p>
+          <h3 id="dayLine"></h3>
+          <div class="bars" id="dayBars" aria-hidden="true"></div>
+          <div class="ticks" id="dayTicks" aria-hidden="true"></div>
+          <div class="key" id="dayKey"><span><i style="background:var(--go)"></i>Cleanest 2.5 hours</span><span><i style="background:var(--stop)"></i>Try to avoid</span><span><i style="background:color-mix(in srgb, var(--bar) 38%, transparent)"></i>Outside the next 24 hours</span></div>
+          <p class="note">Taller bars mean more CO<sub>2</sub> for each unit of electricity. It doesn't change your bill unless your tariff varies by the hour.</p>
+        </section>
+        <section class="block">
+          <p class="eyebrow" id="dayBasis"></p>
+          <div class="slot"><span class="what">Washing <span>2.5 hour cycle</span></span><span class="when" id="myWashWhen"></span><span class="gain" id="myWashGain"></span></div>
+          <div class="slot"><span class="what">Electric car <span>6 hour charge</span></span><span class="when" id="myCarWhen"></span><span class="gain" id="myCarGain"></span></div>
+          <p class="note" id="priceNote" hidden>Tonight's exact prices arrive about 4pm. Until then this is our best guess.</p>
+          <p class="avoid" id="avoidLine"><b>Try to avoid:</b> <span id="avoidWhen"></span></p>
+        </section>
+        <section class="block" id="alertsBlock" hidden>
+          <p class="eyebrow">Free alerts</p>
+          <h3>We'll tell you when.</h3>
+          <p class="lead">One email each morning with the cleanest time to run the washing or charge the car around your area. Unsubscribe in one click.</p>
+          <form id="alertForm" novalidate>
+            <label for="alertEmail">Your email</label>
+            <div class="field">
+              <input id="alertEmail" type="email" autocomplete="email" placeholder="you@example.com">
+              <button class="primary" type="submit">Turn on alerts</button>
+            </div>
+            <input id="alertSite" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
+            <p class="note">We only use your email for these alerts. <a href="privacy.html">Privacy</a></p>
+            <p class="note" id="alertMsg" role="status"></p>
+          </form>
+        </section>
       </article>
 
       <article class="card" data-name="Could you pay less?">
@@ -488,6 +497,13 @@
             <button class="primary fit" id="payGo" type="button">Compare overnight tariffs</button>
             <p class="note" id="payNote">If you switch through this link we may earn a fee. We only show it when the sums point that way.</p>
           </div>
+        </section>
+      <section class="block">
+          <p class="eyebrow">What it costs</p>
+          <h3>Wholesale power was cheapest at <em id="cheapAt"></em> and dearest at <em id="dearAt"></em>.</h3>
+          <div class="bars" id="priceBars" aria-hidden="true"></div>
+          <div class="ticks" id="priceTicks" aria-hidden="true"></div>
+          <p class="note"><span id="priceLine"></span> Most fixed tariffs don't follow these prices hour by hour.</p>
         </section>
       </article>
     </div>
@@ -1066,11 +1082,41 @@
     drawRegions(); fit();
   }));
 
+  /* Britain slide: power stations or regions */
+  let gbView = 'stations';
+  function showGb(v) {
+    gbView = v;
+    $('paneStations').hidden = v !== 'stations'; $('paneRegions').hidden = v !== 'regions';
+    document.querySelectorAll('#gbView button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+  }
+  document.querySelectorAll('#gbView button').forEach((b) => b.addEventListener('click', () => { showGb(b.dataset.view); drawRegions(); fit(); }));
+
+  /* Britain against other countries over a whole year (Our World in Data, built on Ember's yearly figures) */
+  const WORLD_WHAT = { wind: ['Wind', 'wind'], renewables: ['Renewables', 'renewables'], low_carbon: ['Low-carbon power', 'low-carbon power (renewables and nuclear)'] };
+  let worldMetric = 'wind';
+  function drawWorld() {
+    const W = SNAPSHOT.world;
+    if (!W) { $('worldLine').closest('.block').hidden = true; return; }
+    const c = Object.fromEntries(Object.entries(W.countries).filter(([, v]) => worldMetric in v).map(([k, v]) => [k, v[worldMetric]]));
+    const name = (k) => ({ 'United Kingdom': 'Britain', World: 'The world', 'United States': 'The US' })[k] || k;
+    const ranked = Object.keys(c).filter((k) => k !== 'World').sort((a, b) => c[b] - c[a]);
+    const shown = [...new Set([...ranked.slice(0, 3), 'United Kingdom', 'World', 'United States', 'China'])].filter((k) => k in c).sort((a, b) => c[b] - c[a]);
+    const [label, long] = WORLD_WHAT[worldMetric], uk = Math.round(c['United Kingdom']), world = Math.round(c.World), place = ranked.indexOf('United Kingdom') + 1;
+    $('worldEyebrow').textContent = `Britain and the world, ${W.year}`;
+    $('worldLine').textContent = `${label} made ${uk}% of Britain's electricity in ${W.year}. Across the world: ${world}%.`;
+    const top = c[shown[0]];
+    $('worldRows').innerHTML = shown.map((k) => `<div class="row${k === 'United Kingdom' ? ' uk' : ''}"><span class="name">${esc(name(k))}</span><span class="mw">${Math.round(c[k])}%</span><div class="track"><i style="width:${Math.round(c[k] / top * 100)}%;background:${k === 'United Kingdom' ? 'var(--go)' : 'var(--muted)'}"></i></div></div>`).join('');
+    $('worldNote').textContent = `Share of each country's electricity from ${long}, over the whole of ${W.year}. Britain is ${ordinal(place)} of the ${ranked.length} countries we compare.${worldMetric === 'renewables' ? ' Renewables include biomass, as in the official figures.' : ''} Source: ${W.source}.`;
+    document.querySelectorAll('#worldSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.world === worldMetric)));
+  }
+  document.querySelectorAll('#worldSeg button').forEach((b) => b.addEventListener('click', () => { worldMetric = b.dataset.world; drawWorld(); fit(); }));
+  queueMicrotask(drawWorld); // after the rest of the script has set up its helpers
+
   let paused = false;
   function applyPause() {
     if (paused || !tooOld()) return;
     paused = true;
-    document.querySelector('[data-name="The whole country"]').hidden = true;
+    $('gbView').hidden = true; showGb('regions');
     $('cheapAt').closest('.block').hidden = true;
     document.querySelector('.side .seg.wide').hidden = true; /* only the 12-month view is left, so the switch has nothing to switch */
     document.querySelector('.side button[data-period="year"]').setAttribute('aria-pressed', 'true');
@@ -1475,27 +1521,20 @@
           if (legs) { spec.routes = [...legs, spec.routes[1]]; spec.foot = ['Likely route, as gas mixes in the pipes. Pipelines © OpenStreetMap contributors.']; }
         }, strip: list.map((x) => [COL[x.key] || DK.other, x.share]), chips: list.map((x) => [COL[x.key] || DK.other, `${GAS_TAB[x.key]} ${pct(x)}%`]), foot: ['An estimate from where gas is landing. Gas mixes in the pipes.'], messageText: `About ${pct(top)}% of the gas around ${d} likely came from ${place}. Where's yours from?` });
     }
-    if (name === 'The whole country') {
+    if (name === 'Britain' && gbView === 'stations') {
       const row = SNAPSHOT.mix[18][slotNow()];
       if (!row) return main;
       const mix = Object.fromEntries(row.map((p, i) => [SNAPSHOT.fuels[i], p])), ranked = fuelRows(mix), fuel = FUEL_NAME[ranked[0][0]] || ranked[0][0], word = fuel.toLowerCase();
       return make({ art: 'map', glow: fuelDk(ranked[0][0]), stations: true, eyebrow: 'ACROSS GREAT BRITAIN', big: `${Math.round(ranked[0][1])}%`, sub: `of Britain's power is ${word} right now.`, listTitle: 'The mix', list: ranked.slice(0, 5).map(([k, p]) => [fuelDk(k), FUEL_NAME[k] || k, `${Math.round(p)}%`]), strip: fuelStrip(mix), foot: [`Estimate for Great Britain, ${time}. Dots are power stations.`], messageText: `${Math.round(ranked[0][1])}% of Britain's power is ${word} right now. Where's yours from?` });
     }
-    if (name === 'Across Britain') {
+    if (name === 'Britain') {
       const shares = {}, list = Object.keys(NAMES).filter((k) => Number(k) <= 14).map((k) => { shares[k] = regionShare(k); return { id: Number(k), v: shares[k] }; }).sort((a, b) => b.v - a.v).map((x, i) => ({ ...x, at: i + 1 }));
       const top5 = list.slice(0, 5), mine = list.find((x) => x.id === region.mine);
       if (mine && mine.at > 5) top5[4] = mine;
       const when = region.period === 'now' ? 'right now' : 'over 12 months', what = METRICS[region.metric][0], line = `${NAMES[list[0].id]} is top for ${what} ${when}.`;
       return make({ art: 'league', eyebrow: 'ACROSS BRITAIN', headline: line, shares, mine: region.mine, rows: top5.map((x) => [NAMES[x.id], `${Math.round(x.v)}%`, x.id === region.mine, x.at]), foot: [`Share of power from ${what}, ${region.period === 'now' ? time : 'last 12 months'}. Your region is outlined.`], messageText: `${line} Where does your area rank?` });
     }
-    if (name === 'Cost and next 24 hours') {
-      if (!w.dish || !w.avoid) return main;
-      const line = $('dayLine').textContent.replace('Power in your area', `Power around ${d}`).replace('Your area', d), flat = /about as clean/.test(line);
-      const rows = flat ? [] : [[DK.go, 'Cleanest 2.5 hours', say(w.dish.from, w.dish.to)], [DK.stop, 'Try to avoid', say(w.avoid.from, w.avoid.to)]];
-      if (!$('cheapAt').closest('.block').hidden) rows.push([DK.solar, 'Cheapest wholesale', $('cheapAt').textContent]);
-      return make({ art: 'day', eyebrow: `NEXT 24 HOURS AROUND ${d}`, headline: line, v: w.v.slice(0, 48), t: w.t.slice(0, 48), dish: flat ? null : w.dish, avoid: flat ? null : w.avoid, rows, foot: [`Carbon forecast for ${f.area}, ${time}. Taller bars mean more CO2.`], messageText: `${line} When's your best time?` });
-    }
-    if (name === "Your area's history") {
+    if (name === 'Your area and the world') {
       const toMix = (id) => Object.fromEntries(SNAPSHOT.year.regions[id].map((p, i) => [SNAPSHOT.fuels[i], p])), mine = toMix(f.id), gbMix = toMix(18), gb = renewOfMix(gbMix), pct = renewOfMix(mine);
       const month = [...$('monthBars').children].map((b) => [parseFloat(b.style.height) || 0, b.classList.contains('hi') ? 'hi' : b.classList.contains('bad') ? 'bad' : '']);
       return make({ art: 'year', eyebrow: `${f.area.toUpperCase()}, LAST 12 MONTHS`, big: `${pct}%`, sub: `of ${f.area}'s power was renewable.`, bars: [[f.area, fuelStrip(mine), pct], ['Great Britain', fuelStrip(gbMix), gb]], legend: fuelRows(mine).slice(0, 6).map(([k]) => [fuelDk(k), FUEL_NAME[k] || k]), month, foot: [`12-month estimate for ${f.area}. Renewable includes biomass.`], messageText: `${pct}% of ${f.area}'s power was renewable over the last 12 months. Great Britain managed ${gb}%. How does your area compare?` });
@@ -1621,7 +1660,7 @@
 
   function currentShare() {
     const name = cards[current] ? cards[current].dataset.name : '';
-    const id = [name, region.metric, region.period, S.tariff, S.car].join('|');
+    const id = [name, gbView, region.metric, region.period, S.tariff, S.car].join('|');
     if (!shareCache.has(id)) { let s = null; try { s = slideShare(name); } catch (e) {} shareCache.set(id, s || shareBase.main); }
     return shareCache.get(id);
   }
@@ -1907,7 +1946,7 @@
   $('factNext').addEventListener('click', () => { factAt = (factAt + 1) % FACTS.length; drawFact(); fit(); });
   drawFact();
   $('payGo').addEventListener('click', () => { $('payNote').textContent = 'This is a prototype. The link goes here once we choose a partner. If you switch through it we may earn a fee.'; fit(); });
-  document.querySelector('[data-name="Free alerts"]').hidden = !ALERTS;
+  $('alertsBlock').hidden = !ALERTS;
   setCards();
   applyPause();
   drawGrid();

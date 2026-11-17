@@ -72,7 +72,8 @@ first = yesterday.strftime('%Y-%m-%dT%H:%M:00Z')
 prices = [{'t': t, 'p': round(market.get(t, system[t]), 2)} for t in sorted(system) if t >= first]
 
 snapshot = {'taken': now.strftime('%Y-%m-%dT%H:%M:00Z'), 'start': rows[0]['from'], 'regions': regions, 'mix': mix, 'fuels': FUELS,
-            'topImport': top_import, 'prices': prices, 'year': json.loads((HERE / 'year.json').read_text(encoding='utf8'))}
+            'topImport': top_import, 'prices': prices, 'year': json.loads((HERE / 'year.json').read_text(encoding='utf8')),
+            'world': json.loads((HERE / 'social' / 'world.json').read_text(encoding='utf8'))}  # Britain and the world, refreshed by tools/fetch_world.py
 
 lookup = json.loads((HERE / 'lookup.json').read_text())
 lookup['areas'].update({'EC': 13, 'WC': 13})  # central London; the API only accepts these with a letter suffix (EC1A)
