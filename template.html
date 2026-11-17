@@ -53,7 +53,7 @@
   .tag { display: inline-block; margin-right: .5rem; padding: 0 .55rem; border: 1px solid var(--muted); border-radius: 5px; font-size: .78rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
 
   /* the swipeable cards: native scroll-snap, so touch and trackpad swipes just work */
-  .deck { display: flex; overflow-x: auto; overflow-y: hidden; align-items: flex-start; transition: height .25s; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+  .deck { display: flex; overflow-x: auto; overflow-y: hidden; align-items: flex-start; transition: height .25s; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-y; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
   .deck::-webkit-scrollbar { display: none; }
   .card { flex: 0 0 100%; min-width: 0; box-sizing: border-box; scroll-snap-align: start; padding: 1.1rem 1.2rem; display: flex; flex-direction: column; gap: .65rem; }
   .eyebrow { margin: 0; font-size: .78rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
@@ -1722,6 +1722,38 @@
     $('next').textContent = current === cards.length - 1 ? 'Back to the start' : `Next: ${cards[current + 1].dataset.name}`;
   }
   deck.addEventListener('scroll', () => { if (moving) return; const i = Math.round(deck.scrollLeft / deck.clientWidth); if (i !== current) { current = i; sync(); } }, { passive: true });
+  /* finger swipes: the browser's own snapping can stop halfway on phones (the card height changes mid-swipe), so a sideways
+     swipe is handled here. The card follows the finger, and letting go always lands on a whole card: past 15% of the
+     width, or a quick flick, moves one card; anything less springs back. Up-and-down scrolling is left to the browser. */
+  let drag = null;
+  deck.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) { drag = null; return; }
+    const t = e.touches[0];
+    drag = { x: t.clientX, y: t.clientY, at: Date.now(), left: deck.scrollLeft, dir: null };
+  }, { passive: true });
+  deck.addEventListener('touchmove', (e) => {
+    if (!drag) return;
+    const t = e.touches[0], dx = t.clientX - drag.x, dy = t.clientY - drag.y;
+    if (!drag.dir) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      drag.dir = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (drag.dir === 'x') { clearTimeout(moving); moving = true; deck.style.scrollSnapType = 'none'; }
+    }
+    if (drag.dir !== 'x') return;
+    if (e.cancelable) e.preventDefault();
+    const edge = (current === 0 && dx > 0) || (current === cards.length - 1 && dx < 0);
+    deck.scrollLeft = drag.left - (edge ? dx / 4 : dx);
+  }, { passive: false });
+  const endDrag = (e) => {
+    const d = drag; drag = null;
+    if (!d || d.dir !== 'x') return;
+    const dx = (e.changedTouches[0] || {}).clientX - d.x || 0, quick = Date.now() - d.at < 250 && Math.abs(dx) > 25;
+    const step = quick || Math.abs(dx) > deck.clientWidth * .15 ? (dx < 0 ? 1 : -1) : 0;
+    go(Math.max(0, Math.min(cards.length - 1, current + step)));
+    setTimeout(() => { if (!drag) deck.style.scrollSnapType = ''; }, 700);
+  };
+  deck.addEventListener('touchend', endDrag);
+  deck.addEventListener('touchcancel', endDrag);
   $('prev').addEventListener('click', () => go(current - 1));
   $('next').addEventListener('click', () => go(current === cards.length - 1 ? 0 : current + 1));
   document.addEventListener('keydown', (e) => {

@@ -51,7 +51,17 @@ fh = get(f'{B}/datasets/FUELHH?settlementDateFrom={yday}&settlementDateTo={today
 sp_rows = get(f'{B}/balancing/settlement/system-prices/{yday}?format=json')['data'] + \
           get(f'{B}/balancing/settlement/system-prices/{today}?format=json')['data']
 mid_rows = get(f'{B}/datasets/MID?from={iso(now - dt.timedelta(hours=25))}&to={iso(now + dt.timedelta(hours=1))}&format=json')['data']
-pn = get(f'{B}/datasets/PN?settlementDate={today}&settlementPeriod={sp_now}&format=json')['data']
+# each station's planned output. Elexon sometimes stops publishing these for a while (17 Nov 2026: nothing after 20:00),
+# so fall back to the latest half hour that has them, up to 3 hours back, rather than fail the whole site build.
+for back in range(7):
+    pn_sp = sp_now - back
+    if pn_sp < 1:
+        break
+    pn = get(f'{B}/datasets/PN?settlementDate={today}&settlementPeriod={pn_sp}&format=json')['data']
+    if pn:
+        break
+if pn and pn_sp != sp_now:
+    print(f'station plans: using settlement period {pn_sp}, {sp_now - pn_sp} behind')
 bmu_list = get(f'{B}/reference/bmunits/all')
 ci_now = get(f'{CI}/regional/postcode/{POSTCODE}')
 ci_fw = get(f'{CI}/regional/intensity/{iso(half)}/fw24h/postcode/{POSTCODE}')
