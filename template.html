@@ -153,8 +153,12 @@
   .detail { display: flex; flex-direction: column; gap: .4rem; border-top: 1px solid var(--line); padding-top: .6rem; }
   .seg.wide { display: grid; grid-template-columns: 1fr 1fr; align-self: stretch; }
   .seg.wide button { text-align: center; }
-  .seg.wide.three { grid-template-columns: repeat(3, 1fr); }
+  .seg.wide.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .seg.wide.four button { padding-inline: .15rem; font-size: .84rem; }
   .gbpane { display: flex; flex-direction: column; gap: .65rem; }
+  .gbfloat { position: fixed; z-index: 30; top: max(.6rem, env(safe-area-inset-top)); left: 50%; width: min(calc(100% - 2rem), 24rem); box-sizing: border-box; background: var(--panel); box-shadow: 0 6px 20px rgb(0 0 0 / .18); transform: translate(-50%, -160%); opacity: 0; pointer-events: none; transition: transform .2s ease-out, opacity .2s; }
+  .gbfloat.on { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
+  .gbfloat button { padding-block: .55rem; }
   .row.uk .name, .row.uk .mw { color: var(--ink); font-weight: 700; }
   .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; }
   .stats button { font: inherit; display: flex; flex-direction: column; align-items: center; gap: .1rem; padding: .5rem .15rem; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; min-width: 0; }
@@ -318,6 +322,10 @@
       </div>
     </dialog>
 
+    <div class="seg wide gbfloat" id="gbFloat" role="group" aria-label="What to show for Britain">
+      <button type="button" data-view="stations" aria-pressed="true">Power stations</button>
+      <button type="button" data-view="regions" aria-pressed="false">Regions</button>
+    </div>
     <div class="deck" id="deck" tabindex="0" aria-label="Your results, swipe for more">
       <article class="card" data-name="Where it's from">
         <section class="block first">
@@ -430,10 +438,11 @@
         <section class="block">
           <p class="eyebrow" id="worldEyebrow">Britain and the world</p>
           <h3 id="worldLine"></h3>
-          <div class="seg wide three" id="worldSeg" role="group" aria-label="Compare countries by">
-            <button type="button" data-world="wind" aria-pressed="true">Wind</button>
-            <button type="button" data-world="renewables" aria-pressed="false">Renewables</button>
-            <button type="button" data-world="low_carbon" aria-pressed="false">Low-carbon</button>
+          <div class="seg wide four" id="worldSeg" role="group" aria-label="Compare countries by">
+            <button type="button" data-world="renewables" aria-pressed="true">Renewable</button>
+            <button type="button" data-world="fossil" aria-pressed="false">Fossil</button>
+            <button type="button" data-world="nuclear" aria-pressed="false">Nuclear</button>
+            <button type="button" data-world="imports" aria-pressed="false">Imports</button>
           </div>
           <div class="rows" id="worldRows"></div>
           <p class="note" id="worldNote"></p>
@@ -1087,26 +1096,52 @@
   function showGb(v) {
     gbView = v;
     $('paneStations').hidden = v !== 'stations'; $('paneRegions').hidden = v !== 'regions';
-    document.querySelectorAll('#gbView button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+    document.querySelectorAll('#gbView button, #gbFloat button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
   }
   document.querySelectorAll('#gbView button').forEach((b) => b.addEventListener('click', () => { showGb(b.dataset.view); drawRegions(); fit(); }));
+  /* once the switch has scrolled off the top, a copy floats there for as long as the Britain slide is on screen */
+  function gbFloat() {
+    const card = $('gbView').closest('.card'), on = !$('answer').hidden && !$('gbView').hidden && cards[current] === card
+      && $('gbView').getBoundingClientRect().bottom < 0 && card.getBoundingClientRect().bottom > 160;
+    $('gbFloat').classList.toggle('on', on);
+    $('gbFloat').inert = !on;
+  }
+  addEventListener('scroll', gbFloat, { passive: true });
+  addEventListener('resize', gbFloat);
+  document.querySelectorAll('#gbFloat button').forEach((b) => b.addEventListener('click', () => {
+    showGb(b.dataset.view); drawRegions(); fit();
+    scrollTo({ top: scrollY + $('gbView').closest('.card').getBoundingClientRect().top - 8, behavior: reduce ? 'instant' : 'smooth' });
+  }));
 
   /* Britain against other countries over a whole year (Our World in Data, built on Ember's yearly figures) */
-  const WORLD_WHAT = { wind: ['Wind', 'wind'], renewables: ['Renewables', 'renewables'], low_carbon: ['Low-carbon power', 'low-carbon power (renewables and nuclear)'] };
-  let worldMetric = 'wind';
+  /* the same four groups as the boxes on the Britain slide. Renewable, fossil and nuclear are shares of what each country
+     generated; imports are net imports as a share of what it used (below zero means it sold more abroad than it bought). */
+  const WORLD_WHAT = {
+    renewables: { head: (uk, w, y) => `Renewables made ${uk}% of Britain's electricity in ${y}. Across the world: ${w}%.`, what: 'renewables (including biomass, as in the official figures)' },
+    fossil: { head: (uk, w, y) => `Fossil fuels made ${uk}% of Britain's electricity in ${y}, against ${w}% across the world.`, what: 'fossil fuels (gas, coal and oil)', low: true },
+    nuclear: { head: (uk, w, y) => `Nuclear made ${uk}% of Britain's electricity in ${y}. Across the world: ${w}%.`, what: 'nuclear' },
+    imports: { head: (uk, w, y) => `In ${y}, ${uk}% of the electricity Britain used came in through undersea cables, after taking off what it sent out.`, what: 'net imports', used: true },
+  };
+  let worldMetric = 'renewables';
   function drawWorld() {
     const W = SNAPSHOT.world;
     if (!W) { $('worldLine').closest('.block').hidden = true; return; }
+    const m = WORLD_WHAT[worldMetric];
     const c = Object.fromEntries(Object.entries(W.countries).filter(([, v]) => worldMetric in v).map(([k, v]) => [k, v[worldMetric]]));
     const name = (k) => ({ 'United Kingdom': 'Britain', World: 'The world', 'United States': 'The US' })[k] || k;
     const ranked = Object.keys(c).filter((k) => k !== 'World').sort((a, b) => c[b] - c[a]);
-    const shown = [...new Set([...ranked.slice(0, 3), 'United Kingdom', 'World', 'United States', 'China'])].filter((k) => k in c).sort((a, b) => c[b] - c[a]);
-    const [label, long] = WORLD_WHAT[worldMetric], uk = Math.round(c['United Kingdom']), world = Math.round(c.World), place = ranked.indexOf('United Kingdom') + 1;
+    const pick = m.low ? ranked.slice(-3) : ranked.slice(0, 3);
+    const shown = [...new Set([...pick, 'United Kingdom', 'World', 'United States', 'China'])].filter((k) => k in c).sort((a, b) => c[b] - c[a]);
+    const uk = Math.round(c['United Kingdom']), place = m.low ? ranked.length - ranked.indexOf('United Kingdom') : ranked.indexOf('United Kingdom') + 1;
     $('worldEyebrow').textContent = `Britain and the world, ${W.year}`;
-    $('worldLine').textContent = `${label} made ${uk}% of Britain's electricity in ${W.year}. Across the world: ${world}%.`;
-    const top = c[shown[0]];
-    $('worldRows').innerHTML = shown.map((k) => `<div class="row${k === 'United Kingdom' ? ' uk' : ''}"><span class="name">${esc(name(k))}</span><span class="mw">${Math.round(c[k])}%</span><div class="track"><i style="width:${Math.round(c[k] / top * 100)}%;background:${k === 'United Kingdom' ? 'var(--go)' : 'var(--muted)'}"></i></div></div>`).join('');
-    $('worldNote').textContent = `Share of each country's electricity from ${long}, over the whole of ${W.year}. Britain is ${ordinal(place)} of the ${ranked.length} countries we compare.${worldMetric === 'renewables' ? ' Renewables include biomass, as in the official figures.' : ''} Source: ${W.source}.`;
+    $('worldLine').textContent = m.head(uk, Math.round(c.World), W.year);
+    const top = Math.max(...shown.map((k) => c[k]));
+    const val = (v) => (Math.round(v) < 0 ? `sold ${Math.round(-v)}%` : `${Math.max(0, Math.round(v))}%`);
+    $('worldRows').innerHTML = shown.map((k) => `<div class="row${k === 'United Kingdom' ? ' uk' : ''}"><span class="name">${esc(name(k))}</span><span class="mw">${val(c[k])}</span><div class="track"><i style="width:${Math.max(0, Math.round(c[k] / top * 100))}%;background:${k === 'United Kingdom' ? 'var(--go)' : 'var(--muted)'}"></i></div></div>`).join('');
+    const rank = `Britain has the ${place === 1 ? '' : `${ordinal(place)} `}${m.low ? 'lowest' : 'highest'} share of the ${ranked.length} countries we compare.`;
+    $('worldNote').textContent = m.used
+      ? `Electricity bought from abroad minus electricity sold abroad, as a share of what each country used, over the whole of ${W.year}. "Sold" means a country sent out more than it took in. ${rank} Source: ${W.source}.`
+      : `Share of each country's electricity from ${m.what}, over the whole of ${W.year}. ${rank} Source: ${W.source}.`;
     document.querySelectorAll('#worldSeg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.world === worldMetric)));
   }
   document.querySelectorAll('#worldSeg button').forEach((b) => b.addEventListener('click', () => { worldMetric = b.dataset.world; drawWorld(); fit(); }));
@@ -1759,6 +1794,7 @@
     $('prev').hidden = current === 0;
     [...$('dots').children].forEach((d, i) => d.setAttribute('aria-current', String(i === current)));
     $('next').textContent = current === cards.length - 1 ? 'Back to the start' : `Next: ${cards[current + 1].dataset.name}`;
+    gbFloat();
   }
   deck.addEventListener('scroll', () => { if (moving) return; const i = Math.round(deck.scrollLeft / deck.clientWidth); if (i !== current) { current = i; sync(); } }, { passive: true });
   /* finger swipes: the browser's own snapping can stop halfway on phones (the card height changes mid-swipe), so a sideways
