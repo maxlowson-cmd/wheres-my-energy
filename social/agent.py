@@ -517,9 +517,11 @@ def refresh_stats(history):
         if s >= 300:
             continue
         stats = {'likes': d.get('like_count', 0), 'comments': d.get('comments_count', 0)}
-        s, ins = graph(f"/{row['media_id']}/insights", metric='reach,saved,shares')
-        if s < 300:
-            stats.update({m['name']: m['values'][0]['value'] for m in ins.get('data', [])})
+        for metrics in ('reach,saved,shares,views', 'reach,saved,shares', 'reach'):  # one measure Meta won't give for a post type fails the whole ask, so fall back
+            s, ins = graph(f"/{row['media_id']}/insights", metric=metrics)
+            if s < 300:
+                stats.update({m['name']: m['values'][0]['value'] for m in ins.get('data', [])})
+                break
         relay('stats', media_id=row['media_id'], stats=stats)
         row['stats'] = stats
 
