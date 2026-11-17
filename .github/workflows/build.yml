@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -39,3 +40,17 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  alert:  # Telegram when building starts failing, every 6 hours while it lasts, and when it's fixed
+    needs: [build, deploy]
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools
+      - run: python tools/build_alert.py
+        env:
+          RESULT: ${{ (needs.build.result == 'success' && needs.deploy.result == 'success') && 'success' || 'failure' }}
+          SOCIAL_KEY: ${{ secrets.SOCIAL_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}

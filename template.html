@@ -201,6 +201,7 @@
   a.next { display: inline-block; text-decoration: none; text-align: center; box-sizing: border-box; }
   .forrow { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
   .forrow > div { flex: 1 1 auto; min-width: 0; }
+  .forrow > .next { flex: none; } /* the phone rule above lets buttons shrink; Share must keep its full word */
   .staleline { margin: .45rem 0 0; font-size: .86rem; line-height: 1.35; color: var(--ink); background: color-mix(in srgb, var(--solar) 20%, var(--panel)); border-radius: 8px; padding: .45rem .65rem; }
   .sharesheet { border: 0; padding: 0; color: var(--ink); background: var(--panel); border-radius: 16px; width: min(25rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; }
   .sharesheet::backdrop { background: rgb(0 0 0 / .55); }
@@ -609,6 +610,23 @@
   const NO_DATA = "We can't get a current forecast at the moment, and we won't show you old figures. Please try again in a few minutes.";
   const dataAge = () => Date.now() - Date.parse(SNAPSHOT.taken);
   const tooOld = () => dataAge() > STALE_STOP;
+
+  /* a tab left open, or brought back by the phone, keeps the readings it was opened with. When they're over
+     45 minutes old and the tab comes back into view, load the page again for the latest. Once per set of
+     readings, so if our update itself is late the page doesn't keep reloading. */
+  const REFRESH_AFTER = 45 * 60000;
+  function reloadIfOld() {
+    if (document.visibilityState !== 'visible' || dataAge() < REFRESH_AFTER || document.querySelector('dialog[open]')) return;
+    try {
+      if (sessionStorage.getItem('wmeReload') === SNAPSHOT.taken) return;
+      sessionStorage.setItem('wmeReload', SNAPSHOT.taken);
+    } catch (e) { return; }
+    location.reload();
+  }
+  document.addEventListener('visibilitychange', reloadIfOld);
+  addEventListener('pageshow', reloadIfOld);
+  addEventListener('focus', reloadIfOld);
+  reloadIfOld();
 
   function storedForecast(outward) {
     const id = regionFor(outward);
@@ -1054,7 +1072,7 @@
     paused = true;
     document.querySelector('[data-name="The whole country"]').hidden = true;
     $('cheapAt').closest('.block').hidden = true;
-    document.querySelector('.side button[data-period="now"]').hidden = true;
+    document.querySelector('.side .seg.wide').hidden = true; /* only the 12-month view is left, so the switch has nothing to switch */
     document.querySelector('.side button[data-period="year"]').setAttribute('aria-pressed', 'true');
     region.period = 'year';
     setCards();

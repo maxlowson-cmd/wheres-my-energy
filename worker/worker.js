@@ -251,6 +251,50 @@ async function rebuild(env, file = env.GH_WORKFLOW || 'build.yml', inputs) {
   if (!r.ok && await underLimit(env, 'rebuild-alert', 6 * 3600000, 1)) await telegram(env, `The site rebuild could not be started (GitHub said ${r.status}).`);
 }
 
+/* is the public site up to date? Every half-hourly rebuild also reads the readings baked into the live page. If they are
+   over 90 minutes old (three missed builds), say so on Telegram with what GitHub's last builds did, again every 6 hours
+   while it lasts, and once more when it's fixed. The rebuild that runs alongside is the automatic retry. */
+const SITE_STALE = 90 * 60000, SITE_REMIND = 6 * 3600000;
+const ukTime = (ms) => new Date(ms).toLocaleString('en-GB', { timeZone: 'Europe/London', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+async function lastBuilds(env) {
+  if (!env.GITHUB_TOKEN || !env.GH_REPO) return '';
+  try {
+    const r = await fetch(`https://api.github.com/repos/${env.GH_REPO}/actions/workflows/${env.GH_WORKFLOW || 'build.yml'}/runs?per_page=6`, { headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'wheres-my-energy-relay' } });
+    const runs = (await r.json()).workflow_runs || [];
+    if (!runs.length) return 'GitHub shows no recent builds, so they may not be starting.';
+    const failed = runs.filter((x) => x.conclusion === 'failure');
+    const line = `Last ${runs.length} builds: ${failed.length} failed, ${runs.filter((x) => x.conclusion === 'success').length} worked, ${runs.filter((x) => x.status !== 'completed').length} still running. Newest started ${ukTime(Date.parse(runs[0].created_at))}.`;
+    return failed.length ? `${line}\nLatest failure: ${failed[0].html_url}` : line;
+  } catch (e) { return `Couldn't read GitHub's builds (${e.message}).`; }
+}
+async function siteHealth(env) {
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS site_health (id INTEGER PRIMARY KEY, stale_since INTEGER, alerted INTEGER)').run();
+  let taken = null, problem = '';
+  try {
+    const r = await fetch(`${SITE_URL}/?health=${Date.now()}`, { headers: { 'Cache-Control': 'no-cache' } });
+    const m = r.ok && (await r.text()).match(/"taken":"([^"]+)"/);
+    taken = m ? Date.parse(m[1]) : null;
+    if (!r.ok) problem = `The site answered ${r.status}.`;
+    else if (!taken) problem = "The page loaded but had no readings in it.";
+  } catch (e) { problem = `The site didn't load (${e.message}).`; }
+  const row = await env.DB.prepare('SELECT stale_since, alerted FROM site_health WHERE id = 1').first();
+  if (taken && Date.now() - taken <= SITE_STALE) {
+    if (row) await env.DB.prepare('DELETE FROM site_health WHERE id = 1').run();
+    if (row?.alerted) await telegram(env, `Fixed: the site is updating again. Latest readings ${ukTime(taken)}.`);
+    return;
+  }
+  const since = row?.stale_since || Date.now();
+  let alerted = row?.alerted || null;
+  if (!alerted || Date.now() - alerted >= SITE_REMIND) {
+    const text = [alerted ? 'Still stale: the site has not updated.' : "The site's data has stopped updating.",
+      taken ? `Latest readings on the live page: ${ukTime(taken)}.` : problem,
+      'Visitors still get a live power mix and best times; the station map, gas flows and prices pause after 12 hours.',
+      await lastBuilds(env), 'A rebuild is retried every 30 minutes automatically.'].filter(Boolean).join('\n\n');
+    if (await telegram(env, text)) alerted = Date.now();
+  }
+  await env.DB.prepare('INSERT OR REPLACE INTO site_health (id, stale_since, alerted) VALUES (1, ?1, ?2)').bind(since, alerted).run();
+}
+
 /* email alerts: one message each morning. Nothing is sent until the address owner confirms, and every email can unsubscribe, which deletes the row. */
 const EMAIL = /^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/;
 const SITE_URL = 'https://wheresmyenergyfrom.co.uk';
@@ -437,6 +481,8 @@ export default {
       }
       return;
     }
-    ctx.waitUntil(event.cron === ALERT_CRON ? morningEmails(env) : rebuild(env));
+    if (event.cron === ALERT_CRON) return ctx.waitUntil(morningEmails(env));
+    ctx.waitUntil(rebuild(env));
+    ctx.waitUntil(siteHealth(env).catch((e) => telegram(env, `The site health check failed: ${e.message}`)));
   },
 };
