@@ -1,0 +1,21 @@
+name: Check the numbers dashboard refreshed
+
+on:
+  schedule:
+    - cron: '30 11 * * *'  # the refresh runs about 09:00 UK time on the owner's computer
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools
+      - run: python tools/dash_watch.py
+        env:
+          DASH_REFRESHED: ${{ secrets.DASH_REFRESHED }}
+          SOCIAL_KEY: ${{ secrets.SOCIAL_KEY }}
