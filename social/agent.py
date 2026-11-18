@@ -48,6 +48,24 @@ def graph(path, method='GET', **params):
     return http(f'{GRAPH}{path}?{q}', method) if method == 'GET' else http(f'{GRAPH}{path}', method, q.encode(), {'Content-Type': 'application/x-www-form-urlencoded'})
 
 
+FIX_TOKEN = ('To fix: developers.facebook.com > Wheres My Energy Posts > Use cases > Instagram API > API setup with Unified login > '
+             'Generate token, then save it to Claude/Meta-Token.txt and ask Claude to store it.')
+
+
+def token_ok():
+    """Check the Instagram token before each run, so a dead token is a clear message, not a confusing failure."""
+    s, d = graph(f'/{IG}', fields='username')
+    if s >= 300 or (d or {}).get('username') != 'wheresmyenergyfrom':
+        why = ((d or {}).get('error') or {}).get('message', f'status {s}')[:200]
+        relay('telegram', text=f"Instagram agent can't post: Meta stopped accepting its token ({why}).\n\n{FIX_TOKEN}")
+        return False
+    s, d = graph(f'/{IG}/insights', metric='reach', period='day')
+    if s >= 300:
+        why = ((d or {}).get('error') or {}).get('message', f'status {s}')[:200]
+        relay('telegram', text=f"Instagram agent is still posting, but can't read reach any more ({why}), so it can't learn what works.\n\n{FIX_TOKEN}")
+    return True
+
+
 def upload(name, data_url):
     raw = base64.b64decode(data_url.split(',', 1)[1])
     s, d = http(f'{RELAY}/social/image?id={name}', 'POST', raw, {'X-Key': KEY, 'Content-Type': 'image/jpeg'})
@@ -637,6 +655,8 @@ def main():
         return
     if DRY and os.environ.get('MOCK_ALBUM') == 'archive':  # a test of the archive check: works out the reasons, saves and sends nothing
         check_archived(history, save=False)
+        return
+    if not DRY and not token_ok():
         return
     if not DRY:
         refresh_stats(history)
