@@ -65,7 +65,7 @@ def score_posts(history):
             continue
         value = st.get('likes', 0) + 2 * st.get('comments', 0) + 3 * st.get('saved', 0) + 3 * st.get('shares', 0)
         for part in row['type'].split('|'):
-            measured.append((value / st['reach'] if st.get('reach') else value, part))
+            measured.append((-1 if st.get('archived') else value / st['reach'] if st.get('reach') else value, part))  # the owner archiving a post is the clearest verdict there is
     measured.sort(key=lambda x: x[0])
     by_type = {}
     for i, (_, kind) in enumerate(measured):
@@ -102,7 +102,8 @@ def explainers_free(history):
         found = re.search(r'\|explain(\d+)', row['type'])
         if found:
             last[int(found[1])] = row['posted']
-    return sorted((n for n in range(len(EXPLAINERS)) if last.get(n, 0) < repeat_cutoff()), key=lambda n: (last.get(n, 0), n))
+    binned = {r['caption'].split('\n')[0] for r in history if (r.get('stats') or {}).get('archived')}
+    return sorted((n for n in range(len(EXPLAINERS)) if last.get(n, 0) < repeat_cutoff() and EXPLAINERS[n]['caption'].split('\n')[0] not in binned), key=lambda n: (last.get(n, 0), n))
 
 
 def explainer_due(history):
@@ -522,7 +523,7 @@ def refresh_stats(history):
         s, d = graph(f"/{row['media_id']}", fields='like_count,comments_count')
         if s >= 300:
             continue
-        stats = {'likes': d.get('like_count', 0), 'comments': d.get('comments_count', 0)}
+        stats = {**{k: v for k, v in (row.get('stats') or {}).items() if k in ARCHIVE_KEYS}, 'likes': d.get('like_count', 0), 'comments': d.get('comments_count', 0)}
         for metrics in ('reach,saved,shares,views', 'reach,saved,shares', 'reach'):  # one measure Meta won't give for a post type fails the whole ask, so fall back
             s, ins = graph(f"/{row['media_id']}/insights", metric=metrics)
             if s < 300:
@@ -530,6 +531,85 @@ def refresh_stats(history):
                 break
         relay('stats', media_id=row['media_id'], stats=stats)
         row['stats'] = stats
+
+
+ARCHIVE_KEYS = ('archived', 'why', 'lesson', 'area', 'avoid', 'noticed')
+ARCHIVE_DAYS = 45  # look this far back for posts that have gone from the profile
+AVOID_DAYS = 90  # a subject the owner archived stays away this long
+ARCHIVIST = """The owner of the Instagram account for Where's My Energy From? (a British site showing where your electricity and gas come from) has archived one of our posts. Nobody archives a post without a reason. Work out the most likely reason, and turn it into one lesson the writer must follow from now on.
+
+You get the archived post, the posts the owner kept from around the same days, other posts they archived with what we concluded, and the lessons already learned. Compare the archived post with the kept ones and look for what only the archived one does. Typical reasons: the same subject, site, photo or opening too soon after another post; a figure or claim that looks wrong, odd or doubtful; something the owner doesn't want said (such as where the data comes from, or anything about privacy); wording that is unclear or clumsy; a tired formula such as a stock opener; a subject that is dull or off-brand for an optimistic account about the energy transition. A post's "type" lists its tags: the kind of post, single or album, the angle, the cover used (cover:...) and its subjects (subj:...).
+
+Give the single most likely reason in "why", in one or two sentences, quoting the words or naming the tag that gives it away. If an existing lesson already covers it, say so and restate that lesson more firmly rather than writing a near-copy. The lesson is one or two plain sentences of instruction for the writer, general enough to guide future posts, not only this one. In "avoid_subjects", copy the subject tags (the parts after "subj:", such as "site:gonerby moor") that should stay away for a long time, but only if repetition or the subject itself was the problem; otherwise leave it empty. Say how sure you are. Plain British English."""
+ARCHIVE_SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['why', 'lesson', 'area', 'avoid_subjects', 'confidence'], 'properties': {
+    'why': {'type': 'string'}, 'lesson': {'type': 'string'}, 'area': {'type': 'string', 'enum': ['writing', 'planning', 'visuals']},
+    'avoid_subjects': {'type': 'array', 'items': {'type': 'string'}}, 'confidence': {'type': 'string', 'enum': ['high', 'medium', 'low']}}}
+
+
+def on_profile():
+    """Every post still showing on the profile, or None if Instagram can't be read (so nothing is mistaken for archived)."""
+    live, (s, d) = set(), graph(f'/{IG}/media', fields='id', limit=100)
+    for _ in range(20):
+        if s >= 300:
+            return None
+        live |= {m['id'] for m in d.get('data', [])}
+        nxt = d.get('paging', {}).get('next')
+        if not nxt:
+            return live
+        s, d = http(nxt)
+    return live
+
+
+def work_out_why(row, history):
+    import anthropic
+    near = lambda r: abs(r['posted'] - row['posted']) < 4 * 86400 * 1000 and r is not row
+    brief = {'archived_post': {'posted': dt.datetime.fromtimestamp(row['posted'] / 1000, dt.timezone.utc).strftime('%a %d %b %H:%M UTC'), 'type': row['type'], 'caption': row.get('caption', '')},
+             'kept_posts_nearby': [{'posted': dt.datetime.fromtimestamp(r['posted'] / 1000, dt.timezone.utc).strftime('%a %d %b %H:%M'), 'type': r['type'], 'caption': (r.get('caption') or '')[:900]} for r in sorted(history, key=lambda r: r['posted']) if near(r) and not (r.get('stats') or {}).get('archived')],
+             'other_archived_posts': [{'type': r['type'], 'opening': (r.get('caption') or '')[:300], 'we_concluded': r['stats'].get('why', '')} for r in history if r is not row and (r.get('stats') or {}).get('archived')],
+             'lessons_already_learned': [x['lesson'] for x in LESSONS]}
+    response = anthropic.Anthropic().beta.messages.create(model='claude-opus-5-5', max_tokens=8000, system=ARCHIVIST, messages=[{'role': 'user', 'content': json.dumps(brief, ensure_ascii=False)}],
+                                                          betas=['server-side-fallback-2026-07-01'], fallbacks='default', output_config={'effort': 'high', 'format': {'type': 'json_schema', 'schema': ARCHIVE_SCHEMA}})
+    if response.stop_reason in ('refusal', 'max_tokens'):
+        return None
+    return json.loads(next(b.text for b in response.content if b.type == 'text'))
+
+
+def check_archived(history, save=True):
+    """Posts that vanish from the profile were archived by the owner, for a reason: work out the reason and keep the lesson."""
+    live = on_profile()
+    now = time.time() * 1000
+    recent = [r for r in history if 3 * 3600e3 < now - r['posted'] < ARCHIVE_DAYS * 86400e3 and r.get('media_id')]
+    if not live or not recent:
+        return
+    gone = [r for r in recent if r['media_id'] not in live]
+    if len(gone) > max(5, len(recent) // 2):  # most of the feed missing means Instagram is misreporting, not a clear-out
+        print('archived check skipped: too many posts missing', len(gone))
+        return
+    for row in sorted(gone, key=lambda r: r['posted']):
+        st = row.get('stats') or {}
+        if st.get('lesson') or not ANTHROPIC_KEY:
+            continue
+        found = work_out_why(row, history)
+        if not found:
+            continue
+        st = {**st, 'archived': True, 'why': found['why'], 'lesson': found['lesson'], 'area': found['area'], 'avoid': [s.lower() for s in found['avoid_subjects']], 'noticed': dt.date.today().isoformat()}
+        row['stats'] = st
+        when = dt.datetime.fromtimestamp(row['posted'] / 1000, ZoneInfo('Europe/London')).strftime('%a %d %b %H:%M')
+        print('archived', when, row['type'].split('|')[0], found['confidence'], '|', found['why'], '|', found['lesson'], '|', st['avoid'])
+        if save:
+            relay('stats', media_id=row['media_id'], stats=st)
+            relay('telegram', text=f"I noticed you archived the {when} post ({row['type'].split('|')[0]}):\n\"{(row.get('caption') or '').split(chr(10))[0][:160]}\"\n\nMy best guess why ({found['confidence']} confidence): {found['why']}\n\nFrom now on: {found['lesson']}" + (f"\n\nKeeping away from: {', '.join(st['avoid'])} for {AVOID_DAYS} days." if st['avoid'] else ''))
+
+
+def archive_lessons(history):
+    """What archived posts taught us, newest first, for the writer."""
+    rows = sorted((r for r in history if (r.get('stats') or {}).get('lesson')), key=lambda r: r['posted'], reverse=True)[:15]
+    return [{'area': 'writing', 'source': 'archived post', 'lesson': r['stats']['lesson']} for r in rows]
+
+
+def avoided(history):
+    cut = (time.time() - AVOID_DAYS * 86400) * 1000
+    return {s for r in history if (r.get('stats') or {}).get('archived') and r['posted'] >= cut for s in r['stats'].get('avoid', [])}
 
 
 def weekly(history):
@@ -555,10 +635,18 @@ def main():
     if not DRY and any(same_slot(r) for r in history):
         print('already posted in this slot')
         return
+    if DRY and os.environ.get('MOCK_ALBUM') == 'archive':  # a test of the archive check: works out the reasons, saves and sends nothing
+        check_archived(history, save=False)
+        return
     if not DRY:
         refresh_stats(history)
+        try:
+            check_archived(history)
+        except Exception as e:
+            print('archived check failed', e)
         if review_due(history):
             relay('telegram', text=f"All {len(EXPLAINERS)} how-it-works posts have now gone out. Each can only come back after {REPEAT_DAYS} days. Time to review how the posts have done and plan the next lot.")
+    LESSONS.extend(archive_lessons(history))  # what archived posts taught us
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={'width': 1080, 'height': 1400})
@@ -581,7 +669,9 @@ def main():
         used = {part for r in history if r['posted'] >= repeat_cutoff() for part in r['type'].split('|')}
         ideas = [i for i in ideas if i['id'] != 'fact' or fact_tag(i) not in used]
         lately = {s for r in history if r['posted'] >= (time.time() - SUBJECT_DAYS * 86400) * 1000 for part in r['type'].split('|') if part.startswith('subj:') for s in part[5:].split(',')}
-        ideas = [i for i in ideas if not set(subjects(i)) & lately] or ideas  # nothing about the same subject within SUBJECT_DAYS days, unless that would leave nothing
+        ideas = [i for i in ideas if not set(subjects(i)) & lately] or ideas
+        binned = avoided(history)
+        ideas = [i for i in ideas if not set(subjects(i)) & binned] or ideas  # a subject the owner archived stays away for AVOID_DAYS  # nothing about the same subject within SUBJECT_DAYS days, unless that would leave nothing
         ideas = [i for i in ideas if not (i.get('pages') or i['id'] in ('demand-years', 'bills-years')) or i['type'] not in used]  # ready-made posts and yearly figures don't change, so each waits REPEAT_DAYS days
         print('ideas', [(i['id'], round(i['novelty'], 2)) for i in ideas])
         if not ideas:
