@@ -158,11 +158,14 @@ shutil.copy(HERE / 'brand' / 'share_preview.png', HERE / 'site' / 'share.png')
 shutil.copy(HERE / 'gas_net.json', HERE / 'site' / 'gas_net.json')
 shutil.copy(HERE / 'pages' / 'hit.js', HERE / 'site' / 'hit.js')
 shutil.copy(HERE / 'brand' / 'apple_touch_icon.png', HERE / 'site' / 'apple-touch-icon.png')  # the icon a phone shows when the site is added to the home screen
+# a page for every postcode area, written as plain text so search engines can read each area's answer
+import places
+AREA_PAGES = places.build(snapshot, m['geo'], lookup, HERE / 'site', ICONS, json.loads((HERE / 'social' / 'facts.json').read_text(encoding='utf8')))
 # let search engines find every page
-PAGES = ['', 'method.html', 'privacy.html', 'credits.html']
+PAGES = ['', 'method.html', 'privacy.html', 'credits.html'] + AREA_PAGES
 (HERE / 'site' / 'robots.txt').write_text('User-agent: *\nAllow: /\n\nSitemap: https://wheresmyenergyfrom.co.uk/sitemap.xml\n', encoding='utf8')
 (HERE / 'site' / 'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    + ''.join(f'  <url><loc>https://wheresmyenergyfrom.co.uk/{p}</loc></url>\n' for p in PAGES) + '</urlset>\n', encoding='utf8')
+    + ''.join(f'  <url><loc>https://wheresmyenergyfrom.co.uk/{p}</loc><lastmod>{snapshot["taken"][:10]}</lastmod></url>\n' for p in PAGES) + '</urlset>\n', encoding='utf8')
 credit_rows = '\n'.join(f'''  <li><strong>{esc_html(p['place'])}</strong>: <a href="{esc_html(p['source'])}">{esc_html(p['title'])}</a> by {esc_html(p['artist'])}, <a href="{esc_html(p['license_url'] or p['source'])}">{esc_html(p['license'])}</a></li>''' for p in sorted(json.loads((HERE / 'social' / 'photos.json').read_text(encoding='utf8')), key=lambda p: p['place']))
 credits_page = (HERE / 'pages' / 'method.html').read_text(encoding='utf8')
 credits_page = credits_page[:credits_page.index('<main>')] + f'''<main>

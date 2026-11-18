@@ -80,7 +80,7 @@ async function hit(request, env, headers) {
   if (/bot|crawl|spider|slurp|headless|lighthouse|preview/i.test(request.headers.get('User-Agent') || '')) return reply(204, headers);
   const b = await readJson(request);
   if (!b) return reply(400, headers, { error: 'bad request' });
-  const valid = b.e === 'view' ? ['home', 'method', 'privacy'].includes(b.d) : b.e === 'step' ? HIT_STEPS.has(b.d) : b.e === 'share' && b.d === 'open';
+  const valid = b.e === 'view' ? ['home', 'method', 'privacy', 'area'].includes(b.d) : b.e === 'step' ? HIT_STEPS.has(b.d) : b.e === 'share' && b.d === 'open';
   if (!valid) return reply(400, headers, { error: 'bad event' });
   const who = await sha(`${request.headers.get('CF-Connecting-IP') || ''}|${env.STATS_KEY}`);
   if (!await underLimit(env, `hit:${who}`, 3600000, 200)) return reply(204, headers); // stops one person inflating the numbers
