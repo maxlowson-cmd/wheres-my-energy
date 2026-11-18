@@ -101,7 +101,17 @@ page = page.replace('/*ALERTS*/false/*END*/', 'true' if config.get('alerts') els
 
 # the public website: a complete document (index.html above is the same page without its <head>)
 TITLE = "Where's My Energy From?"
-DESCRIPTION = "Type your address to see where your electricity is likely coming from right now, and the greenest hours to use it."
+DESCRIPTION = "Type your postcode to see what's powering your area right now, where your gas came from, and the cleanest time to run the washing. Free, across Great Britain."
+SEARCH_TITLE = "Where's My Energy From? What's powering your postcode right now"  # the line a search result shows; shares keep the plain name
+SITE = 'https://wheresmyenergyfrom.co.uk/'
+# the icon as real files, linked from every page: search engines only show an icon they can download
+ICONS = '<link rel="icon" href="/favicon.ico" sizes="48x48">\n<link rel="icon" href="/favicon.svg" type="image/svg+xml">\n<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">\n<link rel="apple-touch-icon" href="/apple-touch-icon.png">'
+# tells search engines the site's name (shown above the result instead of the bare address), its logo and its Instagram
+SCHEMA = json.dumps({'@context': 'https://schema.org', '@graph': [
+    {'@type': 'WebSite', '@id': SITE + '#website', 'name': TITLE, 'alternateName': ['Wheres My Energy From', 'wheresmyenergyfrom.co.uk'], 'url': SITE},
+    {'@type': 'Organization', '@id': SITE + '#org', 'name': TITLE, 'url': SITE, 'logo': SITE + 'icon-512.png', 'sameAs': ['https://www.instagram.com/wheresmyenergyfrom/']},
+    {'@type': 'WebApplication', 'name': TITLE, 'url': SITE, 'applicationCategory': 'UtilitiesApplication', 'operatingSystem': 'Any', 'areaServed': 'GB', 'isAccessibleForFree': True,
+     'offers': {'@type': 'Offer', 'price': '0', 'priceCurrency': 'GBP'}, 'publisher': {'@id': SITE + '#org'}}]}, ensure_ascii=False).replace('</', '<\\/')
 ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%2306704b'/%3E%3Cpath d='M18 5 9 18h6l-1 9 9-13h-6z' fill='%23f2fbf7'/%3E%3C/svg%3E"
 split = page.index('</style>') + len('</style>')
 head, body = page[:split], page[split:]
@@ -113,11 +123,13 @@ document = f"""<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>{TITLE}</title>
+<title>{SEARCH_TITLE}</title>
 <meta name="description" content="{DESCRIPTION}">
 <meta property="og:title" content="{TITLE}">
 <meta property="og:description" content="{DESCRIPTION}">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="{TITLE}">
+<meta property="og:locale" content="en_GB">
 <meta property="og:url" content="https://wheresmyenergyfrom.co.uk/">
 <link rel="canonical" href="https://wheresmyenergyfrom.co.uk/">
 <meta name="theme-color" content="#06704b">
@@ -125,8 +137,8 @@ document = f"""<!doctype html>
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="{ICON}">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+{ICONS}
+<script type="application/ld+json">{SCHEMA}</script>
 <style>:root{{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}}body{{margin:0}}img{{max-width:100%}}</style>
 {head}
 </head>
@@ -139,7 +151,9 @@ document = f"""<!doctype html>
 (HERE / 'site').mkdir(exist_ok=True)
 (HERE / 'site' / 'index.html').write_text(document, encoding='utf8')
 for extra in (HERE / 'pages').glob('*.html'):
-    shutil.copy(extra, HERE / 'site' / extra.name)
+    (HERE / 'site' / extra.name).write_text(extra.read_text(encoding='utf8').replace('</title>\n', '</title>\n' + ICONS + '\n', 1), encoding='utf8')
+for icon in ('favicon.ico', 'favicon.svg', 'icon-192.png', 'icon-512.png'):
+    shutil.copy(HERE / 'brand' / icon, HERE / 'site' / icon)
 shutil.copy(HERE / 'brand' / 'share_preview.png', HERE / 'site' / 'share.png')
 shutil.copy(HERE / 'gas_net.json', HERE / 'site' / 'gas_net.json')
 shutil.copy(HERE / 'pages' / 'hit.js', HERE / 'site' / 'hit.js')
@@ -162,5 +176,5 @@ credits_page = credits_page[:credits_page.index('<main>')] + f'''<main>
 </body>
 </html>
 '''
-(HERE / 'site' / 'credits.html').write_text(credits_page.replace("How it works | Where's My Energy From?", "Photo credits | Where's My Energy From?"), encoding='utf8')
+(HERE / 'site' / 'credits.html').write_text(credits_page.replace("How it works | Where's My Energy From?", "Photo credits | Where's My Energy From?").replace('</title>', '</title>\n' + ICONS, 1), encoding='utf8')
 print('OK', snapshot['taken'], 'slots', len(rows), 'bytes', len(page.encode('utf8')), 'top import', top_import)
