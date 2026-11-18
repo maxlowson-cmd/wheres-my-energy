@@ -109,7 +109,12 @@ class Grid:
             total[s['f']] += s['score']
         for s in rows:
             s['share'] = mix.get(s['f'], 0) * s['score'] / total[s['f']]
-        return sorted(rows, key=lambda s: -s['share'])
+        merged = {}  # several cables to one country share a name ("France by cable"): one line, their shares added, the nearest distance
+        for s in rows:
+            m = merged.setdefault(s['name'], {**s, 'share': 0})
+            m['share'] += s['share']
+            m['km'] = min(m['km'], s['km'])
+        return sorted(merged.values(), key=lambda s: -s['share'])
 
 
 def projects(facts):
