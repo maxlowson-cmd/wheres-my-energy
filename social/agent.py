@@ -102,8 +102,8 @@ def explainers_free(history):
         found = re.search(r'\|explain(\d+)', row['type'])
         if found:
             last[int(found[1])] = row['posted']
-    binned = {r['caption'].split('\n')[0] for r in history if (r.get('stats') or {}).get('archived')}
-    return sorted((n for n in range(len(EXPLAINERS)) if last.get(n, 0) < repeat_cutoff() and EXPLAINERS[n]['caption'].split('\n')[0] not in binned), key=lambda n: (last.get(n, 0), n))
+    binned = [r.get('caption') or '' for r in history if (r.get('stats') or {}).get('archived')]  # the exact wording archived: a reworded explainer can come back
+    return sorted((n for n in range(len(EXPLAINERS)) if last.get(n, 0) < repeat_cutoff() and not any(x.startswith(EXPLAINERS[n]['caption']) for x in binned)), key=lambda n: (last.get(n, 0), n))
 
 
 def explainer_due(history):
@@ -604,7 +604,7 @@ def check_archived(history, save=True):
 def archive_lessons(history):
     """What archived posts taught us, newest first, for the writer."""
     rows = sorted((r for r in history if (r.get('stats') or {}).get('lesson')), key=lambda r: r['posted'], reverse=True)[:15]
-    return [{'area': 'writing', 'source': 'archived post', 'lesson': r['stats']['lesson']} for r in rows]
+    return [{'area': 'writing', 'source': 'archived post', 'lesson': x} for x in dict.fromkeys(r['stats']['lesson'] for r in rows)]
 
 
 def avoided(history):
@@ -669,9 +669,9 @@ def main():
         used = {part for r in history if r['posted'] >= repeat_cutoff() for part in r['type'].split('|')}
         ideas = [i for i in ideas if i['id'] != 'fact' or fact_tag(i) not in used]
         lately = {s for r in history if r['posted'] >= (time.time() - SUBJECT_DAYS * 86400) * 1000 for part in r['type'].split('|') if part.startswith('subj:') for s in part[5:].split(',')}
-        ideas = [i for i in ideas if not set(subjects(i)) & lately] or ideas
+        ideas = [i for i in ideas if not set(subjects(i)) & lately] or ideas  # nothing about the same subject within SUBJECT_DAYS days, unless that would leave nothing
         binned = avoided(history)
-        ideas = [i for i in ideas if not set(subjects(i)) & binned] or ideas  # a subject the owner archived stays away for AVOID_DAYS  # nothing about the same subject within SUBJECT_DAYS days, unless that would leave nothing
+        ideas = [i for i in ideas if not set(subjects(i)) & binned] or ideas  # a subject the owner archived stays away for AVOID_DAYS
         ideas = [i for i in ideas if not (i.get('pages') or i['id'] in ('demand-years', 'bills-years')) or i['type'] not in used]  # ready-made posts and yearly figures don't change, so each waits REPEAT_DAYS days
         print('ideas', [(i['id'], round(i['novelty'], 2)) for i in ideas])
         if not ideas:
