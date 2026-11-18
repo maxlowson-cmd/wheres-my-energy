@@ -460,7 +460,18 @@ def photo_pages(pages, history, seed):
     rng = random.Random(seed)
     past = [part.split(':', 1)[1] for row in sorted(history, key=lambda r: r['posted'], reverse=True) for part in row['type'].split('|') if part.startswith('cover:photo:')]
     taken, credits, out, label = set(), [], [], ''
+    unnamed = {'cables': 'scene:cables', 'neighbours': 'scene:cables'}  # list posts before 18 Nov 2026 logged a bare 'scene'; these two both used the undersea cables drawing
+    shown = [unnamed.get(row['type'].split('|')[0], 'scene') if part == 'cover:scene' else part.split(':', 1)[1]
+             for row in sorted(history, key=lambda r: r['posted'], reverse=True) for part in row['type'].split('|') if part.startswith('cover:')]
     for pg in pages:
+        options = pg.pop('lead_options', None)
+        if options:  # a list post's opening picture: a drawing not shown in the last SCENE_GAP posts, or a photo, never the same drawing twice running
+            fresh = [o for o in options if o[0] == 'photo' or f'scene:{o[1]}' not in shown[:SCENE_GAP]] or [o for o in options if o[0] == 'photo'] or options
+            kind, name = rng.choice(fresh)
+            pg = {k: v for k, v in pg.items() if k not in ('look', 'scene', 'photo_tag')}
+            pg.update({'look': 'scene', 'scene': name} if kind == 'scene' else {'photo_tag': name})
+            if kind == 'scene':
+                label = label or f'scene:{name}'
         tag = pg.get('photo_tag')
         if not tag:
             out.append(pg)
@@ -764,7 +775,7 @@ def main():
             lead_part, story_over = parts[-2], parts[-2][1]  # the story shows the latest year's page
         cover, label, credit = choose_cover(pick, spec, sheet, history, album, explainer, f'{today}{slot}cover', explain_tags if explainer else ())
         if pick.get('pages') and kind.endswith('|pages'):
-            label, credit = (page_label, ('Photos: ' if len(page_credits) > 1 else 'Photo: ') + '; '.join(page_credits) + ', cropped. All photo credits: wheresmyenergyfrom.co.uk/credits') if page_credits else (('flag-years' if pick['pages'][0].get('look', 'flag') == 'flag' else pick['pages'][0]['look']), '')
+            label, credit = (page_label, '') if page_label.startswith('scene:') and not page_credits else (page_label, ('Photos: ' if len(page_credits) > 1 else 'Photo: ') + '; '.join(page_credits) + ', cropped. All photo credits: wheresmyenergyfrom.co.uk/credits') if page_credits else (('flag-years' if pick['pages'][0].get('look', 'flag') == 'flag' else pick['pages'][0]['look']), '')
         elif album:
             first = parts[0][1]
             parts[0] = (parts[0][0], {**first, 'cover': {**cover, 'text': first['text'], 'eyebrow': first['eyebrow'], 'swipe': True}})

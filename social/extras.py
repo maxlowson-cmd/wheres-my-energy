@@ -413,6 +413,7 @@ def with_lead(page, title, options, now, salt, avoid=()):
     kind, name = rng.choice(options)
     lead = {'eyebrow': page['eyebrow'], 'text': page['text']}
     lead.update({'look': 'scene', 'scene': name} if kind == 'scene' else {'photo_tag': name})
+    lead['lead_options'] = list(options)  # the agent swaps in one not used lately, since only it knows the history
     return [lead, {**page, 'text': title, 'colour': rng.choice([c for c in LIST_COLOURS if c not in avoid])}]  # never a background the bars would vanish into
 
 
