@@ -99,7 +99,7 @@ def year_trend(now):
     words = f"{headline} Yearly averages: {yearly}. Why: {why}"
     return [{'id': 'year-trend', 'type': 'year-trend', 'cat': 'history', 'subjects': [f'fuel-{fuel}', 'year-trend'], 'art': 'bars', 'limit': 90, 'novelty': .55, 'shows': words, 'caption': f'{headline} {why}', 'alt': f"Bar chart of {fuel} as a share of Britain's power each year: {yearly}.",
              'spec': {'art': 'bars', 'eyebrow': f'{first} TO {last}, YEAR BY YEAR', 'headline': headline, 'bars': bars, 'values': True, 'fuel': 'hydro' if fuel == 'imports' else fuel,
-                      'rows': [[f'{first} average', fmt(a)], [f'{last} average', fmt(b)]], 'note': why, 'foot': ['Yearly averages. NESO Carbon Intensity API.']}}]
+                      'rows': [[f'{first} average', fmt(a)], [f'{last} average', fmt(b)]], 'note': why, 'foot': ['Yearly averages.']}}]
 
 
 def money(v):
@@ -123,7 +123,7 @@ def demand_years(now):
              'caption': f"{headline} In {first} the UK used {round(a)} TWh of electricity. In {last}: {round(b)} TWh. {why}\n\nYearly totals, {d['source']}.",
              'alt': f"Bar chart of electricity used in the UK each year from {first} to {last}, falling from {round(a)} TWh to {round(b)} TWh.",
              'spec': {'art': 'bars', 'eyebrow': f'{first} TO {last}, YEAR BY YEAR', 'headline': headline, 'bars': [[y if i % 10 == 0 or y == last else '', d['years'][y]] for i, y in enumerate(years)], 'fuel': 'wind',
-                      'rows': [[f'{first}, whole year', f'{round(a)} TWh'], [f'{last}, whole year', f'{round(b)} TWh']], 'note': 'More efficient homes, appliances and lighting, and less heavy industry.', 'foot': ['Yearly totals. DESNZ, DUKES table 5.1.2.']}}]
+                      'rows': [[f'{first}, whole year', f'{round(a)} TWh'], [f'{last}, whole year', f'{round(b)} TWh']], 'note': 'More efficient homes, appliances and lighting, and less heavy industry.', 'foot': ['Yearly totals.']}}]
 
 
 BILL_WHY = {
@@ -150,7 +150,7 @@ def bills_years(now):
              'caption': f"{headline} {why}\n\nAverage yearly household bill using {kwh} kWh, not adjusted for inflation. {d['source']}.",
              'alt': f"Bar chart of the average yearly household {kind} bill from {first} to {last}: {yearly}.",
              'spec': {'art': 'bars', 'eyebrow': f'{kind.upper()} BILLS, YEAR BY YEAR', 'headline': headline, 'bars': [[y, v[y]] for y in years], 'values': True, 'unit': '£', 'fuel': 'gas' if kind == 'gas' else 'solar',
-                      'rows': [['2019', money(v['2019'])], [f'{last}', money(v[last])]], 'note': 'Gas prices soared after Covid and the invasion of Ukraine.', 'foot': [f'Typical bill, {kwh} kWh, not adjusted for inflation. DESNZ.']}}]
+                      'rows': [['2019', money(v['2019'])], [f'{last}', money(v[last])]], 'note': 'Gas prices soared after Covid and the invasion of Ukraine.', 'foot': [f'Typical bill, {kwh} kWh, not adjusted for inflation.']}}]
 
 
 def mix_years(now):
@@ -167,7 +167,7 @@ def mix_years(now):
     moved = sorted((f for f in WHY if f != 'coal'), key=lambda f: -abs(share(last, f) - share(first, f)))[:2]
     change = ' '.join(f"{NAME[f]} went from {pct(share(first, f))}% to {pct(share(last, f))}%." for f in moved)
     why = ' '.join(WHY[f][1] for f in moved)
-    caption = f"What powered Britain each year since {first}, averaged over the whole year. {change} {why}\n\nYearly averages from the NESO Carbon Intensity API."
+    caption = f"What powered Britain each year since {first}, averaged over the whole year. {change} {why}"
     return [{'id': 'mix-years', 'type': 'mix-years', 'cat': 'history', 'art': 'pages', 'limit': 90, 'novelty': .6, 'pages': pages, 'shows': caption, 'caption': caption,
              'alt': f"One page per year from {first} to {last}, each showing Britain's yearly average power mix. " + change, 'spec': {'art': 'pages'}}]
 
@@ -222,7 +222,7 @@ def growth(rows, now):
             words += f" Between them, these sites can make enough electricity for around {n} homes over a year."
         out.append({'id': 'growth-' + tech.lower().replace(' ', '-'), 'type': 'growth', 'cat': 'history', 'subjects': [f'tech:{fuel}', 'growth'], 'art': 'bars', 'limit': 85, 'novelty': .45 + (.2 if ratio >= 3 else 0), 'shows': words, 'caption': words, 'alt': words,
                     **({'source': f'government planning database (REPD); {HOMES_SOURCE}'} if n else {}),
-                    'spec': {'art': 'bars', 'eyebrow': f'{back} YEARS OF CHANGE', 'headline': f"Britain's {name} {have} {grown} in {back} years." if then >= 100 else f"Britain's {name}: from almost nothing to {round(latest):,} MW in {back} years.", 'bars': bars, 'fuel': fuel, 'rows': [[f'{then_day:%B %Y}', f'{round(then):,} MW'], [f'{newest:%B %Y}', f'{round(latest):,} MW']], 'foot': ['Large-scale operating sites, government planning database.']}})
+                    'spec': {'art': 'bars', 'eyebrow': f'{back} YEARS OF CHANGE', 'headline': f"Britain's {name} {have} {grown} in {back} years." if then >= 100 else f"Britain's {name}: from almost nothing to {round(latest):,} MW in {back} years.", 'bars': bars, 'fuel': fuel, 'rows': [[f'{then_day:%B %Y}', f'{round(then):,} MW'], [f'{newest:%B %Y}', f'{round(latest):,} MW']], 'foot': ['Large-scale operating sites.']}})
     return out
 
 
@@ -231,7 +231,8 @@ def new_sites(rows, posted):
     picks = sorted((x for x in rows if x[0] >= newest - dt.timedelta(days=150) and x[1] >= 20 and x[2].get('Technology Type') in ('Solar Photovoltaics', 'Wind Onshore', 'Wind Offshore', 'Battery')), key=lambda x: x[1], reverse=True)
     for when, mw, r in picks:
         name = (r.get('Site Name') or '').split(' - ')[0].strip()
-        core = re.sub(r'\s+(solar|wind|battery|energy|storage|bess|park|farm|pv|extension|project|scheme|limited|ltd)\b.*$', '', name, flags=re.I).strip() or name
+        first = name.split(',')[0].strip()  # the bit a caption always uses: "Gonerby Moor, Great Gonerby" is posted as "Gonerby Moor"
+        core = re.sub(r'\s+(solar|wind|battery|energy|storage|bess|park|farm|pv|extension|project|scheme|limited|ltd)\b.*$', '', first, flags=re.I).strip() or first
         if not name or any(core.lower() in text.lower() for text in posted):
             continue
         try:
@@ -246,7 +247,7 @@ def new_sites(rows, posted):
             words += f" Over a year, that's enough electricity for around {n} homes."
         return [{'id': 'new-site', 'type': 'new-site', 'cat': 'new', 'subjects': [f'site:{core.lower()}', f'tech:{fuel}'], 'art': 'map', 'limit': 60, 'novelty': .8, 'shows': words, 'caption': words, 'alt': words,
                  **({'source': f'government planning database (REPD); {HOMES_SOURCE}'} if n else {}),
-                 'spec': {'art': 'map', 'glow': None, 'fuelGlow': fuel, 'eyebrow': 'NEW ON THE GRID', 'big': f'Up to {round(mw)} MW', 'sub': f'New {kind} now running: {name}.', 'list': [], 'spot': to_xy(lat, lon), 'spotFuel': fuel, 'spotLabel': name, 'foot': [f'Started operating {when:%B %Y}. Government planning database.']}}]
+                 'spec': {'art': 'map', 'glow': None, 'fuelGlow': fuel, 'eyebrow': 'NEW ON THE GRID', 'big': f'Up to {round(mw)} MW', 'sub': f'New {kind} now running: {name}.', 'list': [], 'spot': to_xy(lat, lon), 'spotFuel': fuel, 'spotLabel': name, 'foot': [f'Started operating {when:%B %Y}.']}}]
     return []
 
 
@@ -357,7 +358,7 @@ def biggest(now):
         return []
     return [{'id': 'biggest', 'type': 'biggest', 'cat': 'new', 'art': 'map', 'limit': 60, 'novelty': .6, 'subjects': [f'site:{name.lower()}', 'biggest'], 'shows': words, 'caption': words, 'alt': words,
              'source': f'{REPD_SOURCE}' + (f'; {HOMES_SOURCE}' if n else ''),
-             'spec': {'art': 'map', 'glow': None, 'fuelGlow': fuel, 'eyebrow': f"BRITAIN'S BIGGEST {kind.upper()}", 'big': f'Up to {round(mw):,} MW', 'sub': f'{name}{where}.', 'list': [], 'spot': xy, 'spotFuel': fuel, 'spotLabel': name, 'foot': ['Biggest operating site of its kind. Government planning database.']}}]
+             'spec': {'art': 'map', 'glow': None, 'fuelGlow': fuel, 'eyebrow': f"BRITAIN'S BIGGEST {kind.upper()}", 'big': f'Up to {round(mw):,} MW', 'sub': f'{name}{where}.', 'list': [], 'spot': xy, 'spotFuel': fuel, 'spotLabel': name, 'foot': ['Biggest operating site of its kind.']}}]
 
 
 def county(now):
@@ -387,7 +388,7 @@ def county(now):
         return []
     return [{'id': 'county', 'type': 'county', 'cat': 'new', 'art': 'map', 'limit': 60, 'novelty': .6, 'subjects': [f'county:{name.lower()}', 'county'], 'shows': words, 'caption': words, 'alt': words,
              'source': f'{REPD_SOURCE}; {HOMES_SOURCE}',
-             'spec': {'art': 'map', 'glow': None, 'fuelGlow': 'solar' if word == 'solar' else 'wind' if word == 'wind' else 'hydro', 'eyebrow': f'SPOTLIGHT: {name.upper()}', 'big': f'{round(total):,} MW', 'sub': f'from {len(sites)} large wind, solar and battery sites on land in {name}.', 'list': [], 'spot': centre, 'spotFuel': 'solar' if word == 'solar' else 'wind', 'spotLabel': name, 'foot': ['Operating sites over 1 MW. Government planning database.']}}]
+             'spec': {'art': 'map', 'glow': None, 'fuelGlow': 'solar' if word == 'solar' else 'wind' if word == 'wind' else 'hydro', 'eyebrow': f'SPOTLIGHT: {name.upper()}', 'big': f'{round(total):,} MW', 'sub': f'from {len(sites)} large wind, solar and battery sites on land in {name}.', 'list': [], 'spot': centre, 'spotFuel': 'solar' if word == 'solar' else 'wind', 'spotLabel': name, 'foot': ['Operating sites over 1 MW.']}}]
 
 
 def homes_raw(mw, tech):

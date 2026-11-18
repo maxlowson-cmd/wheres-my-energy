@@ -114,7 +114,7 @@ def explainer_due(history):
 def review_due(history):
     """True once only: at the point the next explainer would have been due and the first set has run out."""
     done, since, _ = explainer_state(history)
-    return done == len(EXPLAINERS) and since == 3
+    return done >= len(EXPLAINERS) and since == 3
 
 
 SUBJECT_DAYS = 7  # the same subject (a site, a fuel, the regions, the day ahead) can't come back within this many days, whatever the post type
@@ -191,7 +191,7 @@ VOICE = """You write daily Instagram posts for Where's My Energy From?, a free B
 
 Your job is to make someone stop scrolling and think "huh, that's interesting, I want to know more". Stats alone are boring. Find the human angle in today's figures: what it means for their washing, their car, their kettle, their part of the country, or their day. If the post has no natural link to home life, don't force one: the interesting fact is enough.
 
-Voice: warm, curious, a bit playful, plain British English. Talk to "you". Short sentences. No jargon, no hype, no exclamation-mark enthusiasm, at most one emoji in the caption and none on the slides. Never preachy: nobody gets told off for using electricity. No politics, no blaming companies or governments, and no knocking the people of any region. Never bring up privacy, personal data, tracking, cookies or safety: nobody is asking, and raising it only makes people wonder. The people who follow us want to see the energy transition happening, so frame things by what is being built and what it can do, not by its limits: a site "can make up to 70 MW", never "70 MW is the most it can make". Stay honest, but look on the bright side.
+Voice: warm, curious, a bit playful, plain British English. Talk to "you". Short sentences. No jargon, no hype, no exclamation-mark enthusiasm, at most one emoji in the caption and none on the slides. Never preachy: nobody gets told off for using electricity. No politics, no blaming companies or governments, and no knocking the people of any region. Never bring up privacy, personal data, tracking, cookies or safety: nobody is asking, and raising it only makes people wonder. Never say where our figures come from, and never call them free, public, published or open data: how we work it out stays behind the scenes, which keeps the account worth following. The people who follow us want to see the energy transition happening, so frame things by what is being built and what it can do, not by its limits: a site "can make up to 70 MW", never "70 MW is the most it can make". Stay honest, but look on the bright side.
 
 Truth rules, which matter more than being catchy:
 - Use only numbers that appear in the data you are given, exactly as given. Don't calculate new figures or round them differently. Loose words like "about a third" or "nearly three times" are fine where the data clearly supports them.
@@ -229,7 +229,13 @@ PLAN_SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['sh
     'slides': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'required': ['id', 'text'], 'properties': {'id': {'type': 'string'}, 'text': {'type': 'string'}}}},
     'closing': {'type': 'string'}, 'caption': {'type': 'string'}, 'alt': {'type': 'string'}}}
 NUMBER = re.compile(r'\d+(?:[.:,]\d+)*')
-BANNED = re.compile(r'\b(storms?|record|records|record-breaking|ever|blackouts?|outages?|heatwave|government|ministers?|bills? (?:will|are going))\b', re.I)
+BANNED = re.compile(r'\b(storms?|record|records|record-breaking|ever|blackouts?|outages?|heatwave|government|ministers?|bills? (?:will|are going)|public(?:ly)? (?:data|available|information)|free data|open data|published data|NESO|Elexon)\b', re.I)
+SOURCE_LINE = re.compile(r'\n\n(?:Figures: |Estimates from the NESO|Yearly averages from the NESO)[^\n]*')
+
+
+def no_sources(caption):
+    """Posts don't say where the figures come from (the site's method page does): a bit of mystery makes the account feel worth following."""
+    return SOURCE_LINE.sub('', caption)
 
 
 def allowed_numbers(sheet, ideas):
@@ -665,7 +671,7 @@ def main():
         if parts[-1][0] == 'closing':
             shade = random.Random(f'{today}{slot}end').choice(POSTER_COLOURS[pick.get('cat', 'now')])
             parts[-1] = ('closing', {**parts[-1][1], 'cover': {'look': 'poster', 'colour': shade, 'text': parts[-1][1]['text'], 'eyebrow': parts[-1][1].get('label', 'WHAT IT MEANS FOR YOU'), 'note': 'Put in your postcode at the link in our bio.'}})
-        caption = with_credit(caption, credit)
+        caption = no_sources(with_credit(caption, credit))  # the photo credit stays: the licence asks for it
         kind += f'|cover:{label}|subj:' + ','.join(subjects(pick))
         if plan and plan.get('shape'):
             kind += f"|shape:{plan['shape']}"  # so a review can compare stories with bulletins

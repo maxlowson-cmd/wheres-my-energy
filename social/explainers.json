@@ -7,7 +7,7 @@
       "Type in your postcode and we'll show you what's powering your area right now.",
       "You'll see the power stations it's likely coming from, and where your gas started out.",
       "And the cleanest time to run the washing or charge the car.",
-      "It's an estimate from public data, because electricity all mixes on the grid. Nobody can trace it exactly."
+      "It's our best estimate, because electricity all mixes on the grid. Nobody can trace it exactly."
     ],
     "closing": "It's free, with no account needed. Link in bio. Where's yours from?",
     "caption": "Every time you boil the kettle, the power came from somewhere. A wind farm off the coast, a gas plant down the road, a cable under the sea from another country. Most of us never get to see that.\n\nSo we built a free site that shows you. Type in your postcode and you'll see what's powering your area right now, where your gas started out, and the cleanest time to put the washing on.\n\nWe'll be posting here most days: what's happening on the grid, how far things have come, what's just been built, and how all of this works. Each kind of post has its own colour, so you can find the ones you like.\n\nWhat would you most like to know about where your energy comes from?",
@@ -22,12 +22,12 @@
     "hook": "Nobody can trace which power station boils your kettle. Here's how we work it out anyway.",
     "slides": [
       "Electricity all mixes together once it's on the grid. There's no way to follow it to one home.",
-      "So we make an informed estimate, using public data on what's running right now.",
+      "So we make an informed estimate, from what's running across Britain right now.",
       "We match those power stations to the real high-voltage lines near you.",
       "Then each fuel's share is split between its stations. Bigger and closer ones count for more."
     ],
     "closing": "It's the most likely answer, not a certainty. Want to see yours?",
-    "caption": "Here's a slightly awkward truth about electricity: once it's on the grid, it's all mixed together. Nobody can trace the power in your socket back to one place.\n\nWhat we can do is work out what's most likely, using live public data and the real map of high-voltage lines.\n\nWhich power station would you guess is feeding your home right now?",
+    "caption": "Here's a slightly awkward truth about electricity: once it's on the grid, it's all mixed together. Nobody can trace the power in your socket back to one place.\n\nWhat we can do is work out what's most likely, from what's running right now and the real map of high-voltage lines.\n\nWhich power station would you guess is feeding your home right now?",
     "photo_tags": [
       "pylons",
       "gas"
@@ -37,13 +37,13 @@
     "kicker": "HOW IT WORKS",
     "hook": "Your gas came into Britain somewhere. Here's how we work out where.",
     "slides": [
-      "National Gas publishes how much gas is entering Britain at each terminal.",
+      "We follow how much gas is coming into Britain at each terminal.",
       "We give every terminal a share based on how much is flowing, and how far away it is from you.",
       "Gas landing through the Langeled pipeline at Easington counts as Norwegian.",
       "Gas at Milford Haven and the Isle of Grain arrived on tankers."
     ],
     "closing": "Gas mixes in the pipes too, so it's a best estimate. Curious where yours started out?",
-    "caption": "Gas doesn't come with a label on it. It all mixes in the pipes on its way to your boiler.\n\nBut Britain's entry points are public, so we can work out where the gas near you most likely started, whether that's a North Sea field, Norway or a tanker from across the ocean.\n\nWhere do you think yours came from today?",
+    "caption": "Gas doesn't come with a label on it. It all mixes in the pipes on its way to your boiler.\n\nBut we can see how much is coming in at each of Britain's entry points, so we can work out where the gas near you most likely started, whether that's a North Sea field, Norway or a tanker from across the ocean.\n\nWhere do you think yours came from today?",
     "photo_tags": [
       "gas_import",
       "gas"
@@ -100,22 +100,5 @@
       "offshore"
     ],
     "source": "DESNZ, Digest of UK Energy Statistics 2026, chapters 5 and 6; Ofgem typical domestic consumption values"
-  },
-  {
-    "kicker": "HOW IT WORKS",
-    "hook": "Every figure on our site comes from free, public data. Here's whose.",
-    "slides": [
-      "The forecast comes from the Carbon Intensity API, run by NESO with the University of Oxford and partners.",
-      "Which stations are running comes from Elexon's public data.",
-      "Gas flows come from National Gas, and renewable sites from a government database.",
-      "Power lines and pipeline routes are mapped by OpenStreetMap contributors."
-    ],
-    "closing": "All public. All free for anyone to check. We just put it in one place for you.",
-    "caption": "None of this is secret. Britain publishes a remarkable amount of information about its energy system. It's just scattered around and hard to read.\n\nWe pull it together so you can type in a postcode and actually see it.\n\nWhat would you most like to know about your energy that you can't find out?",
-    "photo_tags": [
-      "pylons",
-      "offshore",
-      "nuclear"
-    ]
   }
 ]
