@@ -13,7 +13,7 @@ import dash_ping
 try:
     rows = json.load(urllib.request.urlopen(request, timeout=60))
 except Exception as e:
-    dash_ping.telegram(f"The numbers dashboard couldn't update this morning: the site's counter didn't answer ({type(e).__name__}). It shows yesterday's figures. Ask Claude to look.")
+    dash_ping.telegram("Numbers dashboard: site counter didn't answer. Ask Claude.")
     raise
 try:  # Google's figures are a bonus: if they fail, the rest still updates, and Telegram says Google wasn't read
     import google_feed
@@ -21,7 +21,11 @@ try:  # Google's figures are a bonus: if they fail, the rest still updates, and 
     google = 'google ok'
 except Exception as e:
     google = f'google FAILED ({type(e).__name__})'
-    dash_ping.telegram(f"The numbers dashboard updated, but Google's search figures couldn't be read ({type(e).__name__}: {str(e)[:150]}). The rest is fine. Ask Claude to look.")
+    dash_ping.telegram("Numbers dashboard updated, but Google figures failed.")
 pathlib.Path(sys.argv[1]).write_text(json.dumps(rows, separators=(',', ':')), encoding='utf8')
 summary = next(r for r in rows if r['table'] == 'summary')
+try:  # tells the 11:30 watchdog (.github/workflows/dash_watch.yml) the morning figures were fetched and saved
+    dash_ping.stamp()
+except Exception as e:
+    print('stamp failed', type(e).__name__)
 print('saved', len(rows), 'rows; followers', summary['followers'], '; counting since', summary['counting_since'], ';', google)

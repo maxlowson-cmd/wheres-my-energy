@@ -12,9 +12,7 @@ except ValueError:
 if age is not None and age <= 20:
     print(f'refreshed {age:.1f} hours ago')
 else:
-    when = f'Its last good update was {age / 24:.0f} days ago.' if age and age >= 36 else 'Its last good update was yesterday.' if age else 'It has no record of a good update.'
-    text = (f"The numbers dashboard didn't update this morning. {when} The refresh runs on your computer at about 09:00, so the Claude app "
-            "may have been closed, or the run stopped partway. Ask Claude to check the 'Where's My Energy Numbers refresh' run.")
+    text = "Numbers dashboard didn't update this morning. Ask Claude."  # usually the Claude app was closed at 09:00, or the run stopped partway
     req = urllib.request.Request(RELAY, data=json.dumps({'op': 'telegram', 'text': text}).encode(), method='POST',
                                  headers={'X-Key': os.environ['SOCIAL_KEY'], 'Content-Type': 'text/plain', 'User-Agent': 'wme-dash-watch'})
     print('telegram', urllib.request.urlopen(req, timeout=30).status)

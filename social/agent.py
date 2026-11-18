@@ -48,21 +48,23 @@ def graph(path, method='GET', **params):
     return http(f'{GRAPH}{path}?{q}', method) if method == 'GET' else http(f'{GRAPH}{path}', method, q.encode(), {'Content-Type': 'application/x-www-form-urlencoded'})
 
 
-FIX_TOKEN = ('To fix: developers.facebook.com > Wheres My Energy Posts > Use cases > Instagram API > API setup with Unified login > '
-             'Generate token, then save it to Claude/Meta-Token.txt and ask Claude to store it.')
+def short(text, n):
+    """Telegram messages are read as a phone notification, so each is one short line."""
+    text = ' '.join(str(text).split())
+    return text if len(text) <= n else text[:n - 1].rsplit(' ', 1)[0] + '…'
 
 
 def token_ok():
-    """Check the Instagram token before each run, so a dead token is a clear message, not a confusing failure."""
+    """Check the Instagram token before each run, so a dead token is a clear message, not a confusing failure.
+    To fix one: developers.facebook.com > Wheres My Energy Posts > Use cases > Instagram API > API setup with Unified login >
+    Generate token, save it to Claude/Meta-Token.txt, then run update_ig_token.py --store."""
     s, d = graph(f'/{IG}', fields='username')
     if s >= 300 or (d or {}).get('username') != 'wheresmyenergyfrom':
-        why = ((d or {}).get('error') or {}).get('message', f'status {s}')[:200]
-        relay('telegram', text=f"Instagram agent can't post: Meta stopped accepting its token ({why}).\n\n{FIX_TOKEN}")
+        relay('telegram', text="Instagram stopped: Meta token rejected. Ask Claude.")
         return False
     s, d = graph(f'/{IG}/insights', metric='reach', period='day')
     if s >= 300:
-        why = ((d or {}).get('error') or {}).get('message', f'status {s}')[:200]
-        relay('telegram', text=f"Instagram agent is still posting, but can't read reach any more ({why}), so it can't learn what works.\n\n{FIX_TOKEN}")
+        relay('telegram', text="Instagram can't read reach. Still posting. Ask Claude.")
     return True
 
 
@@ -627,7 +629,7 @@ def check_archived(history, save=True):
         print('archived', when, row['type'].split('|')[0], found['confidence'], '|', found['why'], '|', found['lesson'], '|', st['avoid'])
         if save:
             relay('stats', media_id=row['media_id'], stats=st)
-            relay('telegram', text=f"I noticed you archived the {when} post ({row['type'].split('|')[0]}):\n\"{(row.get('caption') or '').split(chr(10))[0][:160]}\"\n\nMy best guess why ({found['confidence']} confidence): {found['why']}\n\nFrom now on: {found['lesson']}" + (f"\n\nKeeping away from: {', '.join(st['avoid'])} for {AVOID_DAYS} days." if st['avoid'] else ''))
+            relay('telegram', text=f"Archive noted ({when}): {short(found['why'], 90)}")
 
 
 def archive_lessons(history):
@@ -646,7 +648,7 @@ def weekly(history):
     if not week:
         return
     best = max(week, key=lambda r: r['stats'].get('likes', 0) + 2 * r['stats'].get('comments', 0))
-    relay('telegram', text=f"Instagram this week: {len(week)} posts measured, {sum(r['stats'].get('likes', 0) for r in week)} likes, {sum(r['stats'].get('comments', 0) for r in week)} comments, {sum(r['stats'].get('reach', 0) for r in week)} reach.\nBest: {best['type']} ({best['stats'].get('likes', 0)} likes).")
+    relay('telegram', text=f"Instagram week: {len(week)} posts, {sum(r['stats'].get('reach', 0) for r in week):,} reach, {sum(r['stats'].get('likes', 0) for r in week)} likes.")
 
 
 def slot_name(moment):
@@ -676,7 +678,7 @@ def main():
         except Exception as e:
             print('archived check failed', e)
         if review_due(history):
-            relay('telegram', text=f"All {len(EXPLAINERS)} how-it-works posts have now gone out. Each can only come back after {REPEAT_DAYS} days. Time to review how the posts have done and plan the next lot.")
+            relay('telegram', text="All explainer posts used. Time to plan new ones.")
     LESSONS.extend(archive_lessons(history))  # what archived posts taught us
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -690,7 +692,7 @@ def main():
             uk = dt.datetime.now(ZoneInfo('Europe/London'))
             cap_until = page.evaluate('typeof CAP_UNTIL === "number" ? CAP_UNTIL : null')
             if cap_until and time.time() * 1000 >= cap_until and uk.hour < 11 and not DRY:
-                relay('telegram', text="The site's price cap figure has run out, so the 'Could you pay less?' comparisons are hidden. Put Ofgem's new figure and end date in CAP and CAP_UNTIL in template.html.")
+                relay('telegram', text="Price cap figure expired. Ask Claude to update.")
             more = extras.build(uk, [r.get('caption', '') for r in history])
             page.evaluate('(x) => WMESocial.addExtras(x)', more)
             for x in more:
@@ -707,7 +709,7 @@ def main():
         print('ideas', [(i['id'], round(i['novelty'], 2)) for i in ideas])
         if not ideas:
             if not DRY:
-                relay('telegram', text='Instagram agent skipped today: the site data is too old to post.')
+                relay('telegram', text='Instagram skipped: site data too old.')
             return
         pick = next((i for i in ideas if i.get('must')), None) or choose(ideas, history, f'{today}{slot}')  # an anniversary goes out on its day
         test_pick = os.environ.get('MOCK_ALBUM', '').partition(':')[2] if DRY else ''  # a no-post test can name the story to try
@@ -759,7 +761,7 @@ def main():
             parts = [(pick['id'], None)]
             kind = f"{pick['type']}|single|template"
             if ANTHROPIC_KEY and not DRY:
-                relay('telegram', text='Instagram agent used plain template wording today because the written version failed its checks.')
+                relay('telegram', text='Instagram used backup wording today.')
         else:
             sources = [i['source'] for i in ideas if i.get('source') and i['id'] in {s['id'] for s in plan['slides']}]
             caption, alt = plan['caption'].strip() + (signoff.replace('Estimates from the NESO Carbon Intensity forecast.', 'Figures: ' + '; '.join(sources) + '.') if sources else signoff), plan['alt']
@@ -820,12 +822,12 @@ def main():
     media = publish_album(urls, caption) if album else publish(urls[0], caption=caption, alt=alt)
     relay('log', media_id=media, day=today, type=kind, caption=caption, novelty=pick['novelty'])
     s, d = graph(f'/{media}', fields='permalink')
-    relay('telegram', text=f"Posted to Instagram ({kind}):\n{caption.split(chr(10))[0][:200]}\n{d.get('permalink', '')}")
+    relay('telegram', text=f"Posted: {short(caption.split(chr(10))[0], 80)}")
     try:
         story_url, _ = upload(f'{today}-{slot}-story', story)
         publish(story_url, story=True)
     except Exception as e:
-        relay('telegram', text=f'Instagram story failed, the feed post went out: {str(e)[:300]}')
+        relay('telegram', text='Story failed. The post went out.')
     if now_utc.weekday() == 6 and not any(r['day'] == today for r in history):
         weekly(history)
     print('posted', media)
@@ -836,6 +838,6 @@ if __name__ == '__main__':
         main()
     except Exception as e:
         try:
-            relay('telegram', text=f'Instagram agent failed: {str(e)[:500]}')
+            relay('telegram', text=f'Instagram post failed: {short(str(e), 70)} Ask Claude.')
         finally:
             raise

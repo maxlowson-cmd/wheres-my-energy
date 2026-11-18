@@ -25,17 +25,14 @@ def main():
         if r['conclusion'] != 'failure':
             break
         streak += 1
-    link = f'https://github.com/{REPO}/actions/runs/{RUN}'
     if RESULT == 'failure':
         if streak % REMIND == 0:
             hours = (streak + 1) / 2
-            telegram(("The site build failed, so the live page isn't getting new readings." if streak == 0 else f'The site build is still failing ({streak + 1} in a row, about {hours:g} hours).')
-                     + "\n\nVisitors still get a live power mix and best times; the station map, gas flows and prices pause once the page's readings are 12 hours old."
-                     + f'\n\nIt retries every 30 minutes by itself. Log: {link}')
+            telegram('Site build failed. Retrying every 30 min.' if streak == 0 else f'Site build still failing ({hours:g} hours). Retrying.')
         else:
             print('failure', streak + 1, 'in a row; next reminder at', (streak // REMIND + 1) * REMIND + 1)
     elif streak:
-        telegram(f'Fixed: the site build is working again after {streak} failed {"build" if streak == 1 else "builds"}. The live page has fresh readings.')
+        telegram('Fixed: site build working again.')
     else:
         print('all well')
 

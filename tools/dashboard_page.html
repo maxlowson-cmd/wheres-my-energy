@@ -1,0 +1,263 @@
+<meta name="dash-one-writer">
+<style>
+  .wm { display: grid; gap: var(--cds-gap-xl); font-family: var(--font-anthropic-sans); color: var(--color-fg); }
+  .wm-head { display: grid; gap: var(--cds-gap-xs); }
+  .wm-title { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; text-wrap: balance; }
+  .wm-say { font-size: var(--cds-font-size-body); margin: 0; }
+  .wm-note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: 0; }
+  .wm-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--cds-gap-md); }
+  .wm-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); min-width: 0; display: grid; gap: var(--cds-gap-sm); align-content: start; }
+  .wm-tile-label { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .wm-big { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: 2.5rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .wm-good { color: var(--color-ok); }
+  .wm-bad { color: var(--color-bad); }
+  .wm-h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; }
+  .wm-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .wm-legend span { display: inline-flex; align-items: center; gap: var(--cds-gap-xs); }
+  .wm-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .wm-chart { position: relative; min-height: 220px; touch-action: pan-y; }
+  .wm-chart svg { display: block; }
+  .wm-chart text { fill: var(--cds-text-secondary); font-size: var(--cds-font-size-caption); }
+  .wm-tip { position: absolute; top: 0; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); box-shadow: var(--cds-shadow-popover); border-radius: var(--cds-radius); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); color: var(--cds-text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .wm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: var(--cds-gap-md); }
+  .wm-bars { display: grid; gap: var(--cds-gap-sm); min-height: 72px; align-content: start; font-size: var(--cds-font-size-caption); }
+  .wm-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--cds-gap-sm); }
+  .wm-bar b { font-weight: var(--cds-font-weight-medium); font-variant-numeric: tabular-nums; }
+  .wm-track { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--cds-chart-grid); overflow: hidden; }
+  .wm-fill { display: block; height: 100%; border-radius: 4px; min-width: 2px; }
+  .wm-empty { color: var(--color-fg-muted); margin: 0; }
+  .wm-scroll { overflow-x: auto; }
+  .wm-table { width: 100%; min-width: 520px; border-collapse: collapse; font-size: var(--cds-font-size-caption); }
+  .wm-table th, .wm-table td { padding: var(--cds-pad-xs) var(--cds-pad-sm); text-align: left; border-bottom: 1px solid var(--color-border-line); vertical-align: top; }
+  .wm-table th { font-weight: var(--cds-font-weight-medium); color: var(--color-fg-muted); }
+  .wm-table .wm-n { text-align: right; font-variant-numeric: tabular-nums; }
+  .wm-kind { display: inline-flex; align-items: center; gap: var(--cds-gap-xs); white-space: nowrap; }
+  .wm-kind i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .wm-table a { color: inherit; }
+  .wm-more summary { cursor: pointer; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .wm-more ul { margin: var(--cds-gap-sm) 0 0; padding-left: 1.2em; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); display: grid; gap: var(--cds-gap-xs); }
+</style>
+
+<div class="wm">
+  <header class="wm-head" id="summary">
+    <h1 class="wm-title">Where's My Energy Numbers</h1>
+    <p class="wm-say" data-when="live">In the last 7 days: visits <b data-draw="visits-say" data-source="headline" data-field="visits_7" data-row="0">—</b>, postcode searches <b data-draw="searches-say" data-source="headline" data-field="searches_7" data-row="0">—</b>.</p>
+    <p class="wm-say" data-when="waiting">No visits have been counted yet. They'll appear here at the next update.</p>
+    <p class="wm-note">Updated <span data-draw="taken" data-source="headline" data-field="taken" data-row="0">—</span>. Updates once a day at about 09:00 while the Claude app is open on your computer.</p>
+  </header>
+
+  <section class="wm-tiles" id="headlines" aria-label="Headline figures">
+    <div class="wm-card" id="tile-visits">
+      <span class="wm-tile-label">Visits, last 7 days</span>
+      <span class="wm-big" data-draw="visits" data-source="headline" data-field="visits_7" data-row="0">—</span>
+      <span class="wm-note" data-draw="visits-change" data-source="headline" data-field="visits_prev" data-row="0">—</span>
+    </div>
+    <div class="wm-card" id="tile-searches">
+      <span class="wm-tile-label">Postcode searches, last 7 days</span>
+      <span class="wm-big" data-draw="searches" data-source="headline" data-field="searches_7" data-row="0">—</span>
+      <span class="wm-note" data-draw="searches-change" data-source="headline" data-field="searches_prev" data-row="0">—</span>
+    </div>
+    <div class="wm-card" id="tile-followers">
+      <span class="wm-tile-label">Instagram followers</span>
+      <span class="wm-big" data-draw="followers" data-source="headline" data-field="followers" data-row="0">—</span>
+      <span class="wm-note" data-draw="followers-change" data-source="headline" data-field="followers_change" data-row="0">—</span>
+    </div>
+    <div class="wm-card" id="tile-alerts">
+      <span class="wm-tile-label">Email alert sign-ups</span>
+      <span class="wm-big" data-draw="alerts" data-source="headline" data-field="alerts" data-row="0">—</span>
+      <span class="wm-note">Confirmed, all time</span>
+    </div>
+  </section>
+
+  <section class="wm-card" id="trend">
+    <h2 class="wm-h2">Visits and postcode searches, last 30 days</h2>
+    <div class="wm-legend"><span><i class="wm-swatch" data-swatch="0"></i>Visits</span><span><i class="wm-swatch" data-swatch="1"></i>Postcode searches</span></div>
+    <div class="wm-chart" data-draw="trend" data-source="daily"></div>
+    <p class="wm-note">Your own visits and tests are included. Visits only exist from the day counting began.</p>
+  </section>
+
+  <div class="wm-grid">
+    <section class="wm-card" id="sources">
+      <h2 class="wm-h2">Where visits came from, last 30 days</h2>
+      <div class="wm-bars" data-draw="sources" data-source="source"></div>
+    </section>
+    <section class="wm-card" id="journey">
+      <h2 class="wm-h2">How far people get, last 30 days</h2>
+      <div class="wm-bars" data-draw="journey" data-source="journey"></div>
+      <p class="wm-note">The share button was opened <b data-draw="shares" data-source="headline" data-field="shares_30" data-row="0">—</b> times.</p>
+    </section>
+    <section class="wm-card" id="pages">
+      <h2 class="wm-h2">Pages opened, last 30 days</h2>
+      <div class="wm-bars" data-draw="pages" data-source="page"></div>
+    </section>
+    <section class="wm-card" id="areas">
+      <h2 class="wm-h2">Most searched areas, last 30 days</h2>
+      <div class="wm-bars" data-draw="areas" data-source="area"></div>
+    </section>
+  </div>
+
+  <section class="wm-card" id="instagram">
+    <h2 class="wm-h2">Instagram posts</h2>
+    <div class="wm-scroll">
+      <table class="wm-table" data-source="post" data-row-key="post">
+        <thead><tr><th data-field="day">Date</th><th data-field="group">Kind</th><th data-field="caption">Post</th><th class="wm-n" data-field="likes">Likes</th><th class="wm-n" data-field="comments">Comments</th></tr></thead>
+        <tbody data-draw="posts"></tbody>
+      </table>
+    </div>
+    <p class="wm-note">Reach, saves and shares are in the Instagram app. They'd need one more Instagram permission to show here.</p>
+  </section>
+
+  <details class="wm-more" id="definitions">
+    <summary>What these numbers mean</summary>
+    <ul>
+      <li>A visit is someone arriving from outside the site. Moving between its pages doesn't add another.</li>
+      <li>The same person coming back later counts as a new visit, because nothing identifies anyone.</li>
+      <li>Refreshing a page isn't counted, and neither are bots or the Instagram agent.</li>
+      <li>"How far people get" compares slides reached with postcode searches since counting began.</li>
+    </ul>
+  </details>
+</div>
+
+<script>
+  const CATEGORY = { 'Right now': '#4fd6a2', 'History': '#f2b84b', 'New': '#5db4f0', 'How it works': '#b79cf2', 'Did you know?': '#ff8a70' };
+  const SOURCE_NAMES = { direct: 'Typed in or saved link', instagram: 'Instagram', facebook: 'Facebook', search: 'Search engines', x: 'X', whatsapp: 'WhatsApp', telegram: 'Telegram', reddit: 'Reddit', tiktok: 'TikTok', linkedin: 'LinkedIn', other: 'Other websites' };
+  const PAGE_NAMES = { home: 'Home page', method: 'How it works', privacy: 'Privacy' };
+  const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const format = d3.format(',');
+
+  dash.calc('daily', { inputs: ['numbers'], title: 'Daily totals', description: 'Visits, page views, searches and followers for each day.', fn: (numbers) => numbers.filter((row) => row.table === 'daily') });
+  dash.calc('source', { inputs: ['numbers'], title: 'Visit sources', description: 'Where visits came from in the last 30 days.', fn: (numbers) => numbers.filter((row) => row.table === 'source') });
+  dash.calc('page', { inputs: ['numbers'], title: 'Pages opened', description: 'Opens of each page in the last 30 days.', fn: (numbers) => numbers.filter((row) => row.table === 'page') });
+  dash.calc('area', { inputs: ['numbers'], title: 'Searched areas', description: 'Postcode districts searched most in the last 30 days.', fn: (numbers) => numbers.filter((row) => row.table === 'area') });
+  dash.calc('post', { inputs: ['numbers'], title: 'Instagram posts', description: 'Each post with its likes and comments.', fn: (numbers) => numbers.filter((row) => row.table === 'post') });
+  dash.calc('headline', { inputs: ['numbers'], title: 'Headline figures', description: 'Weekly totals, the week before, and account totals.', fn: (numbers) => {
+    const daily = numbers.filter((row) => row.table === 'daily');
+    const summary = numbers.find((row) => row.table === 'summary') || {};
+    const total = (rows, field) => rows.reduce((sum, row) => sum + (Number(row[field]) || 0), 0);
+    const recorded = daily.filter((row) => row.followers !== null && row.followers !== undefined);
+    const weekAgo = recorded.length > 1 ? recorded[Math.max(0, recorded.length - 8)] : null;
+    return [{ visits_7: total(daily.slice(-7), 'visits'), visits_prev: total(daily.slice(-14, -7), 'visits'), searches_7: total(daily.slice(-7), 'searches'), searches_prev: total(daily.slice(-14, -7), 'searches'), followers: summary.followers, followers_change: weekAgo ? summary.followers - weekAgo.followers : null, alerts: summary.alert_signups, shares_30: summary.share_opens, taken: summary.taken }];
+  } });
+  dash.calc('journey', { inputs: ['numbers'], title: 'How far people get', description: 'Slides reached, against postcode searches since counting began.', fn: (numbers) => {
+    const order = [['your-gas', 'Your gas'], ['the-whole-country', 'The whole country'], ['across-britain', 'Across Britain'], ['cost-and-next-24-hours', 'Cost and next 24 hours'], ['your-area-s-history', "Your area's history"], ['best-times', 'Best times'], ['free-alerts', 'Free alerts'], ['could-you-pay-less', 'Could you pay less?']];
+    const summary = numbers.find((row) => row.table === 'summary') || {};
+    const since = summary.counting_since;
+    const searches = since ? numbers.filter((row) => row.table === 'daily' && row.day >= since).slice(-30).reduce((sum, row) => sum + row.searches, 0) : 0;
+    const steps = numbers.filter((row) => row.table === 'step');
+    return [{ step: 'Searched a postcode', people: searches, share: searches ? 1 : 0 }].concat(order.map(([id, name]) => {
+      const found = steps.find((row) => row.step === id);
+      const people = found ? found.people : 0;
+      return { step: name, people, share: searches ? people / searches : 0 };
+    }).filter((row) => row.people > 0));
+  } });
+
+  const ready = (el, name) => {
+    const got = dash.data(name);
+    if (got.status === 'ok') return got.data;
+    el.textContent = got.status === 'error' ? 'Failed to load' : '—';
+    return null;
+  };
+  const headline = (el) => { const rows = ready(el, 'headline'); return rows && rows[0] ? rows[0] : null; };
+  const number = (name, field) => dash.draw(name, (el) => { const h = headline(el); if (h) el.textContent = h[field] === null || h[field] === undefined ? '—' : format(h[field]); });
+  [['visits-say', 'visits_7'], ['searches-say', 'searches_7'], ['visits', 'visits_7'], ['searches', 'searches_7'], ['followers', 'followers'], ['alerts', 'alerts'], ['shares', 'shares_30']].forEach(([name, field]) => number(name, field));
+
+  const change = (name, now, before) => dash.draw(name, (el) => {
+    const h = headline(el);
+    if (!h) return;
+    const diff = h[now] - h[before];
+    el.classList.toggle('wm-good', h[before] > 0 && diff > 0);
+    el.classList.toggle('wm-bad', h[before] > 0 && diff < 0);
+    el.textContent = h[before] > 0 ? `${diff > 0 ? '+' : ''}${format(diff)} on the week before` : 'Nothing the week before to compare';
+  });
+  change('visits-change', 'visits_7', 'visits_prev');
+  change('searches-change', 'searches_7', 'searches_prev');
+  dash.draw('followers-change', (el) => {
+    const h = headline(el);
+    if (!h) return;
+    const diff = h.followers_change;
+    el.classList.toggle('wm-good', diff > 0);
+    el.classList.toggle('wm-bad', diff < 0);
+    el.textContent = diff === null || diff === undefined ? 'Tracking began this week' : `${diff > 0 ? '+' : ''}${format(diff)} in the last week`;
+  });
+  dash.draw('taken', (el) => {
+    const h = headline(el);
+    if (h && h.taken) el.textContent = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' }).format(new Date(h.taken));
+  });
+
+  dash.onData(() => {
+    const got = dash.data('headline');
+    const live = got.status === 'ok' && got.data && got.data[0] && got.data[0].visits_7 > 0;
+    document.querySelectorAll('[data-when]').forEach((el) => { el.hidden = (el.dataset.when === 'live') !== Boolean(live); });
+    document.querySelectorAll('[data-swatch]').forEach((el) => { el.style.background = dash.colors[Number(el.dataset.swatch)]; });
+  });
+
+  dash.draw('trend', (el) => {
+    const data = ready(el, 'daily');
+    if (!data) return;
+    el.replaceChildren();
+    const rows = data.slice(-30).map((row) => ({ ...row, date: new Date(`${row.day}T00:00:00Z`) }));
+    const width = el.clientWidth || 320, height = 220, margin = { top: 12, right: 14, bottom: 24, left: 34 };
+    const x = d3.scaleUtc(d3.extent(rows, (d) => d.date), [margin.left, width - margin.right]);
+    const y = d3.scaleLinear([0, Math.max(4, d3.max(rows, (d) => Math.max(d.visits || 0, d.searches || 0)))], [height - margin.bottom, margin.top]).nice();
+    const series = [{ field: 'visits', name: 'Visits', colour: dash.colors[0] }, { field: 'searches', name: 'Postcode searches', colour: dash.colors[1] }];
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${width} ${height}`).attr('role', 'img').attr('aria-label', 'Line chart of daily visits and postcode searches over the last 30 days');
+    y.ticks(4).filter(Number.isInteger).forEach((tick) => {
+      svg.append('line').attr('x1', margin.left).attr('x2', width - margin.right).attr('y1', y(tick)).attr('y2', y(tick)).style('stroke', 'var(--cds-chart-grid)');
+      svg.append('text').attr('x', margin.left - 6).attr('y', y(tick) + 4).attr('text-anchor', 'end').text(format(tick));
+    });
+    x.ticks(width < 480 ? 3 : 6).forEach((tick) => svg.append('text').attr('x', x(tick)).attr('y', height - 6).attr('text-anchor', 'middle').text(day.format(tick)));
+    series.forEach((s) => {
+      const known = rows.filter((d) => d[s.field] !== null && d[s.field] !== undefined);
+      svg.append('path').datum(known).attr('fill', 'none').attr('stroke-width', 2).style('stroke', s.colour).attr('d', d3.line().x((d) => x(d.date)).y((d) => y(d[s.field])));
+      svg.selectAll(null).data(known.slice(-1)).join('circle').attr('r', 4).attr('cx', (d) => x(d.date)).attr('cy', (d) => y(d[s.field])).style('fill', s.colour);
+    });
+    const cross = svg.append('line').attr('y1', margin.top).attr('y2', height - margin.bottom).style('stroke', 'var(--cds-chart-reference)').style('display', 'none');
+    const tip = d3.select(el).append('div').attr('class', 'wm-tip').style('display', 'none');
+    const place = (event) => {
+      const [px] = d3.pointer(event, svg.node());
+      const px2 = px * (width / (svg.node().getBoundingClientRect().width || width));
+      const d = rows[d3.bisectCenter(rows.map((r) => +r.date), +x.invert(px2))];
+      cross.style('display', null).attr('x1', x(d.date)).attr('x2', x(d.date));
+      tip.style('display', null).text(`${day.format(d.date)}: ${series.map((s) => `${s.name} ${d[s.field] === null || d[s.field] === undefined ? 'not counted' : format(d[s.field])}`).join(', ')}`);
+      const w = tip.node().offsetWidth, room = el.clientWidth;
+      tip.style('left', `${Math.max(0, Math.min(room - w, x(d.date) * (room / width) - w / 2))}px`);
+    };
+    svg.on('pointermove pointerdown', place).on('pointerleave', () => { cross.style('display', 'none'); tip.style('display', 'none'); });
+  });
+
+  const bars = (name, id, label, value, empty, share) => dash.draw(name, (el) => {
+    const rows = ready(el, id);
+    if (!rows) return;
+    if (!rows.length || !d3.max(rows, value)) { const p = document.createElement('p'); p.className = 'wm-empty'; p.textContent = empty; el.replaceChildren(p); return; }
+    const top = d3.max(rows, value);
+    el.replaceChildren(...rows.map((row) => {
+      const line = document.createElement('div'); line.className = 'wm-bar';
+      const left = document.createElement('span'); left.textContent = label(row);
+      const right = document.createElement('b'); right.textContent = share ? `${format(value(row))} (${d3.format('.0%')(row.share)})` : format(value(row));
+      const track = document.createElement('div'); track.className = 'wm-track';
+      const fill = document.createElement('span'); fill.className = 'wm-fill'; fill.style.width = `${100 * value(row) / top}%`; fill.style.background = dash.colors[0];
+      track.append(fill); line.append(left, right, track);
+      return line;
+    }));
+  });
+  bars('sources', 'source', (r) => SOURCE_NAMES[r.source] || r.source, (r) => r.visits, 'No visits counted yet.');
+  bars('journey', 'journey', (r) => r.step, (r) => r.people, 'No searches since counting began.', true);
+  bars('pages', 'page', (r) => PAGE_NAMES[r.page] || r.page, (r) => r.views, 'No pages counted yet.');
+  bars('areas', 'area', (r) => r.district, (r) => r.searches, 'No searches in the last 30 days.');
+
+  dash.draw('posts', (el) => {
+    const got = dash.data('post');
+    if (got.status !== 'ok') { el.replaceChildren(); return; }
+    el.replaceChildren(...got.data.map((row) => {
+      const tr = document.createElement('tr'); tr.dataset.key = row.post;
+      const date = document.createElement('td'); date.textContent = day.format(new Date(`${row.day}T00:00:00Z`));
+      const kind = document.createElement('td'); const tag = document.createElement('span'); tag.className = 'wm-kind'; const dot = document.createElement('i'); dot.style.background = CATEGORY[row.group] || 'var(--cds-chart-muted)'; tag.append(dot, row.group); kind.append(tag);
+      const text = document.createElement('td');
+      if (row.link && row.link.startsWith('https://www.instagram.com/')) { const a = document.createElement('a'); a.href = row.link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = row.caption; text.append(a); } else text.textContent = row.caption;
+      const likes = document.createElement('td'); likes.className = 'wm-n'; likes.textContent = row.likes === null ? '—' : format(row.likes);
+      const comments = document.createElement('td'); comments.className = 'wm-n'; comments.textContent = row.comments === null ? '—' : format(row.comments);
+      tr.append(date, kind, text, likes, comments);
+      return tr;
+    }));
+  });
+</script>

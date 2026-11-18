@@ -175,28 +175,18 @@ async function numbersUpdate(env, preview) {
   const visits = came.reduce((a, x) => a + x[1], 0);
   if (ig && !followers && !likes && !comments && !visits && !lookupsNew && !signupsNew && !sharesNew) return '';
 
-  const social = [
-    followers ? `${signed(followers, 'follower')}, now ${now.followers}` : '',
+  // one line for a phone notification: what changed since the last update
+  const parts = [
+    followers ? `${signed(followers, 'follower')} (${now.followers})` : '',
     likes ? signed(likes, 'like') : '',
     comments ? signed(comments, 'comment') : '',
-    ig ? '' : 'Could not read Instagram this time, so these figures may be behind.',
+    visits ? tally(visits, 'visit') : '',
+    lookupsNew ? tally(lookupsNew, 'lookup') : '',
+    signupsNew ? signed(signupsNew, 'sign-up') : '',
+    ig ? '' : 'Instagram not read',
   ].filter(Boolean);
-  const site = [
-    visits ? `${signed(visits, 'visit')}: ${came.slice(0, 4).map(([s, n]) => `${n} ${SOURCE_NAMES[s] || s}`).join(', ')}` : '',
-    lookupsNew ? signed(lookupsNew, 'postcode lookup') : '',
-    signupsNew ? signed(signupsNew, 'email alert sign-up') : '',
-    sharesNew > 0 ? `${sharesNew} opened the share menu` : '',
-  ].filter(Boolean);
-  const when = saved ? new Date(saved.taken) : null;
-  const lines = [when ? `Since ${part({ weekday: 'short' }).format(when)} ${ukClock.format(when)}` : "Numbers so far. From now on you'll get what's changed at each posting time."];
-  if (social.length) lines.push('', 'Instagram', ...social);
-  if (site.length) lines.push('', 'Website', ...site);
-  if (top && ig) {
-    const row = await env.DB.prepare('SELECT caption FROM social_posts WHERE media_id = ?1').bind(top.id).first();
-    const media = ig.media.find((m) => m.id === top.id), gains = [top.likes > 0 ? signed(top.likes, 'like') : '', top.comments > 0 ? signed(top.comments, 'comment') : ''].filter(Boolean).join(', ');
-    lines.push('', `Top post (${gains}):`, ...(row ? [String(row.caption || '').split('\n')[0].slice(0, 110)] : []), media ? media.permalink : '');
-  }
-  if (saved) lines.push('', `Total so far: ${tally(now.followers, 'follower')}, ${tally(Object.values(now.visits).reduce((a, b) => a + b, 0), 'visit')}, ${tally(now.lookups, 'postcode lookup')}, ${tally(now.signups, 'alert sign-up')}`);
+  if (!parts.length) return '';  // only share-menu opens changed: not worth a notification
+  const lines = [parts.join(', ') + '.'];
   const text = lines.join('\n').trim();
   if (preview) return text;
   if (await telegram(env, text)) await env.DB.prepare('INSERT OR REPLACE INTO report_state (id, data, taken) VALUES (1, ?1, ?2)').bind(JSON.stringify(now), Date.now()).run();
@@ -248,7 +238,7 @@ async function rebuild(env, file = env.GH_WORKFLOW || 'build.yml', inputs) {
     headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'User-Agent': 'wheres-my-energy-relay', 'Content-Type': 'application/json' },
     body: JSON.stringify({ ref: env.GH_REF || 'main', ...(inputs ? { inputs } : {}) }),
   });
-  if (!r.ok && await underLimit(env, 'rebuild-alert', 6 * 3600000, 1)) await telegram(env, `The site rebuild could not be started (GitHub said ${r.status}).`);
+  if (!r.ok && await underLimit(env, 'rebuild-alert', 6 * 3600000, 1)) await telegram(env, 'Site rebuild could not start.');
 }
 
 /* is the public site up to date? Every half-hourly rebuild also reads the readings baked into the live page. If they are
@@ -280,16 +270,13 @@ async function siteHealth(env) {
   const row = await env.DB.prepare('SELECT stale_since, alerted FROM site_health WHERE id = 1').first();
   if (taken && Date.now() - taken <= SITE_STALE) {
     if (row) await env.DB.prepare('DELETE FROM site_health WHERE id = 1').run();
-    if (row?.alerted) await telegram(env, `Fixed: the site is updating again. Latest readings ${ukTime(taken)}.`);
+    if (row?.alerted) await telegram(env, 'Fixed: site updating again.');
     return;
   }
   const since = row?.stale_since || Date.now();
   let alerted = row?.alerted || null;
   if (!alerted || Date.now() - alerted >= SITE_REMIND) {
-    const text = [alerted ? 'Still stale: the site has not updated.' : "The site's data has stopped updating.",
-      taken ? `Latest readings on the live page: ${ukTime(taken)}.` : problem,
-      'Visitors still get a live power mix and best times; the station map, gas flows and prices pause after 12 hours.',
-      await lastBuilds(env), 'A rebuild is retried every 30 minutes automatically.'].filter(Boolean).join('\n\n');
+    const text = (alerted ? 'Site still not updating' : 'Site stopped updating') + (taken ? ` since ${ukTime(taken)}.` : '.') + ' Retrying.';
     if (await telegram(env, text)) alerted = Date.now();
   }
   await env.DB.prepare('INSERT OR REPLACE INTO site_health (id, stale_since, alerted) VALUES (1, ?1, ?2)').bind(since, alerted).run();
@@ -441,16 +428,16 @@ async function morningEmails(env) {
   const { results } = await env.DB.prepare('SELECT email, token, district, region FROM subscribers WHERE confirmed = 1 ORDER BY created').all();
   if (!results.length) return;
   const problems = [];
-  if (results.length > DAILY_CAP) problems.push(`${results.length - DAILY_CAP} subscribers were skipped because the list is over the free daily limit of ${DAILY_CAP}.`);
+  if (results.length > DAILY_CAP) problems.push(`${results.length - DAILY_CAP} alert emails skipped: over the daily limit.`);
   const from = new Date(Math.floor(Date.now() / SLOT) * SLOT).toISOString().slice(0, 16) + 'Z';
   const r = await fetch(`https://api.carbonintensity.org.uk/regional/intensity/${from}/fw24h`, { headers: { Accept: 'application/json' } });
-  if (!r.ok) return telegram(env, `Morning emails were not sent: the forecast said ${r.status}.`);
+  if (!r.ok) return telegram(env, 'Morning emails not sent.');
   const regions = {}, feed = (await r.json()).data, firstSlot = feed[0];
   feed.forEach((slot) => slot.regions.forEach((x) => {
     (regions[x.regionid] = regions[x.regionid] || { name: x.shortname, rows: [] }).rows.push({ t: Date.parse(slot.from), g: x.intensity.forecast });
   }));
   const mails = results.slice(0, DAILY_CAP).filter((s) => regions[s.region] && regions[s.region].rows.length >= 12).map((s) => morningMail(s, regions[s.region], now, todaysFact(s, firstSlot, regions)));
-  if (mails.length && !await sendEmails(env, mails)) problems.push('The email service refused today\'s morning emails.');
+  if (mails.length && !await sendEmails(env, mails)) problems.push('Morning emails refused by the email service.');
   if (problems.length) await telegram(env, problems.join('\n'));
 }
 
@@ -477,12 +464,12 @@ export default {
     if (event.cron === SOCIAL_CRON) {
       if (socialDue(new Date())) {
         ctx.waitUntil(rebuild(env, 'social.yml', { dry_run: '0' }));
-        ctx.waitUntil(numbersUpdate(env).catch((e) => telegram(env, `The numbers update failed: ${e.message}`)));
+        ctx.waitUntil(numbersUpdate(env).catch((e) => telegram(env, 'Numbers update failed.')));
       }
       return;
     }
     if (event.cron === ALERT_CRON) return ctx.waitUntil(morningEmails(env));
     ctx.waitUntil(rebuild(env));
-    ctx.waitUntil(siteHealth(env).catch((e) => telegram(env, `The site health check failed: ${e.message}`)));
+    ctx.waitUntil(siteHealth(env).catch((e) => telegram(env, 'Site health check failed.')));
   },
 };
