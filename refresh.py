@@ -1,4 +1,4 @@
-"""Fetch live GB grid data and write grid_snapshot.json for the GB Grid Live dashboard.
+"""Fetch live GB grid data and write grid_snapshot.json and units_all.json, which build.py and model.py read. Run by build.py.
 
 Sources: Elexon BMRS Insights API and the National Grid ESO Carbon Intensity API (both free, no key).
 Run: python refresh.py   -> writes grid_snapshot.json next to this file and prints a one-line summary.

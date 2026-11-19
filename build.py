@@ -54,7 +54,7 @@ for row in rows:
             perc = {m['fuel']: m['perc'] for m in reg['generationmix']}
             mix[i].append([round(perc.get(f, 0)) for f in FUELS])
 
-# 2. GB-wide stations, imports and prices, from the dashboard's refresh script
+# 2. GB-wide stations, imports and prices, from refresh.py
 subprocess.run([sys.executable, str(HERE / 'refresh.py')], check=True, stdout=subprocess.DEVNULL)
 grid = json.loads((HERE / 'grid_snapshot.json').read_text(encoding='utf8'))
 imports = collections.Counter()
