@@ -36,4 +36,6 @@ Keys never live in this folder: every tool reads them from the Claude folder abo
 
 ## Publishing
 
-Work on `main` in this folder, then: `git pull --rebase origin main && git push origin main`. The pull picks up the monthly data commits the bot makes from 1 December.
+Work on `main` in this folder (`wheres-my-energy-v2`) and commit. Then publish through `../wheres-my-energy`:
+`git pull --rebase origin main && git fetch ../wheres-my-energy-v2 main && git rebase FETCH_HEAD && git push origin main`.
+This folder's pre-push guard stops it pushing to main directly. From 1 December the monthly bot commits to main, so pull those into this folder too before the next change (`git pull --rebase origin main`).
