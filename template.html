@@ -1216,7 +1216,7 @@
   const fuelDk = (k) => DK[k] || DK.other;
   /* each kind of post has its own colour, so a glance at the feed shows what's what */
   const CATEGORY = { now: '#4fd6a2', history: '#f2b84b', new: '#5db4f0', explain: '#b79cf2', fact: '#ff8a70' };
-  const accent = (s) => CATEGORY[s.cat] || DK.go;
+  const accent = (s) => s.accent || CATEGORY[s.cat] || DK.go;  // a slide about one fuel wears that fuel's colour
   const DISPLAY = '"Bricolage Grotesque", "Trebuchet MS", sans-serif', BODY = 'Figtree, "Segoe UI", sans-serif';
   const W = 1080, H = 1920, M = 72;
   function setFont(c, size, weight, fam) { c.font = `${weight} ${size}px ${fam}`; }
@@ -1566,7 +1566,7 @@
       const row = SNAPSHOT.mix[18][slotNow()];
       if (!row) return main;
       const mix = Object.fromEntries(row.map((p, i) => [SNAPSHOT.fuels[i], p])), ranked = fuelRows(mix), fuel = FUEL_NAME[ranked[0][0]] || ranked[0][0], word = fuel.toLowerCase();
-      return make({ art: 'map', glow: fuelDk(ranked[0][0]), stations: true, eyebrow: 'ACROSS GREAT BRITAIN', big: `${Math.round(ranked[0][1])}%`, sub: `of Britain's power is ${word} right now.`, listTitle: 'The mix', list: ranked.slice(0, 5).map(([k, p]) => [fuelDk(k), FUEL_NAME[k] || k, `${Math.round(p)}%`]), strip: fuelStrip(mix), foot: [`Estimate for Great Britain, ${time}. Dots are power stations.`], messageText: `${Math.round(ranked[0][1])}% of Britain's power is ${word} right now. Where's yours from?` });
+      return make({ art: 'map', glow: fuelDk(ranked[0][0]), accent: fuelDk(ranked[0][0]), stations: true, eyebrow: 'ACROSS GREAT BRITAIN', big: `${Math.round(ranked[0][1])}%`, sub: `of Britain's power is ${word} right now.`, listTitle: 'The mix', list: ranked.slice(0, 5).map(([k, p]) => [fuelDk(k), FUEL_NAME[k] || k, `${Math.round(p)}%`]), strip: fuelStrip(mix), foot: [`Estimate for Great Britain, ${time}. Dots are power stations.`], messageText: `${Math.round(ranked[0][1])}% of Britain's power is ${word} right now. Where's yours from?` });
     }
     if (name === 'Britain') {
       const shares = {}, list = Object.keys(NAMES).filter((k) => Number(k) <= 14).map((k) => { shares[k] = regionShare(k); return { id: Number(k), v: shares[k] }; }).sort((a, b) => b.v - a.v).map((x, i) => ({ ...x, at: i + 1 }));
@@ -1610,7 +1610,7 @@
       const fuelPost = (fuel, label, min, word = FUEL_NAME[fuel], verb = 'is') => {
         const v = Math.round(gb[fuel] || 0), y = Math.round(year[fuel] || 0);
         if (v < min) return;
-        add(`fuel-${fuel}`, `fuel-${fuel}`, Math.abs(v - y) / Math.max(y, 10), { art: 'map', glow: fuelDk(fuel), stations: true, only: fuel, big: `${v}%`, sub: `of Britain's power is ${label} right now.`, listTitle: 'The mix', list: list5, strip: strip0 },
+        add(`fuel-${fuel}`, `fuel-${fuel}`, Math.abs(v - y) / Math.max(y, 10), { art: 'map', glow: fuelDk(fuel), accent: fuelDk(fuel), stations: true, only: fuel, big: `${v}%`, sub: `of Britain's power is ${label} right now.`, listTitle: 'The mix', list: list5.some((r) => r[1] === (FUEL_NAME[fuel] || fuel)) ? list5 : [...list5.slice(0, 4), [fuelDk(fuel), FUEL_NAME[fuel] || fuel, `${v}%`]], strip: strip0 },
           `${word} ${verb} supplying ${v}% of Britain's electricity right now. Over the last 12 months the average was ${y}%.`);
       };
       fuelPost('wind', 'coming from wind', 3); fuelPost('solar', 'coming from solar', 5); fuelPost('gas', 'made from gas', 5); fuelPost('imports', 'arriving from abroad', 3, 'Imports', 'are'); fuelPost('nuclear', 'coming from nuclear', 5);
